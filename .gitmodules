@@ -1,0 +1,3 @@
+[submodule "application-profiles-library"]
+	path = application-profiles-library
+	url = ../application-profiles-library.git

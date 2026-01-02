@@ -3,9 +3,7 @@ package cimgen
 import (
 	"crypto/sha256"
 	"fmt"
-	"log"
 	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -20,17 +18,8 @@ func TestSchemaImport(t *testing.T) {
 	}
 	defer f.Close()
 
-	// deprecated shema files included in the repo
-	//schemaFiles := "cgmes_schema/CGMES_3.0.0/IEC61970-600-2_CGMES_3_0_0_RDFS2020_*.rdf"
-	schemaFiles := "cgmes-application-profiles-library/CGMES/CurrentRelease/RDFS/61970-600-2_*-AP-Voc-RDFS2020.rdf"
-	entries, err := filepath.Glob(schemaFiles)
-	if err != nil {
-		log.Fatal(err)
-	}
-	t.Log("Read schema files:", entries)
-
 	cimSpec := NewCIMSpecification()
-	if err := cimSpec.ImportCIMSchemaFiles(schemaFiles); err != nil {
+	if err := cimSpec.ImportCIMSchemaFiles(CGMES3_SCHEMA); err != nil {
 		t.Fatalf("ImportCIMSchemaFiles failed: %v", err)
 	}
 

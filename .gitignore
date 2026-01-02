@@ -1,0 +1,5 @@
+.vscode/*
+tests/
+encoding/cimgostructs
+*.log
+*.json

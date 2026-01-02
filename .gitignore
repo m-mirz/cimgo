@@ -3,3 +3,4 @@ tests/
 encoding/cimgostructs
 *.log
 *.json
+*.out.xml

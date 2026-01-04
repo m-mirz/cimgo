@@ -24,7 +24,7 @@ func TestDecodeEncodeCIMData(t *testing.T) {
 			panic(err)
 		}
 
-		cimData, err := DecodeProfile(bytes.NewReader(b))
+		cimData, err := DecodeProfile(bytes.NewReader(b), nil)
 		if err != nil {
 			panic(err)
 		}

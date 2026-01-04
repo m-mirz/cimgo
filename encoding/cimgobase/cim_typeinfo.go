@@ -1,4 +1,4 @@
-package cimgoinfo
+package cimgobase
 
 type CIMTypeInfo struct {
 	Id         string

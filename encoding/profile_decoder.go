@@ -4,7 +4,6 @@ import (
 	"cimgo/encoding/cimgostructs"
 	"cimgo/encoding/cimgoxml"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"strings"
 )
@@ -27,9 +26,11 @@ type CIMDataset struct {
 	Elements cimgostructs.CIMElementList
 }
 
-func DecodeProfile(r io.Reader) (*cimgostructs.CIMElementList, error) {
+func DecodeProfile(r io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostructs.CIMElementList, error) {
+	if cimData == nil {
+		cimData = cimgostructs.NewCIMElementList()
+	}
 	dec := cimgoxml.NewDecoder(r)
-	cimData := cimgostructs.NewCIMElementList()
 
 	for {
 		token, err := dec.Token()
@@ -46,23 +47,17 @@ func DecodeProfile(r io.Reader) (*cimgostructs.CIMElementList, error) {
 		case xml.StartElement:
 			labelParts := strings.Split(t.Name.Local, ".")
 			labelEnd := labelParts[len(labelParts)-1]
-			spacedLabel := t.Name.Space + ":" + t.Name.Local
-
-			fmt.Println("Found", "StartElement", spacedLabel)
-
-			fmt.Println("Decode", labelEnd)
 
 			if _, ok := cimgostructs.StructMap[labelEnd]; ok {
 				node := cimgostructs.StructMap[labelEnd]()
 
 				if err := dec.DecodeElement(node, &t); err != nil {
-					panic(err)
+					return cimData, err
 				}
 
-				fmt.Println("Decoded", labelEnd, ":", node)
-				cimData.AddElement(node)
-			} else {
-				fmt.Println("Ignoring element", labelEnd)
+				if err := cimData.AddElement(node); err != nil {
+					return cimData, err
+				}
 			}
 
 		case xml.EndElement:

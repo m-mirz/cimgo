@@ -54,11 +54,7 @@ func DeepMerge(existing, new reflect.Value) {
 					DeepMerge(existingField, newField)
 				}
 			} else if newField.Kind() == reflect.Struct {
-				if existingField.CanAddr() {
-					DeepMerge(existingField.Addr(), newField.Addr())
-				} else {
-					existingField.Set(newField)
-				}
+				DeepMerge(existingField.Addr(), newField.Addr())
 			} else {
 				// for primitive types, slices, maps, and non-pointer structs, we just overwrite
 				existingField.Set(newField)

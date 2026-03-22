@@ -1,12 +1,12 @@
 package cimgostructs
 
-import "cimgo/encoding/cimgoinfo"
+import "cimgo/encoding/cimgobase"
 
 type {{.Id}} struct {
 {{- if .SuperType}}
     {{.SuperType}}
 {{- else}}
-    Base
+    cimgobase.Base
 {{- end}}
 
 {{- range .Attributes}}
@@ -24,7 +24,7 @@ type {{.Id}} struct {
 {{- end}}
 }
 
-var info{{.Id}} = cimgoinfo.CIMTypeInfo{
+var info{{.Id}} = cimgobase.CIMTypeInfo{
     Id: "{{.Id}}",
     Label: "{{.Label}}",
     Namespace: "{{.Namespace}}",
@@ -33,7 +33,7 @@ var info{{.Id}} = cimgoinfo.CIMTypeInfo{
     Origin: "{{.Origin}}",
     Origins: []string{ {{- range .Origins}}
         "{{.}}",{{- end}} },
-    Attributes: map[string]cimgoinfo.CIMAttributeInfo{
+    Attributes: map[string]cimgobase.CIMAttributeInfo{
 {{- range .Attributes}}
         "{{.Id}}": {
             Label: "{{.Label}}",

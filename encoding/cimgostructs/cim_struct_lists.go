@@ -8,6 +8,8 @@ func NewCIMElementList() *CIMElementList {
 	return &CIMElementList{}
 }
 
-func (ds *CIMElementList) AddElement(element interface{}) {}
+func (ds *CIMElementList) AddElement(element interface{}) error {
+	return nil
+}
 
 var StructMap = map[string]func() interface{}{}

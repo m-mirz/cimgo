@@ -480,24 +480,4 @@ func (cimSpec *CIMSpecification) renameConflictingAttributes() {
 			}
 		}
 	}
-
-	// Rename enum values if they only differ in case from their enum type to avoid conflicts in languages with case-insensitive enums (e.g., Go)
-	for _, e := range cimSpec.Enums {
-		lowerCaseMap := make(map[string][]*CIMEnumValue)
-		for _, v := range e.Values {
-			lower := strings.ToLower(v.Label)
-			lowerCaseMap[lower] = append(lowerCaseMap[lower], v)
-		}
-
-		for _, values := range lowerCaseMap {
-			if len(values) > 1 {
-				for _, v := range values {
-					if strings.ToUpper(v.Label) == v.Label {
-						v.Label = v.Label + "_u"
-						v.Id = v.Id + "_u"
-					}
-				}
-			}
-		}
-	}
 }

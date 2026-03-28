@@ -1,9 +1,30 @@
 package cimgen
 
+import "strings"
+
 // GenerateProto generates Protocol Buffer source files from the CIM specification.
 func (spec *CIMSpecification) GenerateProto(outputDir string) error {
 	if err := createOutputDir(outputDir); err != nil {
 		return err
+	}
+
+	// Rename enum values if they only differ in case from their enum type to avoid conflicts with case-insensitive enums (e.g., protobuf)
+	for _, e := range spec.Enums {
+		lowerCaseMap := make(map[string][]*CIMEnumValue)
+		for _, v := range e.Values {
+			lower := strings.ToLower(v.Label)
+			lowerCaseMap[lower] = append(lowerCaseMap[lower], v)
+		}
+
+		for _, values := range lowerCaseMap {
+			if len(values) > 1 {
+				for _, v := range values {
+					if strings.ToUpper(v.Label) == v.Label {
+						v.Label = v.Label + "_u"
+					}
+				}
+			}
+		}
 	}
 
 	spec.setLangTypesProto()

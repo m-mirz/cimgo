@@ -51,7 +51,7 @@ func run(logger *log.Logger, schemaPattern, language, cgmesVersion string) error
 
 	outputDir := "encoding/cimgostructs"
 	if language == "proto" {
-		outputDir = "encoding/cimgoproto"
+		outputDir = "proto/definitions"
 	}
 
 	type generatorFunc func(spec *cimgen.CIMSpecification, outputDir string) error

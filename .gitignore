@@ -1,7 +1,7 @@
 .vscode/*
 tests/
 encoding/cimgostructs
-encoding/cimgoproto
+proto
 *.log
 *.json
 *.out.xml

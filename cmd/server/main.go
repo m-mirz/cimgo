@@ -175,7 +175,8 @@ func processCIMFiles(id string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create a nicely formatted JSON: %w", err)
 		}
-		log.Println("Decoded CIM data\n")
+		log.Println("Decoded CIM data")
+
 		// write the merged data back to disk for debugging
 		debugFile := filepath.Join(dirPath, "merged_output.json")
 		if err := os.WriteFile(debugFile, jsonOut, 0644); err != nil {

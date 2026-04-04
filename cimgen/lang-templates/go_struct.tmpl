@@ -10,6 +10,7 @@ type {{.Id}} struct {
 {{- end}}
 
 {{- range .Attributes}}
+{{- if .IsAssociationUsed }}
 {{- if or .IsPrimitive .IsCIMDatatype}}
     {{capitalFirstLetter .Label}} {{.LangType}} `xml:"{{.Id}},omitempty"`
 {{- else if .IsEnumValue}}
@@ -20,6 +21,7 @@ type {{.Id}} struct {
     {{capitalFirstLetter .Label}} *struct {
         MRID string `xml:"resource,attr"`
     } `xml:"{{.Id}},omitempty"`
+{{- end}}
 {{- end}}
 {{- end}}
 }
@@ -35,10 +37,12 @@ var info{{.Id}} = cimgobase.CIMTypeInfo{
         "{{.}}",{{- end}} },
     Attributes: map[string]cimgobase.CIMAttributeInfo{
 {{- range .Attributes}}
+{{- if .IsAssociationUsed }}
         "{{.Id}}": {
             Label: "{{.Label}}",
             IsList: {{.IsList}},
         },
+{{- end}}
 {{- end}}
     },
 }

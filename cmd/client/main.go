@@ -25,7 +25,7 @@ func main() {
 
 	args := flag.Args()
 	if len(args) == 0 {
-		fmt.Println("Error: a command (upload, process, get) is required")
+		fmt.Println("Error: a command (upload, get) is required")
 		os.Exit(1)
 	}
 
@@ -37,8 +37,6 @@ func main() {
 			os.Exit(1)
 		}
 		uploadFiles(*id, args[1:])
-	case "process":
-		processFiles(*id)
 	case "get":
 		getData(*id)
 	default:
@@ -92,30 +90,6 @@ func uploadFiles(id string, filePaths []string) {
 		} else {
 			fmt.Printf("Successfully uploaded %s\n", filePath)
 		}
-	}
-}
-
-func processFiles(id string) {
-	url := fmt.Sprintf("%s/cim/%s/process", serverURL, id)
-	req, err := http.NewRequest("POST", url, nil)
-	if err != nil {
-		fmt.Printf("Error creating process request: %v\n", err)
-		os.Exit(1)
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Error sending process request: %v\n", err)
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Error response from server (HTTP %d): %s\n", resp.StatusCode, string(respBody))
-	} else {
-		fmt.Println(string(respBody))
 	}
 }
 

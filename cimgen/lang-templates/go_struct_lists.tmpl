@@ -34,12 +34,10 @@ func (ds *CIMElementList) AddElement(element interface{}) error {
 	id := elem.GetId()
 
 	if existing, ok := ds.Elements[id]; ok {
-		if reflect.TypeOf(existing) != reflect.TypeOf(element) {
-			return fmt.Errorf("ID conflict: element with ID %s already exists with a different type (%T vs %T)", id, existing, element)
+		err := cimgobase.DeepMerge(reflect.ValueOf(existing), reflect.ValueOf(element))
+		if err != nil {
+			return fmt.Errorf("ID conflict: element with ID %s already exists and cannot be merged: %v", id, err)
 		}
-
-		// Merge attributes
-		cimgobase.DeepMerge(reflect.ValueOf(existing), reflect.ValueOf(element))
 	} else {
 		// Add new element
 		ds.Elements[id] = element

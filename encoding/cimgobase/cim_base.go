@@ -1,6 +1,7 @@
 package cimgobase
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -22,18 +23,42 @@ func (b *Base) GetId() string {
 // DeepMerge recursively merges the fields of two structs.
 // It merges the fields from 'new' into 'existing'.
 // Both 'existing' and 'new' must be pointers to structs.
-func DeepMerge(existing, new reflect.Value) {
+func DeepMerge(existing, new reflect.Value) error {
+
 	// We expect pointers to structs
 	if existing.Kind() != reflect.Ptr || new.Kind() != reflect.Ptr {
-		return
+		return fmt.Errorf("both existing and new must be pointers to structs")
 	}
 	existingElem := existing.Elem()
 	newElem := new.Elem()
 
 	if existingElem.Kind() != reflect.Struct || newElem.Kind() != reflect.Struct {
-		return
+		return fmt.Errorf("both existing and new must be structs")
 	}
 
+	// Types match exactly
+	if existingElem.Type() == newElem.Type() {
+		performLoopMerge(existingElem, newElem)
+		return nil
+	}
+
+	// Types differ - check for embedding
+	indices := FindEmbeddedField(existingElem.Type(), newElem.Type())
+	if indices != nil {
+		// Find the specific nested field that matches the 'new' type
+		targetField := existingElem.FieldByIndex(indices)
+
+		// Now that we have the matching sub-struct, perform the loop merge
+		if targetField.Kind() == reflect.Struct {
+			performLoopMerge(targetField, newElem)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("could not merge new element into existing: types do not match (%T vs %T)", existing, new)
+}
+
+func performLoopMerge(existingElem, newElem reflect.Value) {
 	for i := 0; i < newElem.NumField(); i++ {
 		newField := newElem.Field(i)
 		existingField := existingElem.Field(i)
@@ -61,4 +86,33 @@ func DeepMerge(existing, new reflect.Value) {
 			}
 		}
 	}
+}
+
+func FindEmbeddedField(outerType reflect.Type, targetType reflect.Type) []int {
+	// Standardize to non-pointer types for comparison
+	if outerType.Kind() == reflect.Ptr {
+		outerType = outerType.Elem()
+	}
+	if targetType.Kind() == reflect.Ptr {
+		targetType = targetType.Elem()
+	}
+
+	for i := 0; i < outerType.NumField(); i++ {
+		field := outerType.Field(i)
+
+		// Check if this field is the one we want
+		if field.Type == targetType {
+			return field.Index
+		}
+
+		// If it's an embedded struct, recurse into it
+		if field.Anonymous && field.Type.Kind() == reflect.Struct {
+			deepIndex := FindEmbeddedField(field.Type, targetType)
+			if deepIndex != nil {
+				// Return the full path to the field (field index sequence)
+				return append(field.Index, deepIndex...)
+			}
+		}
+	}
+	return nil
 }

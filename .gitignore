@@ -4,3 +4,4 @@ encoding/cimgostructs
 proto
 *.log
 *.out.xml
+*_test.json

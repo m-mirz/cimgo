@@ -7,7 +7,7 @@ This document outlines how to interact with the CIMgo webserver using `curl`. Th
 First, ensure the webserver is running. Navigate to the project root and execute:
 
 ```bash
-go run ./cmd/server
+go run ./cmd/server/main.go
 ```
 
 ## Endpoints

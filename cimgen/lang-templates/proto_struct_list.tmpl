@@ -1,0 +1,14 @@
+syntax = "proto3";
+package cimgen;
+
+option go_package = "proto/api/v1;apiv1";
+
+{{- range .}}
+import "{{ .Id }}.proto";
+{{- end }}
+
+message CIMElementList {
+{{- range $index, $element := .}}
+  repeated {{ .Id }} {{ .Label }} = {{ add $index 1 }};
+{{- end }}
+}

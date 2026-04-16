@@ -35,6 +35,16 @@ func (spec *CIMSpecification) GenerateProto(outputDir string) error {
 	if err := generateFiles("proto_enum", ".proto", outputDir, spec.Enums); err != nil {
 		return err
 	}
+
+	// Create alphabetically sorted list from Types map for template execution
+	typeList := make([]*CIMType, 0, len(spec.Types))
+	for _, t := range spec.Types {
+		typeList = append(typeList, t)
+	}
+
+	if err := generateFile("proto_struct_list", "cim_struct_list.proto", outputDir, typeList); err != nil {
+		return err
+	}
 	return nil
 }
 

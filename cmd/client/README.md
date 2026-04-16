@@ -29,7 +29,7 @@ First, ensure your webserver is running (`go run ./cmd/webserver`).
 Now, upload a CIM ZIP archive using the client:
 
 ```bash
-go run ./cmd/cim-client -id my_model_1 upload equipment.zip
+go run ./cmd/client/main.go -id my_model_1 upload equipment.zip
 ```
 
 ### 3. `get`

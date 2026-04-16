@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	apiv1 "cimgo/proto/api/v1"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"google.golang.org/protobuf/proto"
 )
 
 const serverURL = "http://localhost:8080"
@@ -39,6 +42,8 @@ func main() {
 		uploadFiles(*id, args[1:])
 	case "get":
 		getData(*id)
+	case "get-proto":
+		getProtoData(*id)
 	default:
 		fmt.Printf("Error: unknown command '%s'\n", command)
 		os.Exit(1)
@@ -124,4 +129,48 @@ func getData(id string) {
 	}
 
 	fmt.Println(prettyJSON.String())
+}
+
+func getProtoData(id string) {
+	url := fmt.Sprintf("%s/cim/%s/proto", serverURL, id)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Error creating get-proto request: %v\n", err)
+		os.Exit(1)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error sending get-proto request: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Error response from server (HTTP %d): %s\n", resp.StatusCode, string(respBody))
+		os.Exit(1)
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading response body: %v\n", err)
+		os.Exit(1)
+	}
+
+	protoList := &apiv1.CIMElementList{}
+	err = proto.Unmarshal(bodyBytes, protoList)
+	if err != nil {
+		fmt.Printf("Error unmarshaling protobuf: %v\n", err)
+		os.Exit(1)
+	}
+
+	jsonOut, err := json.MarshalIndent(protoList, "", "  ")
+	if err != nil {
+		fmt.Printf("Failed to marshal decoded proto to JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(jsonOut))
 }

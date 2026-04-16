@@ -14,10 +14,13 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Global map to store CIM specifications in memory, keyed by ID.
 var cimDataset = make(map[string]*cimgostructs.CIMElementList)
+var protoDataset = make(map[string][]byte)
 var mu sync.RWMutex
 
 const uploadDir = "/tmp/cimgo-uploads"
@@ -42,7 +45,11 @@ func handleCIMRequest(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		uploadFileHandler(w, r, id)
 	case http.MethodGet:
-		getCIMHandler(w, r, id)
+		if len(parts) > 1 && parts[1] == "proto" {
+			getProtoHandler(w, r, id)
+		} else {
+			getCIMHandler(w, r, id)
+		}
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -184,8 +191,26 @@ func processCIMFiles(id string) error {
 		}
 	}
 
+	// Generate Protobuf serialization
+	protoList, err := cimenc.ToProto(mergedCIMData)
+	if err != nil {
+		return fmt.Errorf("failed to convert to proto: %w", err)
+	}
+
+	protoData, err := proto.Marshal(protoList)
+	if err != nil {
+		return fmt.Errorf("failed to marshal to protobuf: %w", err)
+	}
+
+	// Write the proto data back to disk for debugging
+	protoFile := filepath.Join(dirPath, "merged_output.bin")
+	if err := os.WriteFile(protoFile, protoData, 0644); err != nil {
+		log.Printf("Failed to write merged proto output to disk: %v", err)
+	}
+
 	mu.Lock()
 	cimDataset[id] = mergedCIMData
+	protoDataset[id] = protoData
 	mu.Unlock()
 
 	return nil
@@ -206,4 +231,19 @@ func getCIMHandler(w http.ResponseWriter, r *http.Request, id string) {
 		http.Error(w, "Failed to serialize data", http.StatusInternalServerError)
 		return
 	}
+}
+
+func getProtoHandler(w http.ResponseWriter, r *http.Request, id string) {
+	mu.RLock()
+	protoData, ok := protoDataset[id]
+	mu.RUnlock()
+
+	if !ok {
+		http.Error(w, "No data found for this ID", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.bin", id))
+	w.Write(protoData)
 }

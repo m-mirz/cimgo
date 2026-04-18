@@ -12,6 +12,7 @@ type Shape struct {
 	Severity    Term
 	Deactivated bool
 	Messages    []Term
+	Description []Term
 
 	Properties []*Shape // nested sh:property shapes
 
@@ -274,6 +275,10 @@ func parseShapeBasic(g *Graph, s *Shape, shapes map[string]*Shape) {
 	}
 
 	s.Messages = g.Objects(id, IRI(SH+"message"))
+	s.Description = g.Objects(id, IRI(SH+"description"))
+	if len(s.Description) == 0 {
+		s.Description = g.Objects(id, IRI(RDFS+"comment"))
+	}
 
 	propPred := IRI(SH + "property")
 	for _, pn := range g.Objects(id, propPred) {

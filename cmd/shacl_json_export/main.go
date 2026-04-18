@@ -131,120 +131,219 @@ func generateMarkdown(title string, wrapped map[string]*ShapeWrapper) string {
 	}
 	sort.Strings(keys)
 
+	var shapes []*ShapeWrapper
 	for _, k := range keys {
-		sw := wrapped[k]
-		if sw.IsProperty && sw.Path != nil {
-			// Skip standalone property shapes if they are already nested,
-			// but wait, how do we know? Actually, we'll just list all shapes.
-		}
-		renderShape(&sb, sw, 2)
+		shapes = append(shapes, wrapped[k])
 	}
+
+	renderShapes(&sb, shapes, 2)
 
 	return sb.String()
 }
 
-func renderShape(sb *strings.Builder, sw *ShapeWrapper, level int) {
-	title := simplifyTerm(sw.ID)
-	if sw.IsProperty && sw.Path != nil {
-		title = fmt.Sprintf("Property: `%s`", formatPath(sw.Path))
+func logicKey(sw *ShapeWrapper) string {
+	type logic struct {
+		Severity    string
+		Messages    []string
+		Description []string
+		Constraints []ConstraintWrapper
+		Closed      bool
+		ClosedBy    bool
+		Ignored     []string
+		Properties  []string // recursion
 	}
 
-	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), title))
+	l := logic{
+		Severity: sw.Severity.Value(),
+		Closed:   sw.Closed,
+		ClosedBy: sw.ClosedByTypes,
+	}
+	for _, m := range sw.Messages {
+		l.Messages = append(l.Messages, m.String())
+	}
+	sort.Strings(l.Messages)
+	for _, d := range sw.Description {
+		l.Description = append(l.Description, d.String())
+	}
+	sort.Strings(l.Description)
+	for _, ip := range sw.IgnoredProperties {
+		l.Ignored = append(l.Ignored, ip.Value())
+	}
+	sort.Strings(l.Ignored)
+	l.Constraints = sw.Constraints // ConstraintWrapper already marshals to stable JSON
+	for _, p := range sw.Properties {
+		l.Properties = append(l.Properties, logicKey(p))
+	}
+	sort.Strings(l.Properties)
 
-	if sw.Severity.Value() != "" && sw.Severity.Value() != "http://www.w3.org/ns/shacl#Violation" {
-		sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", simplifyTerm(sw.Severity)))
+	data, _ := json.Marshal(l)
+	return string(data)
+}
+
+func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int) {
+	if len(shapes) == 0 {
+		return
 	}
 
-	if len(sw.Messages) > 0 {
-		sb.WriteString("**Messages:**\n")
-		for _, m := range sw.Messages {
-			sb.WriteString(fmt.Sprintf("- %s\n", simplifyTerm(m)))
+	// Group shapes by logicKey
+	groups := make(map[string][]*ShapeWrapper)
+	var keys []string
+	for _, s := range shapes {
+		key := logicKey(s)
+		if _, ok := groups[key]; !ok {
+			keys = append(keys, key)
+		}
+		groups[key] = append(groups[key], s)
+	}
+
+	for _, key := range keys {
+		group := groups[key]
+		first := group[0]
+
+		var titles []string
+		for _, s := range group {
+			title := simplifyTerm(s.ID)
+			if s.IsProperty && s.Path != nil {
+				title = fmt.Sprintf("`%s`", formatPath(s.Path))
+			}
+			titles = append(titles, title)
+		}
+		sort.Strings(titles)
+
+		heading := ""
+		if first.IsProperty && first.Path != nil {
+			if len(group) > 1 {
+				heading = fmt.Sprintf("Properties (%d)", len(group))
+			} else {
+				heading = "Property"
+			}
+		} else {
+			if len(group) > 1 {
+				heading = fmt.Sprintf("Shapes (%d)", len(group))
+			} else {
+				heading = "Shape"
+			}
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), heading))
+
+		for _, t := range titles {
+			sb.WriteString(fmt.Sprintf("- %s\n", t))
 		}
 		sb.WriteString("\n")
-	}
 
-	if !sw.IsProperty {
-		if len(sw.Targets) > 0 {
-			sb.WriteString("**Targets:**\n")
-			for _, t := range sw.Targets {
-				sb.WriteString(fmt.Sprintf("- %s: %s\n", t.Kind.String(), simplifyTerm(t.Value)))
+		if len(first.Description) > 0 {
+			for _, d := range first.Description {
+				sb.WriteString(fmt.Sprintf("%s\n\n", d.Value()))
+			}
+		}
+
+		if first.Severity.Value() != "" && first.Severity.Value() != "http://www.w3.org/ns/shacl#Violation" {
+			sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", simplifyTerm(first.Severity)))
+		}
+
+		if len(first.Messages) > 0 {
+			sb.WriteString("**Messages:**\n")
+			for _, m := range first.Messages {
+				sb.WriteString(fmt.Sprintf("- %s\n", simplifyTerm(m)))
 			}
 			sb.WriteString("\n")
 		}
-	}
 
-	type sparqlInfo struct {
-		id    string
-		query string
-	}
-	var sparqlQueries []sparqlInfo
-
-	if sw.Values != nil {
-		query := sw.Values.Prefixes + sw.Values.Select
-		if sw.Values.Expr != "" {
-			query = sw.Values.Prefixes + "SELECT (" + sw.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
-		}
-		sparqlQueries = append(sparqlQueries, sparqlInfo{id: "Values", query: query})
-		sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
-	}
-
-	if len(sw.Constraints) > 0 {
-		sb.WriteString("**Constraints:**\n\n")
-		sb.WriteString("| Component | Details |\n")
-		sb.WriteString("| --- | --- |\n")
-		for i, c := range sw.Constraints {
-			typeName := simplifyIRI(c.Type)
-
-			displayData := c.Data
-			var severityOverride string
-			if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
-				displayData = soc.Inner()
-				severityOverride = fmt.Sprintf("<br>**Severity:** %s", simplifyTerm(soc.Severity))
-			}
-
-			data, _ := json.Marshal(displayData)
-			var m map[string]any
-			json.Unmarshal(data, &m)
-			var details []string
-
-			// Special handling for SPARQLConstraint
-			if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
-				id := fmt.Sprintf("SPARQL-%d", i+1)
-				sparqlQueries = append(sparqlQueries, sparqlInfo{id: id, query: sc.Prefixes + sc.Select})
-				details = append(details, fmt.Sprintf("Query: [See %s below](#%s) ", id, strings.ToLower(id)))
-				if len(sc.Messages) > 0 {
-					var msgs []string
-					for _, msg := range sc.Messages {
-						msgs = append(msgs, simplifyTerm(msg))
+		// Targets are usually on NodeShapes (not property shapes)
+		// If we grouped NodeShapes, we should show all their targets.
+		var allTargets []string
+		seenTargets := make(map[string]bool)
+		for _, s := range group {
+			if !s.IsProperty {
+				for _, t := range s.Targets {
+					ts := fmt.Sprintf("- %s: %s", t.Kind.String(), simplifyTerm(t.Value))
+					if !seenTargets[ts] {
+						allTargets = append(allTargets, ts)
+						seenTargets[ts] = true
 					}
-					details = append(details, fmt.Sprintf("Messages: `[%s]` ", strings.Join(msgs, ", ")))
-				}
-			} else {
-				for k, v := range m {
-					if k == "Prefixes" {
-						continue
-					}
-					details = append(details, fmt.Sprintf("%s: `%s` ", k, formatValue(v)))
 				}
 			}
-			sort.Strings(details)
-
-			sb.WriteString(fmt.Sprintf("| %s | %s%s |\n", typeName, strings.Join(details, "<br>"), severityOverride))
 		}
-		sb.WriteString("\n")
-	}
-
-	if len(sparqlQueries) > 0 {
-		sb.WriteString("#### SPARQL Queries\n\n")
-		for _, sq := range sparqlQueries {
-			sb.WriteString(fmt.Sprintf("##### %s\n```sparql\n%s\n```\n\n", sq.id, sq.query))
+		if len(allTargets) > 0 {
+			sb.WriteString("**Targets:**\n")
+			for _, t := range allTargets {
+				sb.WriteString(t + "\n")
+			}
+			sb.WriteString("\n")
 		}
-	}
 
-	if len(sw.Properties) > 0 {
-		sb.WriteString("**Nested Properties:**\n\n")
-		for _, ps := range sw.Properties {
-			renderShape(sb, ps, level+1)
+		type sparqlInfo struct {
+			id    string
+			query string
+		}
+		var sparqlQueries []sparqlInfo
+
+		if first.Values != nil {
+			query := first.Values.Prefixes + first.Values.Select
+			if first.Values.Expr != "" {
+				query = first.Values.Prefixes + "SELECT (" + first.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
+			}
+			sparqlQueries = append(sparqlQueries, sparqlInfo{id: "Values", query: query})
+			sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
+		}
+
+		if len(first.Constraints) > 0 {
+			sb.WriteString("**Constraints:**\n\n")
+			sb.WriteString("| Component | Details |\n")
+			sb.WriteString("| --- | --- |\n")
+			for i, c := range first.Constraints {
+				typeName := simplifyIRI(c.Type)
+
+				displayData := c.Data
+				var severityOverride string
+				if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
+					displayData = soc.Inner()
+					severityOverride = fmt.Sprintf("<br>**Severity:** %s", simplifyTerm(soc.Severity))
+				}
+
+				data, _ := json.Marshal(displayData)
+				var m map[string]any
+				json.Unmarshal(data, &m)
+				var details []string
+
+				// Special handling for SPARQLConstraint
+				if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
+					id := fmt.Sprintf("SPARQL-%d", i+1)
+					sparqlQueries = append(sparqlQueries, sparqlInfo{id: id, query: sc.Prefixes + sc.Select})
+					details = append(details, fmt.Sprintf("Query: [See %s below](#%s) ", id, strings.ToLower(id)))
+					if len(sc.Messages) > 0 {
+						var msgs []string
+						for _, msg := range sc.Messages {
+							msgs = append(msgs, simplifyTerm(msg))
+						}
+						details = append(details, fmt.Sprintf("Messages: `[%s]` ", strings.Join(msgs, ", ")))
+					}
+				} else {
+					for k, v := range m {
+						if k == "Prefixes" {
+							continue
+						}
+						details = append(details, fmt.Sprintf("%s: `%s` ", k, formatValue(v)))
+					}
+				}
+				sort.Strings(details)
+
+				sb.WriteString(fmt.Sprintf("| %s | %s%s |\n", typeName, strings.Join(details, "<br>"), severityOverride))
+			}
+			sb.WriteString("\n")
+		}
+
+		if len(sparqlQueries) > 0 {
+			sb.WriteString("#### SPARQL Queries\n\n")
+			for _, sq := range sparqlQueries {
+				sb.WriteString(fmt.Sprintf("##### %s\n```sparql\n%s\n```\n\n", sq.id, sq.query))
+			}
+		}
+
+		if len(first.Properties) > 0 {
+			sb.WriteString("**Nested Properties:**\n\n")
+			renderShapes(sb, first.Properties, level+1)
 		}
 	}
 }

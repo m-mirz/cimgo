@@ -19,7 +19,7 @@ func loadShapes(t *testing.T, turtle string) map[string]*Shape {
 	if err != nil {
 		t.Fatalf("failed to parse turtle: %v", err)
 	}
-	return parseShapes(g)
+	return ParseShapes(g)
 }
 
 func findShape(shapes map[string]*Shape, iriSubstring string) *Shape {

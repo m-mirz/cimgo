@@ -5902,7 +5902,7 @@ ex:Shape a sh:NodeShape ;
     sh:datatype xsd:integer .
 `
 	g := loadTurtle(&testing.T{}, data)
-	shapes := parseShapes(g)
+	shapes := ParseShapes(g)
 	expr := &FindFirstExpr{
 		ShapeRef: IRI("http://example.org/Shape"),
 		Nodes: &multiTermExpr{terms: []Term{

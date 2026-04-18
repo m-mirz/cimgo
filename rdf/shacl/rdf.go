@@ -6,6 +6,7 @@
 package shacl
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -124,6 +125,20 @@ func (t Term) Equal(other Term) bool {
 		return t.value == other.value
 	}
 	return false
+}
+
+func (t Term) MarshalJSON() ([]byte, error) {
+	m := map[string]string{
+		"kind":  t.kind.String(),
+		"value": t.value,
+	}
+	if t.datatype != "" {
+		m["datatype"] = t.datatype
+	}
+	if t.language != "" {
+		m["language"] = t.language
+	}
+	return json.Marshal(m)
 }
 
 // IRI constructs a new IRI term.

@@ -90,8 +90,8 @@ type evalContext struct {
 	classInstances map[string][]Term // class TermKey → instances with that rdf:type
 }
 
-// parseShapes extracts all NodeShapes and PropertyShapes from the shapes graph.
-func parseShapes(g *Graph) map[string]*Shape {
+// ParseShapes extracts all NodeShapes and PropertyShapes from the shapes graph.
+func ParseShapes(g *Graph) map[string]*Shape {
 	shapes := make(map[string]*Shape)
 
 	typePred := IRI(RDFType)

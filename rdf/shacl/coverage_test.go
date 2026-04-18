@@ -3024,7 +3024,7 @@ func TestDeactivatedConstraintComponentIRI(t *testing.T) {
 
 func TestSeverityOverrideConstraintComponentIRI(t *testing.T) {
 	inner := &MinCountConstraint{MinCount: 1}
-	sc := &severityOverrideConstraint{inner: inner, severity: IRI(SH + "Warning")}
+	sc := &SeverityOverrideConstraint{InnerConstraint: inner, Severity: IRI(SH + "Warning")}
 	iri := sc.ComponentIRI()
 	if iri != SH+"MinCountConstraintComponent" {
 		t.Errorf("unexpected IRI: %s", iri)

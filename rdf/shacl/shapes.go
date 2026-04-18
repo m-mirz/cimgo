@@ -317,7 +317,7 @@ func applyConstraintAnnotations(g *Graph, s *Shape) {
 		}
 		if sev, exists := ann[SH+"severity"]; exists {
 			// Wrap with severity override
-			s.Constraints[i] = &severityOverrideConstraint{inner: c, severity: sev}
+			s.Constraints[i] = &SeverityOverrideConstraint{InnerConstraint: c, Severity: sev}
 		}
 	}
 }
@@ -460,17 +460,19 @@ func (c *deactivatedConstraint) Evaluate(_ *evalContext, _ *Shape, _ Term, _ []T
 	return nil
 }
 
-// severityOverrideConstraint wraps a constraint and overrides the result severity.
-type severityOverrideConstraint struct {
-	inner    Constraint
-	severity Term
+// SeverityOverrideConstraint wraps a constraint and overrides the result severity.
+type SeverityOverrideConstraint struct {
+	InnerConstraint Constraint
+	Severity        Term
 }
 
-func (c *severityOverrideConstraint) ComponentIRI() string { return c.inner.ComponentIRI() }
-func (c *severityOverrideConstraint) Evaluate(ctx *evalContext, shape *Shape, focusNode Term, valueNodes []Term) []ValidationResult {
-	results := c.inner.Evaluate(ctx, shape, focusNode, valueNodes)
+func (c *SeverityOverrideConstraint) ComponentIRI() string { return c.InnerConstraint.ComponentIRI() }
+func (c *SeverityOverrideConstraint) Evaluate(ctx *evalContext, shape *Shape, focusNode Term, valueNodes []Term) []ValidationResult {
+	results := c.InnerConstraint.Evaluate(ctx, shape, focusNode, valueNodes)
 	for i := range results {
-		results[i].ResultSeverity = c.severity
+		results[i].ResultSeverity = c.Severity
 	}
 	return results
 }
+
+func (c *SeverityOverrideConstraint) Inner() Constraint { return c.InnerConstraint }

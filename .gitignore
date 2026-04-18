@@ -5,3 +5,4 @@ proto
 *.log
 *.out.xml
 *_test.json
+pages

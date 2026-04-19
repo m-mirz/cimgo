@@ -372,163 +372,152 @@ func formatValue(v any) string {
 	return fmt.Sprint(v)
 }
 
+type fileStats struct {
+	name   string
+	mdPath string
+	counts map[string]int
+}
+
 func main() {
 	flagJSON := flag.Bool("json", false, "Generate JSON output")
 	flagMD := flag.Bool("md", false, "Generate Markdown output")
 	shaclPattern := flag.String("shacl", SHACL_SCHEMA, "glob pattern for shacl files")
-	outputDir := flag.String("out", "pages", "output directory for generated files")
+	outputDir := flag.String("out", "pages/docs", "output directory for generated files")
 	flag.Parse()
 
-	mdOutDir := filepath.Join(*outputDir, "SHACL")
-	jsonOutDir := filepath.Join(*outputDir, "json")
-
-	doJSON := *flagJSON
-	doMD := *flagMD
+	doJSON, doMD := *flagJSON, *flagMD
 	if !doJSON && !doMD {
-		doJSON = false
 		doMD = true
 	}
 
-	type fileStats struct {
-		name   string
-		mdPath string
-		counts map[string]int
+	shaclFiles, err := filepath.Glob(*shaclPattern)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error globbing files: %v\n", err)
+		return
 	}
+
 	var allStats []fileStats
 	allConstraintTypes := make(map[string]bool)
 
-	// Find all SHACL files matching the pattern
-	shaclFiles, err := filepath.Glob(*shaclPattern)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error globbing files with pattern %s: %v\n", *shaclPattern, err)
-		return
-	}
-	if len(shaclFiles) == 0 {
-		fmt.Fprintf(os.Stderr, "No files found matching pattern %s\n", *shaclPattern)
-		return
-	}
-
 	for _, file := range shaclFiles {
-		g, err := shacl.LoadTurtleFile(file)
+		stats, err := processFile(file, doJSON, doMD, *outputDir, allConstraintTypes)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error loading %s: %v\n", file, err)
+			fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", file, err)
 			continue
 		}
-
-		shapes := shacl.ParseShapes(g)
-		wrapped := make(map[string]*ShapeWrapper)
-
-		baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
-		stats := fileStats{name: baseName, counts: make(map[string]int)}
-
-		isNested := make(map[string]bool)
-		for _, s := range shapes {
-			for _, ps := range s.Properties {
-				isNested[ps.ID.String()] = true
-			}
-		}
-
-		for k, s := range shapes {
-			w := wrapShape(s)
-			if !isNested[k] {
-				wrapped[k] = w
-			}
-			for _, c := range w.Constraints {
-				typeName := simplifyIRI(c.Type)
-				stats.counts[typeName]++
-				allConstraintTypes[typeName] = true
-			}
-		}
-
-		// JSON Export
-		if doJSON {
-			data, err := json.MarshalIndent(wrapped, "", "  ")
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error marshaling shapes from %s: %v\n", file, err)
-			} else {
-				if err := os.MkdirAll(jsonOutDir, 0755); err != nil {
-					fmt.Fprintf(os.Stderr, "Error creating JSON directory %s: %v\n", jsonOutDir, err)
-				} else {
-					jsonFile := filepath.Join(jsonOutDir, baseName+".json")
-					err = os.WriteFile(jsonFile, data, 0644)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Error writing JSON to %s: %v\n", jsonFile, err)
-					} else {
-						fmt.Printf("Exported JSON to %s\n", jsonFile)
-					}
-				}
-			}
-		}
-
-		// Markdown Export
-		if doMD {
-			if err := os.MkdirAll(mdOutDir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating Markdown directory %s: %v\n", mdOutDir, err)
-			} else {
-				mdFile := filepath.Join(mdOutDir, baseName+".md")
-				stats.mdPath = mdFile
-				mdData := generateMarkdown(baseName, wrapped)
-				err = os.WriteFile(mdFile, []byte(mdData), 0644)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error writing Markdown to %s: %v\n", mdFile, err)
-				} else {
-					fmt.Printf("Exported Markdown to %s\n", mdFile)
-				}
-			}
-		}
 		allStats = append(allStats, stats)
-
 	}
 
 	if doMD && len(allStats) > 0 {
-		var sb strings.Builder
-		sb.WriteString("# SHACL Constraints Overview\n\n")
+		writeOverview(*outputDir, allStats, allConstraintTypes)
+	}
+}
 
-		var types []string
-		for t := range allConstraintTypes {
-			types = append(types, t)
+func processFile(file string, doJSON, doMD bool, outputDir string, allConstraintTypes map[string]bool) (fileStats, error) {
+	g, err := shacl.LoadTurtleFile(file)
+	if err != nil {
+		return fileStats{}, err
+	}
+
+	shapes := shacl.ParseShapes(g)
+	wrapped := make(map[string]*ShapeWrapper)
+	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+	stats := fileStats{name: baseName, counts: make(map[string]int)}
+
+	isNested := make(map[string]bool)
+	for _, s := range shapes {
+		for _, ps := range s.Properties {
+			isNested[ps.ID.String()] = true
 		}
-		sort.Strings(types)
+	}
 
-		// Header
-		sb.WriteString("| File | " + strings.Join(types, " | ") + " |\n")
-		sb.WriteString("| --- | " + strings.Repeat(" --- |", len(types)) + "\n")
-
-		// Rows
-		totals := make(map[string]int)
-		for _, s := range allStats {
-			fileName := s.name
-			if s.mdPath != "" {
-				fileName = fmt.Sprintf("[%s](SHACL/%s.md)", s.name, s.name)
-			}
-			row := "| " + fileName
-			for _, t := range types {
-				count := s.counts[t]
-				totals[t] += count
-				if count == 0 {
-					row += " | -"
-				} else {
-					row += fmt.Sprintf(" | %d", count)
-				}
-			}
-			row += " |\n"
-			sb.WriteString(row)
+	for k, s := range shapes {
+		w := wrapShape(s)
+		if !isNested[k] {
+			wrapped[k] = w
 		}
+		for _, c := range w.Constraints {
+			typeName := simplifyIRI(c.Type)
+			stats.counts[typeName]++
+			allConstraintTypes[typeName] = true
+		}
+	}
 
-		// Total row
-		row := "| **Total**"
+	if doJSON {
+		jsonOutDir := filepath.Join(outputDir, "json")
+		if err := os.MkdirAll(jsonOutDir, 0755); err != nil {
+			return stats, err
+		}
+		data, _ := json.MarshalIndent(wrapped, "", "  ")
+		jsonFile := filepath.Join(jsonOutDir, baseName+".json")
+		if err := os.WriteFile(jsonFile, data, 0644); err != nil {
+			return stats, err
+		}
+		fmt.Printf("Exported JSON to %s\n", jsonFile)
+	}
+
+	if doMD {
+		mdOutDir := filepath.Join(outputDir, "SHACL")
+		if err := os.MkdirAll(mdOutDir, 0755); err != nil {
+			return stats, err
+		}
+		mdFile := filepath.Join(mdOutDir, baseName+".md")
+		stats.mdPath = mdFile
+		mdData := generateMarkdown(baseName, wrapped)
+		if err := os.WriteFile(mdFile, []byte(mdData), 0644); err != nil {
+			return stats, err
+		}
+		fmt.Printf("Exported Markdown to %s\n", mdFile)
+	}
+
+	return stats, nil
+}
+
+func writeOverview(outputDir string, allStats []fileStats, allConstraintTypes map[string]bool) {
+	var sb strings.Builder
+	sb.WriteString("# SHACL Constraints Overview\n\n")
+
+	var types []string
+	for t := range allConstraintTypes {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+
+	sb.WriteString("| File | " + strings.Join(types, " | ") + " |\n")
+	sb.WriteString("| --- | " + strings.Repeat(" --- |", len(types)) + "\n")
+
+	totals := make(map[string]int)
+	for _, s := range allStats {
+		fileName := s.name
+		if s.mdPath != "" {
+			fileName = fmt.Sprintf("[%s](SHACL/%s.md)", s.name, s.name)
+		}
+		row := "| " + fileName
 		for _, t := range types {
-			row += fmt.Sprintf(" | **%d**", totals[t])
+			count := s.counts[t]
+			totals[t] += count
+			if count == 0 {
+				row += " | -"
+			} else {
+				row += fmt.Sprintf(" | %d", count)
+			}
 		}
 		row += " |\n"
 		sb.WriteString(row)
+	}
 
-		shaclOverviewFile := filepath.Join(*outputDir, "SHACL-Overview.md")
-		err := os.WriteFile(shaclOverviewFile, []byte(sb.String()), 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing overview Markdown: %v\n", err)
-		} else {
-			fmt.Println("Exported Overview to SHACL-Overview.md")
-		}
+	row := "| **Total**"
+	for _, t := range types {
+		row += fmt.Sprintf(" | **%d**", totals[t])
+	}
+	row += " |\n"
+	sb.WriteString(row)
+
+	shaclOverviewFile := filepath.Join(outputDir, "SHACL-Overview.md")
+	if err := os.WriteFile(shaclOverviewFile, []byte(sb.String()), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing overview Markdown: %v\n", err)
+	} else {
+		fmt.Println("Exported Overview to SHACL-Overview.md")
 	}
 }
+

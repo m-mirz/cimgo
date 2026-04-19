@@ -1,3 +1,6 @@
 [submodule "application-profiles-library"]
 	path = application-profiles-library
 	url = ../application-profiles-library.git
+[submodule "CGMES-Test-Configurations"]
+	path = CGMES-Test-Configurations
+	url = https://github.com/m-mirz/CGMES-Test-Configurations.git

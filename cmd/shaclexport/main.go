@@ -145,8 +145,10 @@ func generateMarkdown(title string, wrapped map[string]*ShapeWrapper) string {
 	return sb.String()
 }
 
-func logicKey(sw *ShapeWrapper) string {
+func logicKey(sw *ShapeWrapper, includeIdentity bool) string {
 	type logic struct {
+		ID          string
+		Path        string
 		Severity    string
 		Messages    []string
 		Description []string
@@ -162,21 +164,27 @@ func logicKey(sw *ShapeWrapper) string {
 		Closed:   sw.Closed,
 		ClosedBy: sw.ClosedByTypes,
 	}
+
+	if includeIdentity {
+		l.ID = simplifyTerm(sw.ID)
+		l.Path = formatPath(sw.Path)
+		for _, d := range sw.Description {
+			l.Description = append(l.Description, d.String())
+		}
+		sort.Strings(l.Description)
+	}
+
 	for _, m := range sw.Messages {
 		l.Messages = append(l.Messages, m.String())
 	}
 	sort.Strings(l.Messages)
-	for _, d := range sw.Description {
-		l.Description = append(l.Description, d.String())
-	}
-	sort.Strings(l.Description)
 	for _, ip := range sw.IgnoredProperties {
 		l.Ignored = append(l.Ignored, ip.Value())
 	}
 	sort.Strings(l.Ignored)
 	l.Constraints = sw.Constraints // ConstraintWrapper already marshals to stable JSON
 	for _, p := range sw.Properties {
-		l.Properties = append(l.Properties, logicKey(p))
+		l.Properties = append(l.Properties, logicKey(p, includeIdentity))
 	}
 	sort.Strings(l.Properties)
 
@@ -189,52 +197,54 @@ func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int) {
 		return
 	}
 
-	// Group shapes by logicKey
+	// Group shapes by logicKey. At top-level (level 2), we keep them separate by ID.
+	// For nested properties (level > 2), we group them by constraints/logic.
 	groups := make(map[string][]*ShapeWrapper)
 	var keys []string
 	for _, s := range shapes {
-		key := logicKey(s)
+		key := logicKey(s, level == 2)
 		if _, ok := groups[key]; !ok {
 			keys = append(keys, key)
 		}
 		groups[key] = append(groups[key], s)
 	}
+	sort.Strings(keys)
 
 	for _, key := range keys {
 		group := groups[key]
 		first := group[0]
 
 		var titles []string
+		seenTitle := make(map[string]bool)
 		for _, s := range group {
 			title := simplifyTerm(s.ID)
 			if s.IsProperty && s.Path != nil {
 				title = fmt.Sprintf("`%s`", formatPath(s.Path))
 			}
-			titles = append(titles, title)
+			if !seenTitle[title] {
+				titles = append(titles, title)
+				seenTitle[title] = true
+			}
 		}
 		sort.Strings(titles)
 
-		heading := ""
-		if first.IsProperty && first.Path != nil {
-			if len(group) > 1 {
-				heading = fmt.Sprintf("Properties (%d)", len(group))
+		heading := strings.Join(titles, ", ")
+		if level > 2 && len(group) > 1 {
+			if len(titles) <= 3 {
+				heading = fmt.Sprintf("Property Group (%d): %s", len(group), heading)
 			} else {
-				heading = "Property"
-			}
-		} else {
-			if len(group) > 1 {
-				heading = fmt.Sprintf("Shapes (%d)", len(group))
-			} else {
-				heading = "Shape"
+				heading = fmt.Sprintf("Property Group (%d)", len(group))
 			}
 		}
-
 		sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), heading))
 
-		for _, t := range titles {
-			sb.WriteString(fmt.Sprintf("- %s\n", t))
+		if level > 2 && len(group) > 1 {
+			sb.WriteString("**Properties:**\n")
+			for _, t := range titles {
+				sb.WriteString(fmt.Sprintf("- %s\n", t))
+			}
+			sb.WriteString("\n")
 		}
-		sb.WriteString("\n")
 
 		if len(first.Description) > 0 {
 			for _, d := range first.Description {

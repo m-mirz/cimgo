@@ -421,9 +421,18 @@ func main() {
 		baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 		stats := fileStats{name: baseName, counts: make(map[string]int)}
 
+		isNested := make(map[string]bool)
+		for _, s := range shapes {
+			for _, ps := range s.Properties {
+				isNested[ps.ID.String()] = true
+			}
+		}
+
 		for k, s := range shapes {
 			w := wrapShape(s)
-			wrapped[k] = w
+			if !isNested[k] {
+				wrapped[k] = w
+			}
 			for _, c := range w.Constraints {
 				typeName := simplifyIRI(c.Type)
 				stats.counts[typeName]++

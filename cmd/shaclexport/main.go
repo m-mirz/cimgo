@@ -15,137 +15,50 @@ const (
 	SHACL_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
 )
 
-type ConstraintWrapper struct {
-	Type string
-	Data shacl.Constraint
-}
-
-func (cw ConstraintWrapper) MarshalJSON() ([]byte, error) {
-	// We want to combine the Type field and the data from the constraint
-	data, err := json.Marshal(cw.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	var m map[string]any
-	err = json.Unmarshal(data, &m)
-	if err != nil {
-		// If it's not a map (e.g. basic type), just use a simple wrapper
-		return json.Marshal(map[string]any{
-			"type": cw.Type,
-			"data": cw.Data,
-		})
-	}
-
-	m["_type"] = cw.Type
-	return json.Marshal(m)
-}
-
-type ShapeWrapper struct {
-	*shacl.Shape
-	Constraints []ConstraintWrapper
-	Properties  []*ShapeWrapper
-}
-
-func wrapShape(s *shacl.Shape) *ShapeWrapper {
-	if s == nil {
-		return nil
-	}
-	sw := &ShapeWrapper{
-		Shape: s,
-	}
-	for _, c := range s.Constraints {
-		sw.Constraints = append(sw.Constraints, ConstraintWrapper{
-			Type: c.ComponentIRI(),
-			Data: c,
-		})
-	}
-	for _, ps := range s.Properties {
-		sw.Properties = append(sw.Properties, wrapShape(ps))
-	}
-	return sw
-}
-
-var prefixes = map[string]string{
-	"http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
-	"http://www.w3.org/2000/01/rdf-schema#":       "rdfs",
-	"http://www.w3.org/2001/XMLSchema#":           "xsd",
-	"http://www.w3.org/ns/shacl#":                 "sh",
-	"http://www.w3.org/2002/07/owl#":              "owl",
-	"http://iec.ch/TC57/CIM100#":                  "cim",
-}
-
-func simplifyIRI(iri string) string {
-	for ns, pref := range prefixes {
-		if strings.HasPrefix(iri, ns) {
-			return pref + ":" + strings.TrimPrefix(iri, ns)
-		}
-	}
-	if strings.HasPrefix(iri, "http") {
-		return "<" + iri + ">"
-	}
-	return iri
-}
-
-func simplifyTerm(t shacl.Term) string {
-	if t.IsIRI() {
-		return simplifyIRI(t.Value())
-	}
-	return t.String()
-}
-
-func formatPath(p *shacl.PropertyPath) string {
-	if p == nil {
-		return ""
-	}
-	switch p.Kind {
-	case shacl.PathPredicate:
-		return simplifyTerm(p.Pred)
-	case shacl.PathInverse:
-		return "^" + formatPath(p.Sub)
-	case shacl.PathSequence:
-		var parts []string
-		for _, e := range p.Elements {
-			parts = append(parts, formatPath(e))
-		}
-		return strings.Join(parts, " / ")
-	case shacl.PathAlternative:
-		var parts []string
-		for _, e := range p.Elements {
-			parts = append(parts, formatPath(e))
-		}
-		return "(" + strings.Join(parts, " | ") + ")"
-	case shacl.PathZeroOrMore:
-		return formatPath(p.Sub) + "*"
-	case shacl.PathOneOrMore:
-		return formatPath(p.Sub) + "+"
-	case shacl.PathZeroOrOne:
-		return formatPath(p.Sub) + "?"
-	}
-	return "unknown"
-}
-
-func generateMarkdown(title string, wrapped map[string]*ShapeWrapper) string {
+// generateMarkdown creates a Markdown string for the given shapes, filtering constraints based on the provided filter function
+func generateMarkdown(title string, wrapped map[string]*ShapeWrapper, filter func(ConstraintWrapper) bool) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# %s\n\n", title))
 
 	var keys []string
-	for k := range wrapped {
-		keys = append(keys, k)
+	for k, w := range wrapped {
+		if hasContent(w, filter) {
+			keys = append(keys, k)
+		}
 	}
 	sort.Strings(keys)
+
+	if len(keys) == 0 {
+		return ""
+	}
 
 	var shapes []*ShapeWrapper
 	for _, k := range keys {
 		shapes = append(shapes, wrapped[k])
 	}
 
-	renderShapes(&sb, shapes, 2)
+	renderShapes(&sb, shapes, 2, filter)
 
 	return sb.String()
 }
 
-func logicKey(sw *ShapeWrapper, includeIdentity bool) string {
+// hasContent checks if the shape or any of its nested properties contain constraints that match the filter
+func hasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
+	for _, c := range sw.Constraints {
+		if filter(c) {
+			return true
+		}
+	}
+	for _, p := range sw.Properties {
+		if hasContent(p, filter) {
+			return true
+		}
+	}
+	return false
+}
+
+// logicKey generates a unique key for a shape based on its constraints and properties, used for grouping similar shapes together
+func logicKey(sw *ShapeWrapper, includeIdentity bool, filter func(ConstraintWrapper) bool) string {
 	type logic struct {
 		ID          string
 		Path        string
@@ -167,7 +80,9 @@ func logicKey(sw *ShapeWrapper, includeIdentity bool) string {
 
 	if includeIdentity {
 		l.ID = simplifyTerm(sw.ID)
-		l.Path = formatPath(sw.Path)
+		if sw.Path != nil {
+			l.Path = formatPath(sw.Path)
+		}
 		for _, d := range sw.Description {
 			l.Description = append(l.Description, d.String())
 		}
@@ -182,9 +97,17 @@ func logicKey(sw *ShapeWrapper, includeIdentity bool) string {
 		l.Ignored = append(l.Ignored, ip.Value())
 	}
 	sort.Strings(l.Ignored)
-	l.Constraints = sw.Constraints // ConstraintWrapper already marshals to stable JSON
+
+	for _, c := range sw.Constraints {
+		if filter(c) {
+			l.Constraints = append(l.Constraints, c)
+		}
+	}
+
 	for _, p := range sw.Properties {
-		l.Properties = append(l.Properties, logicKey(p, includeIdentity))
+		if hasContent(p, filter) {
+			l.Properties = append(l.Properties, logicKey(p, includeIdentity, filter))
+		}
 	}
 	sort.Strings(l.Properties)
 
@@ -192,200 +115,221 @@ func logicKey(sw *ShapeWrapper, includeIdentity bool) string {
 	return string(data)
 }
 
-func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int) {
+func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int, filter func(ConstraintWrapper) bool) {
 	if len(shapes) == 0 {
 		return
 	}
 
-	// Group shapes by logicKey. At top-level (level 2), we keep them separate by ID.
-	// For nested properties (level > 2), we group them by constraints/logic.
+	groups := groupShapes(shapes, level == 2, filter)
+	for _, key := range groups.keys {
+		group := groups.m[key]
+		first := group[0]
+
+		renderShapeHeading(sb, group, level)
+		renderShapeBasicInfo(sb, first)
+		renderShapeTargets(sb, group)
+
+		var sparqlQueries []sparqlInfo
+		sparqlQueries = collectSPARQLValues(sb, first, sparqlQueries)
+
+		filteredConstraints := filterConstraints(first, filter)
+		if len(filteredConstraints) > 0 {
+			sparqlQueries = renderConstraintsTable(sb, filteredConstraints, sparqlQueries)
+		}
+
+		renderSPARQLQueries(sb, sparqlQueries)
+		renderNestedProperties(sb, first, level, filter)
+	}
+}
+
+type shapeGroups struct {
+	m    map[string][]*ShapeWrapper
+	keys []string
+}
+
+func groupShapes(shapes []*ShapeWrapper, includeIdentity bool, filter func(ConstraintWrapper) bool) shapeGroups {
 	groups := make(map[string][]*ShapeWrapper)
 	var keys []string
 	for _, s := range shapes {
-		key := logicKey(s, level == 2)
+		key := logicKey(s, includeIdentity, filter)
 		if _, ok := groups[key]; !ok {
 			keys = append(keys, key)
 		}
 		groups[key] = append(groups[key], s)
 	}
 	sort.Strings(keys)
+	return shapeGroups{m: groups, keys: keys}
+}
 
-	for _, key := range keys {
-		group := groups[key]
-		first := group[0]
-
-		var titles []string
-		seenTitle := make(map[string]bool)
-		for _, s := range group {
-			title := simplifyTerm(s.ID)
-			if s.IsProperty && s.Path != nil {
-				title = fmt.Sprintf("`%s`", formatPath(s.Path))
-			}
-			if !seenTitle[title] {
-				titles = append(titles, title)
-				seenTitle[title] = true
-			}
+func renderShapeHeading(sb *strings.Builder, group []*ShapeWrapper, level int) {
+	var titles []string
+	seenTitle := make(map[string]bool)
+	for _, s := range group {
+		title := simplifyTerm(s.ID)
+		if s.IsProperty && s.Path != nil {
+			title = fmt.Sprintf("`%s`", formatPath(s.Path))
 		}
-		sort.Strings(titles)
-
-		heading := strings.Join(titles, ", ")
-		if level > 2 && len(group) > 1 {
-			if len(titles) <= 3 {
-				heading = fmt.Sprintf("Property Group (%d): %s", len(group), heading)
-			} else {
-				heading = fmt.Sprintf("Property Group (%d)", len(group))
-			}
+		if !seenTitle[title] {
+			titles = append(titles, title)
+			seenTitle[title] = true
 		}
-		sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), heading))
+	}
+	sort.Strings(titles)
 
-		if level > 2 && len(group) > 1 {
-			sb.WriteString("**Properties:**\n")
-			for _, t := range titles {
-				sb.WriteString(fmt.Sprintf("- %s\n", t))
-			}
-			sb.WriteString("\n")
+	heading := strings.Join(titles, ", ")
+	if level > 2 && len(group) > 1 {
+		if len(titles) <= 3 {
+			heading = fmt.Sprintf("Property Group (%d): %s", len(group), heading)
+		} else {
+			heading = fmt.Sprintf("Property Group (%d)", len(group))
 		}
+	}
+	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), heading))
 
-		if len(first.Description) > 0 {
-			for _, d := range first.Description {
-				sb.WriteString(fmt.Sprintf("%s\n\n", d.Value()))
-			}
+	if level > 2 && len(group) > 1 {
+		sb.WriteString("**Properties:**\n")
+		for _, t := range titles {
+			sb.WriteString(fmt.Sprintf("- %s\n", t))
 		}
+		sb.WriteString("\n")
+	}
+}
 
-		if first.Severity.Value() != "" && first.Severity.Value() != "http://www.w3.org/ns/shacl#Violation" {
-			sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", simplifyTerm(first.Severity)))
+func renderShapeBasicInfo(sb *strings.Builder, first *ShapeWrapper) {
+	if len(first.Description) > 0 {
+		for _, d := range first.Description {
+			sb.WriteString(fmt.Sprintf("%s\n\n", d.Value()))
 		}
+	}
 
-		if len(first.Messages) > 0 {
-			sb.WriteString("**Messages:**\n")
-			for _, m := range first.Messages {
-				sb.WriteString(fmt.Sprintf("- %s\n", simplifyTerm(m)))
-			}
-			sb.WriteString("\n")
+	if first.Severity.Value() != "" && first.Severity.Value() != "http://www.w3.org/ns/shacl#Violation" {
+		sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", simplifyTerm(first.Severity)))
+	}
+
+	if len(first.Messages) > 0 {
+		sb.WriteString("**Messages:**\n")
+		for _, m := range first.Messages {
+			sb.WriteString(fmt.Sprintf("- %s\n", simplifyTerm(m)))
 		}
+		sb.WriteString("\n")
+	}
+}
 
-		// Targets are usually on NodeShapes (not property shapes)
-		// If we grouped NodeShapes, we should show all their targets.
-		var allTargets []string
-		seenTargets := make(map[string]bool)
-		for _, s := range group {
-			if !s.IsProperty {
-				for _, t := range s.Targets {
-					ts := fmt.Sprintf("- %s: %s", t.Kind.String(), simplifyTerm(t.Value))
-					if !seenTargets[ts] {
-						allTargets = append(allTargets, ts)
-						seenTargets[ts] = true
-					}
+func renderShapeTargets(sb *strings.Builder, group []*ShapeWrapper) {
+	var allTargets []string
+	seenTargets := make(map[string]bool)
+	for _, s := range group {
+		if !s.IsProperty {
+			for _, t := range s.Targets {
+				ts := fmt.Sprintf("- %s: %s", t.Kind.String(), simplifyTerm(t.Value))
+				if !seenTargets[ts] {
+					allTargets = append(allTargets, ts)
+					seenTargets[ts] = true
 				}
 			}
 		}
-		if len(allTargets) > 0 {
-			sb.WriteString("**Targets:**\n")
-			for _, t := range allTargets {
-				sb.WriteString(t + "\n")
-			}
-			sb.WriteString("\n")
+	}
+	if len(allTargets) > 0 {
+		sb.WriteString("**Targets:**\n")
+		for _, t := range allTargets {
+			sb.WriteString(t + "\n")
+		}
+		sb.WriteString("\n")
+	}
+}
+
+type sparqlInfo struct {
+	id    string
+	query string
+}
+
+func collectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []sparqlInfo) []sparqlInfo {
+	if sw.Values == nil {
+		return queries
+	}
+	query := sw.Values.Prefixes + sw.Values.Select
+	if sw.Values.Expr != "" {
+		query = sw.Values.Prefixes + "SELECT (" + sw.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
+	}
+	queries = append(queries, sparqlInfo{id: "Values", query: query})
+	sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
+	return queries
+}
+
+func filterConstraints(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) []ConstraintWrapper {
+	var filtered []ConstraintWrapper
+	for _, c := range sw.Constraints {
+		if filter(c) {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
+}
+
+func renderConstraintsTable(sb *strings.Builder, constraints []ConstraintWrapper, queries []sparqlInfo) []sparqlInfo {
+	sb.WriteString("**Constraints:**\n\n")
+	sb.WriteString("| Component | Details |\n")
+	sb.WriteString("| --- | --- |\n")
+	for i, c := range constraints {
+		typeName := simplifyIRI(c.Type)
+		displayData := c.Data
+		var severityOverride string
+		if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
+			displayData = soc.Inner()
+			severityOverride = fmt.Sprintf("<br>**Severity:** %s", simplifyTerm(soc.Severity))
 		}
 
-		type sparqlInfo struct {
-			id    string
-			query string
-		}
-		var sparqlQueries []sparqlInfo
+		data, _ := json.Marshal(displayData)
+		var m map[string]any
+		json.Unmarshal(data, &m)
+		var details []string
 
-		if first.Values != nil {
-			query := first.Values.Prefixes + first.Values.Select
-			if first.Values.Expr != "" {
-				query = first.Values.Prefixes + "SELECT (" + first.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
-			}
-			sparqlQueries = append(sparqlQueries, sparqlInfo{id: "Values", query: query})
-			sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
-		}
-
-		if len(first.Constraints) > 0 {
-			sb.WriteString("**Constraints:**\n\n")
-			sb.WriteString("| Component | Details |\n")
-			sb.WriteString("| --- | --- |\n")
-			for i, c := range first.Constraints {
-				typeName := simplifyIRI(c.Type)
-
-				displayData := c.Data
-				var severityOverride string
-				if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
-					displayData = soc.Inner()
-					severityOverride = fmt.Sprintf("<br>**Severity:** %s", simplifyTerm(soc.Severity))
+		if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
+			id := fmt.Sprintf("SPARQL-%d", i+1)
+			queries = append(queries, sparqlInfo{id: id, query: sc.Prefixes + sc.Select})
+			details = append(details, fmt.Sprintf("Query: [See %s below](#%s) ", id, strings.ToLower(id)))
+			if len(sc.Messages) > 0 {
+				var msgs []string
+				for _, msg := range sc.Messages {
+					msgs = append(msgs, simplifyTerm(msg))
 				}
-
-				data, _ := json.Marshal(displayData)
-				var m map[string]any
-				json.Unmarshal(data, &m)
-				var details []string
-
-				// Special handling for SPARQLConstraint
-				if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
-					id := fmt.Sprintf("SPARQL-%d", i+1)
-					sparqlQueries = append(sparqlQueries, sparqlInfo{id: id, query: sc.Prefixes + sc.Select})
-					details = append(details, fmt.Sprintf("Query: [See %s below](#%s) ", id, strings.ToLower(id)))
-					if len(sc.Messages) > 0 {
-						var msgs []string
-						for _, msg := range sc.Messages {
-							msgs = append(msgs, simplifyTerm(msg))
-						}
-						details = append(details, fmt.Sprintf("Messages: `[%s]` ", strings.Join(msgs, ", ")))
-					}
-				} else {
-					for k, v := range m {
-						if k == "Prefixes" {
-							continue
-						}
-						details = append(details, fmt.Sprintf("%s: `%s` ", k, formatValue(v)))
-					}
+				details = append(details, fmt.Sprintf("Messages: `[%s]` ", strings.Join(msgs, ", ")))
+			}
+		} else {
+			for k, v := range m {
+				if k != "Prefixes" {
+					details = append(details, fmt.Sprintf("%s: `%s` ", k, formatValue(v)))
 				}
-				sort.Strings(details)
-
-				sb.WriteString(fmt.Sprintf("| %s | %s%s |\n", typeName, strings.Join(details, "<br>"), severityOverride))
-			}
-			sb.WriteString("\n")
-		}
-
-		if len(sparqlQueries) > 0 {
-			sb.WriteString("#### SPARQL Queries\n\n")
-			for _, sq := range sparqlQueries {
-				sb.WriteString(fmt.Sprintf("##### %s\n```sparql\n%s\n```\n\n", sq.id, sq.query))
 			}
 		}
+		sort.Strings(details)
+		sb.WriteString(fmt.Sprintf("| %s | %s%s |\n", typeName, strings.Join(details, "<br>"), severityOverride))
+	}
+	sb.WriteString("\n")
+	return queries
+}
 
-		if len(first.Properties) > 0 {
-			sb.WriteString("**Nested Properties:**\n\n")
-			renderShapes(sb, first.Properties, level+1)
+func renderSPARQLQueries(sb *strings.Builder, queries []sparqlInfo) {
+	if len(queries) > 0 {
+		sb.WriteString("#### SPARQL Queries\n\n")
+		for _, sq := range queries {
+			sb.WriteString(fmt.Sprintf("##### %s\n```sparql\n%s\n```\n\n", sq.id, sq.query))
 		}
 	}
 }
 
-func formatValue(v any) string {
-	switch val := v.(type) {
-	case map[string]any:
-		if kind, ok := val["kind"].(string); ok {
-			vIRI, _ := val["value"].(string)
-			if kind == "IRI" {
-				return simplifyIRI(vIRI)
-			}
-			return vIRI
+func renderNestedProperties(sb *strings.Builder, sw *ShapeWrapper, level int, filter func(ConstraintWrapper) bool) {
+	var filteredProperties []*ShapeWrapper
+	for _, p := range sw.Properties {
+		if hasContent(p, filter) {
+			filteredProperties = append(filteredProperties, p)
 		}
-	case []any:
-		var items []string
-		for _, item := range val {
-			items = append(items, formatValue(item))
-		}
-		return "[" + strings.Join(items, ", ") + "]"
 	}
-	return fmt.Sprint(v)
-}
 
-type fileStats struct {
-	name   string
-	mdPath string
-	counts map[string]int
+	if len(filteredProperties) > 0 {
+		sb.WriteString("**Nested Properties:**\n\n")
+		renderShapes(sb, filteredProperties, level+1, filter)
+	}
 }
 
 func main() {
@@ -407,10 +351,11 @@ func main() {
 	}
 
 	var allStats []fileStats
-	allConstraintTypes := make(map[string]bool)
+	allSHACLTypes := make(map[string]bool)
+	allSPARQLTypes := make(map[string]bool)
 
 	for _, file := range shaclFiles {
-		stats, err := processFile(file, doJSON, doMD, *outputDir, allConstraintTypes)
+		stats, err := processFile(file, doJSON, doMD, *outputDir, allSHACLTypes, allSPARQLTypes)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", file, err)
 			continue
@@ -419,11 +364,11 @@ func main() {
 	}
 
 	if doMD && len(allStats) > 0 {
-		writeOverview(*outputDir, allStats, allConstraintTypes)
+		writeOverview(*outputDir, allStats, allSHACLTypes, allSPARQLTypes)
 	}
 }
 
-func processFile(file string, doJSON, doMD bool, outputDir string, allConstraintTypes map[string]bool) (fileStats, error) {
+func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes, allSPARQLTypes map[string]bool) (fileStats, error) {
 	g, err := shacl.LoadTurtleFile(file)
 	if err != nil {
 		return fileStats{}, err
@@ -432,102 +377,175 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allConstraint
 	shapes := shacl.ParseShapes(g)
 	wrapped := make(map[string]*ShapeWrapper)
 	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
-	stats := fileStats{name: baseName, counts: make(map[string]int)}
-
-	isNested := make(map[string]bool)
-	for _, s := range shapes {
-		for _, ps := range s.Properties {
-			isNested[ps.ID.String()] = true
-		}
+	stats := fileStats{
+		name:         baseName,
+		shaclCounts:  make(map[string]int),
+		sparqlCounts: make(map[string]int),
 	}
+
+	isNested := identifyNestedShapes(shapes)
 
 	for k, s := range shapes {
 		w := wrapShape(s)
 		if !isNested[k] {
 			wrapped[k] = w
 		}
-		for _, c := range w.Constraints {
-			typeName := simplifyIRI(c.Type)
-			stats.counts[typeName]++
-			allConstraintTypes[typeName] = true
-		}
+		updateStats(&stats, w, allSHACLTypes, allSPARQLTypes)
 	}
 
 	if doJSON {
-		jsonOutDir := filepath.Join(outputDir, "json")
-		if err := os.MkdirAll(jsonOutDir, 0755); err != nil {
+		if err := exportJSON(outputDir, baseName, wrapped); err != nil {
 			return stats, err
 		}
-		data, _ := json.MarshalIndent(wrapped, "", "  ")
-		jsonFile := filepath.Join(jsonOutDir, baseName+".json")
-		if err := os.WriteFile(jsonFile, data, 0644); err != nil {
-			return stats, err
-		}
-		fmt.Printf("Exported JSON to %s\n", jsonFile)
 	}
 
 	if doMD {
-		mdOutDir := filepath.Join(outputDir, "SHACL")
-		if err := os.MkdirAll(mdOutDir, 0755); err != nil {
-			return stats, err
-		}
-		mdFile := filepath.Join(mdOutDir, baseName+".md")
-		stats.mdPath = mdFile
-		mdData := generateMarkdown(baseName, wrapped)
-		if err := os.WriteFile(mdFile, []byte(mdData), 0644); err != nil {
-			return stats, err
-		}
-		fmt.Printf("Exported Markdown to %s\n", mdFile)
+		exportMD(&stats, outputDir, baseName, wrapped)
 	}
 
 	return stats, nil
 }
 
-func writeOverview(outputDir string, allStats []fileStats, allConstraintTypes map[string]bool) {
-	var sb strings.Builder
-	sb.WriteString("# SHACL Constraints Overview\n\n")
-
-	var types []string
-	for t := range allConstraintTypes {
-		types = append(types, t)
-	}
-	sort.Strings(types)
-
-	sb.WriteString("| File | " + strings.Join(types, " | ") + " |\n")
-	sb.WriteString("| --- | " + strings.Repeat(" --- |", len(types)) + "\n")
-
-	totals := make(map[string]int)
-	for _, s := range allStats {
-		fileName := s.name
-		if s.mdPath != "" {
-			fileName = fmt.Sprintf("[%s](SHACL/%s.md)", s.name, s.name)
+func identifyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
+	isNested := make(map[string]bool)
+	for _, s := range shapes {
+		for _, ps := range s.Properties {
+			isNested[ps.ID.String()] = true
 		}
-		row := "| " + fileName
-		for _, t := range types {
-			count := s.counts[t]
-			totals[t] += count
-			if count == 0 {
-				row += " | -"
-			} else {
-				row += fmt.Sprintf(" | %d", count)
-			}
+	}
+	return isNested
+}
+
+func updateStats(stats *fileStats, w *ShapeWrapper, allSHACLTypes, allSPARQLTypes map[string]bool) {
+	for _, c := range w.Constraints {
+		typeName := simplifyIRI(c.Type)
+		if c.IsSPARQL() {
+			stats.sparqlCounts[typeName]++
+			allSPARQLTypes[typeName] = true
+		} else {
+			stats.shaclCounts[typeName]++
+			allSHACLTypes[typeName] = true
 		}
-		row += " |\n"
-		sb.WriteString(row)
-	}
-
-	row := "| **Total**"
-	for _, t := range types {
-		row += fmt.Sprintf(" | **%d**", totals[t])
-	}
-	row += " |\n"
-	sb.WriteString(row)
-
-	shaclOverviewFile := filepath.Join(outputDir, "SHACL-Overview.md")
-	if err := os.WriteFile(shaclOverviewFile, []byte(sb.String()), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing overview Markdown: %v\n", err)
-	} else {
-		fmt.Println("Exported Overview to SHACL-Overview.md")
 	}
 }
 
+func exportJSON(outputDir, baseName string, wrapped map[string]*ShapeWrapper) error {
+	jsonOutDir := filepath.Join(outputDir, "json")
+	if err := os.MkdirAll(jsonOutDir, 0755); err != nil {
+		return err
+	}
+	data, _ := json.MarshalIndent(wrapped, "", "  ")
+	jsonFile := filepath.Join(jsonOutDir, baseName+".json")
+	if err := os.WriteFile(jsonFile, data, 0644); err != nil {
+		return err
+	}
+	fmt.Printf("Exported JSON to %s\n", jsonFile)
+	return nil
+}
+
+func exportMD(stats *fileStats, outputDir, baseName string, wrapped map[string]*ShapeWrapper) {
+	shaclMD := generateMarkdown(baseName, wrapped, func(cw ConstraintWrapper) bool { return cw.IsSHACL() })
+	if shaclMD != "" {
+		mdOutDir := filepath.Join(outputDir, "SHACL")
+		os.MkdirAll(mdOutDir, 0755)
+		mdFile := filepath.Join(mdOutDir, baseName+".md")
+		stats.shaclPath = mdFile
+		os.WriteFile(mdFile, []byte(shaclMD), 0644)
+		fmt.Printf("Exported SHACL MD to %s\n", mdFile)
+	}
+
+	sparqlMD := generateMarkdown(baseName, wrapped, func(cw ConstraintWrapper) bool { return cw.IsSPARQL() })
+	if sparqlMD != "" {
+		mdOutDir := filepath.Join(outputDir, "SPARQL")
+		os.MkdirAll(mdOutDir, 0755)
+		mdFile := filepath.Join(mdOutDir, baseName+".md")
+		stats.sparqlPath = mdFile
+		os.WriteFile(mdFile, []byte(sparqlMD), 0644)
+		fmt.Printf("Exported SPARQL MD to %s\n", mdFile)
+	}
+}
+
+func writeOverview(outputDir string, allStats []fileStats, allSHACLTypes, allSPARQLTypes map[string]bool) {
+	writeOverviewFile(filepath.Join(outputDir, "SHACL-Overview.md"), "SHACL", allStats, allSHACLTypes, true)
+	writeOverviewFile(filepath.Join(outputDir, "SPARQL-Overview.md"), "SPARQL", allStats, allSPARQLTypes, false)
+}
+
+func writeOverviewFile(path, title string, allStats []fileStats, typesMap map[string]bool, isSHACL bool) {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("# %s Constraints Overview\n\n", title))
+
+	types := sortedKeys(typesMap)
+	if len(types) == 0 {
+		return
+	}
+
+	renderOverviewTableHeader(&sb, types)
+
+	totals := make(map[string]int)
+	for _, s := range allStats {
+		totals = renderOverviewRow(&sb, s, types, isSHACL, totals)
+	}
+
+	renderOverviewTableFooter(&sb, types, totals)
+
+	if err := os.WriteFile(path, []byte(sb.String()), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing %s: %v\n", path, err)
+	} else {
+		fmt.Printf("Exported Overview to %s\n", path)
+	}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func renderOverviewTableHeader(sb *strings.Builder, types []string) {
+	sb.WriteString("| File | " + strings.Join(types, " | ") + " |\n")
+	sb.WriteString("| --- | " + strings.Repeat(" --- |", len(types)) + "\n")
+}
+
+func renderOverviewRow(sb *strings.Builder, s fileStats, types []string, isSHACL bool, totals map[string]int) map[string]int {
+	var filePath string
+	var counts map[string]int
+	if isSHACL {
+		filePath, counts = s.shaclPath, s.shaclCounts
+	} else {
+		filePath, counts = s.sparqlPath, s.sparqlCounts
+	}
+
+	if len(counts) == 0 {
+		return totals
+	}
+
+	fileName := s.name
+	if filePath != "" {
+		relPath := filepath.Base(filepath.Dir(filePath)) + "/" + filepath.Base(filePath)
+		fileName = fmt.Sprintf("[%s](%s)", s.name, relPath)
+	}
+
+	sb.WriteString("| " + fileName)
+	for _, t := range types {
+		count := counts[t]
+		totals[t] += count
+		if count == 0 {
+			sb.WriteString(" | -")
+		} else {
+			sb.WriteString(fmt.Sprintf(" | %d", count))
+		}
+	}
+	sb.WriteString(" |\n")
+	return totals
+}
+
+func renderOverviewTableFooter(sb *strings.Builder, types []string, totals map[string]int) {
+	sb.WriteString("| **Total**")
+	for _, t := range types {
+		sb.WriteString(fmt.Sprintf(" | **%d**", totals[t]))
+	}
+	sb.WriteString(" |\n")
+}

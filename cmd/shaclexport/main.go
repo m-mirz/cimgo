@@ -57,142 +57,40 @@ func hasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
 	return false
 }
 
-// logicKey generates a unique key for a shape based on its constraints and properties, used for grouping similar shapes together
-func logicKey(sw *ShapeWrapper, includeIdentity bool, filter func(ConstraintWrapper) bool) string {
-	type logic struct {
-		ID          string
-		Path        string
-		Severity    string
-		Messages    []string
-		Description []string
-		Constraints []ConstraintWrapper
-		Closed      bool
-		ClosedBy    bool
-		Ignored     []string
-		Properties  []string // recursion
-	}
-
-	l := logic{
-		Severity: sw.Severity.Value(),
-		Closed:   sw.Closed,
-		ClosedBy: sw.ClosedByTypes,
-	}
-
-	if includeIdentity {
-		l.ID = simplifyTerm(sw.ID)
-		if sw.Path != nil {
-			l.Path = formatPath(sw.Path)
-		}
-		for _, d := range sw.Description {
-			l.Description = append(l.Description, d.String())
-		}
-		sort.Strings(l.Description)
-	}
-
-	for _, m := range sw.Messages {
-		l.Messages = append(l.Messages, m.String())
-	}
-	sort.Strings(l.Messages)
-	for _, ip := range sw.IgnoredProperties {
-		l.Ignored = append(l.Ignored, ip.Value())
-	}
-	sort.Strings(l.Ignored)
-
-	for _, c := range sw.Constraints {
-		if filter(c) {
-			l.Constraints = append(l.Constraints, c)
-		}
-	}
-
-	for _, p := range sw.Properties {
-		if hasContent(p, filter) {
-			l.Properties = append(l.Properties, logicKey(p, includeIdentity, filter))
-		}
-	}
-	sort.Strings(l.Properties)
-
-	data, _ := json.Marshal(l)
-	return string(data)
-}
-
 func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int, filter func(ConstraintWrapper) bool) {
 	if len(shapes) == 0 {
 		return
 	}
 
-	groups := groupShapes(shapes, level == 2, filter)
-	for _, key := range groups.keys {
-		group := groups.m[key]
-		first := group[0]
+	sort.Slice(shapes, func(i, j int) bool {
+		si, sj := shapes[i], shapes[j]
+		if si.IsProperty && sj.IsProperty && si.Path != nil && sj.Path != nil {
+			return formatPath(si.Path) < formatPath(sj.Path)
+		}
+		return si.ID.String() < sj.ID.String()
+	})
 
-		renderShapeHeading(sb, group, level)
-		renderShapeBasicInfo(sb, first)
-		renderShapeTargets(sb, group)
+	for _, s := range shapes {
+		renderShapeHeading(sb, s, level)
+		renderShapeBasicInfo(sb, s)
+		renderShapeTargets(sb, s)
 
 		var sparqlQueries []sparqlInfo
-		sparqlQueries = collectSPARQLValues(sb, first, sparqlQueries)
+		sparqlQueries = collectSPARQLValues(sb, s, sparqlQueries)
 
-		filteredConstraints := filterConstraints(first, filter)
+		filteredConstraints := filterConstraints(s, filter)
 		if len(filteredConstraints) > 0 {
 			sparqlQueries = renderConstraintsTable(sb, filteredConstraints, sparqlQueries)
 		}
 
 		renderSPARQLQueries(sb, sparqlQueries)
-		renderNestedProperties(sb, first, level, filter)
+		renderNestedProperties(sb, s, level, filter)
 	}
 }
 
-type shapeGroups struct {
-	m    map[string][]*ShapeWrapper
-	keys []string
-}
-
-func groupShapes(shapes []*ShapeWrapper, includeIdentity bool, filter func(ConstraintWrapper) bool) shapeGroups {
-	groups := make(map[string][]*ShapeWrapper)
-	var keys []string
-	for _, s := range shapes {
-		key := logicKey(s, includeIdentity, filter)
-		if _, ok := groups[key]; !ok {
-			keys = append(keys, key)
-		}
-		groups[key] = append(groups[key], s)
-	}
-	sort.Strings(keys)
-	return shapeGroups{m: groups, keys: keys}
-}
-
-func renderShapeHeading(sb *strings.Builder, group []*ShapeWrapper, level int) {
-	var titles []string
-	seenTitle := make(map[string]bool)
-	for _, s := range group {
-		title := simplifyTerm(s.ID)
-		if s.IsProperty && s.Path != nil {
-			title = fmt.Sprintf("`%s`", formatPath(s.Path))
-		}
-		if !seenTitle[title] {
-			titles = append(titles, title)
-			seenTitle[title] = true
-		}
-	}
-	sort.Strings(titles)
-
-	heading := strings.Join(titles, ", ")
-	if level > 2 && len(group) > 1 {
-		if len(titles) <= 3 {
-			heading = fmt.Sprintf("Property Group (%d): %s", len(group), heading)
-		} else {
-			heading = fmt.Sprintf("Property Group (%d)", len(group))
-		}
-	}
-	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), heading))
-
-	if level > 2 && len(group) > 1 {
-		sb.WriteString("**Properties:**\n")
-		for _, t := range titles {
-			sb.WriteString(fmt.Sprintf("- %s\n", t))
-		}
-		sb.WriteString("\n")
-	}
+func renderShapeHeading(sb *strings.Builder, s *ShapeWrapper, level int) {
+	title := simplifyTerm(s.ID)
+	sb.WriteString(fmt.Sprintf("%s <span>%s</span>\n\n", strings.Repeat("#", level), title))
 }
 
 func renderShapeBasicInfo(sb *strings.Builder, first *ShapeWrapper) {
@@ -215,24 +113,14 @@ func renderShapeBasicInfo(sb *strings.Builder, first *ShapeWrapper) {
 	}
 }
 
-func renderShapeTargets(sb *strings.Builder, group []*ShapeWrapper) {
-	var allTargets []string
-	seenTargets := make(map[string]bool)
-	for _, s := range group {
-		if !s.IsProperty {
-			for _, t := range s.Targets {
-				ts := fmt.Sprintf("- %s: %s", t.Kind.String(), simplifyTerm(t.Value))
-				if !seenTargets[ts] {
-					allTargets = append(allTargets, ts)
-					seenTargets[ts] = true
-				}
-			}
-		}
+func renderShapeTargets(sb *strings.Builder, s *ShapeWrapper) {
+	if s.IsProperty {
+		return
 	}
-	if len(allTargets) > 0 {
+	if len(s.Targets) > 0 {
 		sb.WriteString("**Targets:**\n")
-		for _, t := range allTargets {
-			sb.WriteString(t + "\n")
+		for _, t := range s.Targets {
+			sb.WriteString(fmt.Sprintf("- %s: %s\n", t.Kind.String(), simplifyTerm(t.Value)))
 		}
 		sb.WriteString("\n")
 	}
@@ -472,7 +360,7 @@ func writeOverview(outputDir string, allStats []fileStats, allSHACLTypes, allSPA
 
 func writeOverviewFile(path, title string, allStats []fileStats, typesMap map[string]bool, isSHACL bool) {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# %s Constraints Overview\n\n", title))
+	sb.WriteString(fmt.Sprintf("# %s Overview\n\n", title))
 
 	types := sortedKeys(typesMap)
 	if len(types) == 0 {

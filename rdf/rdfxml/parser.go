@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"regexp" // Added import
 	"strings"
 )
 
@@ -22,11 +23,12 @@ func Parse(g *graph.Graph, r io.Reader, opts ...Option) error {
 		o(&cfg)
 	}
 	p := &rdfxmlParser{
-		g:          g,
-		base:       cfg.base,
-		bnodeMap:   make(map[string]term.BNode),
-		usedIDs:    make(map[string]bool),
-		nsPrefixes: make(map[string]string),
+		g:            g,
+		base:         cfg.base,
+		inferNumeric: cfg.inferNumericTypes,
+		bnodeMap:     make(map[string]term.BNode),
+		usedIDs:      make(map[string]bool),
+		nsPrefixes:   make(map[string]string),
 	}
 	return p.parse(r)
 }
@@ -34,6 +36,7 @@ func Parse(g *graph.Graph, r io.Reader, opts ...Option) error {
 type rdfxmlParser struct {
 	g             *graph.Graph
 	base          string
+	inferNumeric  bool
 	bnodeMap      map[string]term.BNode
 	usedIDs       map[string]bool   // track rdf:ID values for uniqueness
 	nsPrefixes    map[string]string // prefix → namespace URI (in-scope)
@@ -511,6 +514,15 @@ func (p *rdfxmlParser) parsePropertyElement(decoder *xml.Decoder, el xml.StartEl
 			var opts []term.LiteralOption
 			if datatype != "" {
 				opts = append(opts, term.WithDatatype(term.NewURIRefUnsafe(p.resolve(datatype))))
+			} else if p.inferNumeric {
+				// Infer numeric types if datatype is not specified and inference is enabled
+				if looksLikeInteger(text) {
+					opts = append(opts, term.WithDatatype(term.NewURIRefUnsafe("http://www.w3.org/2001/XMLSchema#integer")))
+				} else if looksLikeDecimal(text) {
+					opts = append(opts, term.WithDatatype(term.NewURIRefUnsafe("http://www.w3.org/2001/XMLSchema#decimal")))
+				} else {
+					opts = p.langOpts(lang, its)
+				}
 			} else {
 				opts = p.langOpts(lang, its)
 			}
@@ -892,4 +904,23 @@ func skipToEnd(decoder *xml.Decoder) error {
 		}
 	}
 	return nil
+}
+
+// xsdIntegerRegex matches strings like "123", "-45", "+67".
+var xsdIntegerRegex = regexp.MustCompile(`^[+-]?\d+$`)
+
+// xsdDecimalRegex matches strings like "123.45", "-0.1", ".5", "10.", "+123.456"
+// Note: This is a simplification. Full XSD Decimal validation is complex.
+var xsdDecimalRegex = regexp.MustCompile(`^[+-]?(\d+(\.\d*)?|\.\d+)$`)
+
+func looksLikeInteger(s string) bool {
+	return xsdIntegerRegex.MatchString(s)
+}
+
+func looksLikeDecimal(s string) bool {
+	// Ensure it's not just a sign or empty after sign.
+	if s == "+" || s == "-" || s == "" {
+		return false
+	}
+	return xsdDecimalRegex.MatchString(s)
 }

@@ -299,6 +299,62 @@ func TestXMLBaseScoping(t *testing.T) {
 	}
 }
 
+func TestRDFXMLParserNumericInference(t *testing.T) {
+	input := `<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:age>42</ex:age>
+    <ex:height>1.75</ex:height>
+  </rdf:Description>
+</rdf:RDF>`
+
+	s, _ := term.NewURIRef("http://example.org/s")
+	age, _ := term.NewURIRef("http://example.org/age")
+	height, _ := term.NewURIRef("http://example.org/height")
+
+	t.Run("Default (Off)", func(t *testing.T) {
+		g := graph.NewGraph()
+		if err := Parse(g, strings.NewReader(input)); err != nil {
+			t.Fatal(err)
+		}
+		val, _ := g.Value(s, &age, nil)
+		if lit, ok := val.(term.Literal); !ok || lit.Datatype() != term.XSDString {
+			t.Errorf("expected xsd:string by default, got datatype %v", lit.Datatype())
+		}
+	})
+
+	t.Run("Explicitly Off", func(t *testing.T) {
+		g := graph.NewGraph()
+		if err := Parse(g, strings.NewReader(input), WithNumericInference(false)); err != nil {
+			t.Fatal(err)
+		}
+		val, _ := g.Value(s, &age, nil)
+		if lit, ok := val.(term.Literal); !ok || lit.Datatype() != term.XSDString {
+			t.Errorf("expected xsd:string when Off, got datatype %v", lit.Datatype())
+		}
+	})
+
+	t.Run("Explicitly On", func(t *testing.T) {
+		g := graph.NewGraph()
+		if err := Parse(g, strings.NewReader(input), WithNumericInference(true)); err != nil {
+			t.Fatal(err)
+		}
+
+		// Check integer
+		valAge, _ := g.Value(s, &age, nil)
+		if lit, ok := valAge.(term.Literal); !ok || lit.Datatype() != term.XSDInteger {
+			t.Errorf("expected xsd:integer when On, got datatype %v", lit.Datatype())
+		}
+
+		// Check decimal
+		valHeight, _ := g.Value(s, &height, nil)
+		if lit, ok := valHeight.(term.Literal); !ok || lit.Datatype() != term.XSDDecimal {
+			t.Errorf("expected xsd:decimal when On, got datatype %v", lit.Datatype())
+		}
+	})
+}
+
 // Fix 4: skipToEnd handles decoder errors
 func TestSkipToEndHandlesErrors(t *testing.T) {
 	// Truncated XML should return error instead of looping

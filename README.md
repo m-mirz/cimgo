@@ -14,9 +14,16 @@ or clone the submodule in a second step
 
 Ensure that GOPATH is set and included in your PATH.
 
-Use the `go run` command, specifying the target language with the `-lang` flag.
+First, you need to generate the cim based code to be able to build the entire package.
 
 ```bash
+go generate ./...
+```
+
+This will run:
+
+```bash
+go run cmd/cimgen/main.go
 go run cmd/cimgen/main.go -lang proto
 ```
 

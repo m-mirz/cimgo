@@ -259,7 +259,7 @@ func checkOrOption(field reflect.Value, shape any, dataset *cimgostructs.CIMElem
 		if !ok {
 			return false
 		}
-		
+
 		// Map map[string]interface{} to ConstraintInfo
 		ci := ConstraintInfo{
 			Component: ciMap["component"].(string),
@@ -302,13 +302,13 @@ func TestValidateCIMData(t *testing.T) {
 			allViolations = append(allViolations, fmt.Sprintf("Object %s: %s", id, v))
 		}
 	}
-// 4. Report
-if len(allViolations) > 0 {
-	t.Logf("Found %d validation violations (test marked passed):", len(allViolations))
-	for _, v := range allViolations {
-		t.Log(v)
+	// 4. Report
+	if len(allViolations) > 0 {
+		t.Logf("Found %d validation violations (test marked passed):", len(allViolations))
+		for _, v := range allViolations {
+			t.Log(v)
+		}
+	} else {
+		t.Log("No validation violations found.")
 	}
-} else {
-	t.Log("No validation violations found.")
-}
 }

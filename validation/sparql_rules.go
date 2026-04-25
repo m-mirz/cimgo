@@ -25,7 +25,7 @@ func getCIMTypeName(obj interface{}) string {
 
 // CheckACDCTerminalSequenceNumbering implements eqc.ACDCTerminal.sequenceNumber-numbering
 // Profile: 61970-301_Equipment-AP-Con-Complex
-// Description: The sequence numbering starts with 1 and additional terminals should follow in increasing order. 
+// Description: The sequence numbering starts with 1 and additional terminals should follow in increasing order.
 // The first terminal is the starting point for a two terminal branch.
 func CheckACDCTerminalSequenceNumbering(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -50,7 +50,7 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimgostructs.CIMElementList) []
 		seenSN := make(map[int]bool)
 		minSN := 999999
 		sumSN := 0
-		
+
 		for _, term := range terms {
 			var sn int
 			switch t := term.(type) {
@@ -59,7 +59,7 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimgostructs.CIMElementList) []
 			case *cimgostructs.DCTerminal:
 				sn = t.SequenceNumber
 			}
-			
+
 			seenSN[sn] = true
 			if sn < minSN {
 				minSN = sn
@@ -99,7 +99,7 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimgostructs.CIMElementList) []
 
 // CheckTerminalPhasesConsistencyEquipment implements eqc.Terminal.phases-consistencyEquipment
 // Profile: 61970-301_Equipment-AP-Con-Complex
-// Description: The phase code on terminals connecting same ConnectivityNode or same TopologicalNode 
+// Description: The phase code on terminals connecting same ConnectivityNode or same TopologicalNode
 // as well as for equipment between two terminals shall be consistent.
 func CheckTerminalPhasesConsistencyEquipment(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -119,7 +119,7 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimgostructs.CIMElementLis
 	for eqID, terms := range equipmentTerminals {
 		term1, ok1 := terms[1]
 		term2, ok2 := terms[2]
-		
+
 		if !ok1 || !ok2 {
 			continue
 		}
@@ -166,7 +166,7 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimgostructs.CIMElementLis
 
 // CheckConductingEquipmentBaseVoltageUsage implements eqc.ConductingEquipment.BaseVoltage-usage
 // Profile: 61970-301_Equipment-AP-Con-Complex
-// Description: Use only when there is no voltage level container used and only one base voltage applies. 
+// Description: Use only when there is no voltage level container used and only one base voltage applies.
 // For example, not used for transformers.
 func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation

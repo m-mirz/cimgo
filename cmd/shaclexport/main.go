@@ -42,26 +42,12 @@ func generateMarkdown(title string, wrapped map[string]*ShapeWrapper, filter fun
 	return sb.String()
 }
 
-// hasContent checks if the shape or any of its nested properties contain constraints that match the filter
-func hasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
-	for _, c := range sw.Constraints {
-		if filter(c) {
-			return true
-		}
-	}
-	for _, p := range sw.Properties {
-		if hasContent(p, filter) {
-			return true
-		}
-	}
-	return false
-}
-
 func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int, filter func(ConstraintWrapper) bool) {
 	if len(shapes) == 0 {
 		return
 	}
 
+	// Sort shapes: properties first, then by path, then by ID
 	sort.Slice(shapes, func(i, j int) bool {
 		si, sj := shapes[i], shapes[j]
 		if si.IsProperty && sj.IsProperty && si.Path != nil && sj.Path != nil {
@@ -90,10 +76,14 @@ func renderShapes(sb *strings.Builder, shapes []*ShapeWrapper, level int, filter
 
 func renderShapeHeading(sb *strings.Builder, s *ShapeWrapper, level int) {
 	title := simplifyTerm(s.ID)
-	sb.WriteString(fmt.Sprintf("%s <span>%s</span>\n\n", strings.Repeat("#", level), title))
+	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), title))
 }
 
 func renderShapeBasicInfo(sb *strings.Builder, first *ShapeWrapper) {
+	if first.IsProperty && first.Path != nil {
+		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", formatPath(first.Path)))
+	}
+
 	if len(first.Description) > 0 {
 		for _, d := range first.Description {
 			sb.WriteString(fmt.Sprintf("%s\n\n", d.Value()))
@@ -124,34 +114,6 @@ func renderShapeTargets(sb *strings.Builder, s *ShapeWrapper) {
 		}
 		sb.WriteString("\n")
 	}
-}
-
-type sparqlInfo struct {
-	id    string
-	query string
-}
-
-func collectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []sparqlInfo) []sparqlInfo {
-	if sw.Values == nil {
-		return queries
-	}
-	query := sw.Values.Prefixes + sw.Values.Select
-	if sw.Values.Expr != "" {
-		query = sw.Values.Prefixes + "SELECT (" + sw.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
-	}
-	queries = append(queries, sparqlInfo{id: "Values", query: query})
-	sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
-	return queries
-}
-
-func filterConstraints(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) []ConstraintWrapper {
-	var filtered []ConstraintWrapper
-	for _, c := range sw.Constraints {
-		if filter(c) {
-			filtered = append(filtered, c)
-		}
-	}
-	return filtered
 }
 
 func renderConstraintsTable(sb *strings.Builder, constraints []ConstraintWrapper, queries []sparqlInfo) []sparqlInfo {

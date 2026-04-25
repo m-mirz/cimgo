@@ -3,17 +3,8 @@ package main
 import (
 	"cimgo/rdf/shacl"
 	"fmt"
-	"regexp"
 	"strings"
 )
-
-type fileStats struct {
-	name         string
-	shaclPath    string
-	sparqlPath   string
-	shaclCounts  map[string]int
-	sparqlCounts map[string]int
-}
 
 type ConstraintWrapper struct {
 	Type string
@@ -210,83 +201,4 @@ func formatPath(p *shacl.PropertyPath) string {
 		return formatPath(p.Sub) + "?"
 	}
 	return "unknown"
-}
-
-// hasContent checks if the shape or any of its nested properties contain constraints that match the filter
-func hasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
-	for _, c := range sw.Constraints {
-		if filter(c) {
-			return true
-		}
-	}
-	for _, p := range sw.Properties {
-		if hasContent(p, filter) {
-			return true
-		}
-	}
-	return false
-}
-
-type sparqlInfo struct {
-	id    string
-	query string
-}
-
-func collectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []sparqlInfo) []sparqlInfo {
-	if sw.Values == nil {
-		return queries
-	}
-	query := sw.Values.Prefixes + sw.Values.Select
-	if sw.Values.Expr != "" {
-		query = sw.Values.Prefixes + "SELECT (" + sw.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
-	}
-	queries = append(queries, sparqlInfo{id: "Values", query: query})
-	sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
-	return queries
-}
-
-func filterConstraints(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) []ConstraintWrapper {
-	var filtered []ConstraintWrapper
-	for _, c := range sw.Constraints {
-		if filter(c) {
-			filtered = append(filtered, c)
-		}
-	}
-	return filtered
-}
-
-func CleanSparqlKeepNewlines(query string) string {
-	// 1. Remove single-line comments (#...)
-	// We use the (?m) flag for multi-line mode so ^ and $ match line boundaries
-	reComments := regexp.MustCompile(`(?m)#.*$`)
-	query = reComments.ReplaceAllString(query, "")
-
-	// 2. Replace multiple horizontal spaces/tabs with a single space
-	// \t = tab, \f = form feed, \r = carriage return (optional to keep)
-	reHorizontalSpace := regexp.MustCompile(`[\t ]+`)
-	query = reHorizontalSpace.ReplaceAllString(query, " ")
-
-	// 3. Remove leading/trailing spaces on each individual line
-	var lines []string
-	for _, line := range strings.Split(query, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed != "" { // This also removes empty lines created by deleted comments
-			lines = append(lines, trimmed)
-		}
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-func MinifySparql(query string) string {
-	// 1. Remove single-line comments (#...)
-	// This matches a # that isn't inside a URI or string
-	reComments := regexp.MustCompile(`(?m)^[ \t]*#.*$|#.*$`)
-	query = reComments.ReplaceAllString(query, "")
-
-	// 2. Replace all whitespace (tabs, newlines, multiple spaces) with a single space
-	reWhitespace := regexp.MustCompile(`\s+`)
-	query = reWhitespace.ReplaceAllString(query, " ")
-
-	return strings.TrimSpace(query)
 }

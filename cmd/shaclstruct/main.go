@@ -16,11 +16,12 @@ const (
 )
 
 type ConstraintInfo struct {
-	Path      string `json:"path,omitempty"`
-	Severity  string `json:"severity"`
-	Message   string `json:"message"`
-	Component string `json:"component"`
-	Details   string `json:"details"`
+	Path      string         `json:"path,omitempty"`
+	Severity  string         `json:"severity"`
+	Message   string         `json:"message"`
+	Component string         `json:"component"`
+	Payload   map[string]any `json:"payload,omitempty"`
+	Details   string         `json:"details"`
 }
 
 type AttributeInfo struct {
@@ -282,9 +283,12 @@ func extractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 		var m map[string]any
 		json.Unmarshal(data, &m)
 
+		payload := make(map[string]any)
 		var details []string
 		for k, v := range m {
-			details = append(details, fmt.Sprintf("%s: %s", k, formatValueWithResolution(v, allWrapped, visited)))
+			resolvedVal, strVal := formatValueWithResolution(v, allWrapped, visited)
+			payload[k] = resolvedVal
+			details = append(details, fmt.Sprintf("%s: %s", k, strVal))
 		}
 
 		constraints = append(constraints, ConstraintInfo{
@@ -292,6 +296,7 @@ func extractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 			Severity:  severity,
 			Message:   defaultMessage,
 			Component: simplifyIRI(cw.Type),
+			Payload:   payload,
 			Details:   strings.Join(details, ", "),
 		})
 	}
@@ -299,7 +304,7 @@ func extractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 	return constraints
 }
 
-func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visited map[string]bool) string {
+func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
 	switch val := v.(type) {
 	case map[string]any:
 		if kind, ok := val["kind"].(string); ok {
@@ -316,32 +321,38 @@ func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visit
 					return resolveShapeConstraints(resolved, allWrapped, visited)
 				}
 				if kind == "IRI" {
-					return simplifyIRI(vVal)
+					return simplifyIRI(vVal), simplifyIRI(vVal)
 				}
 			}
-			return vVal
+			return vVal, vVal
 		}
 	case []any:
-		var items []string
+		var items []any
+		var strs []string
 		for _, item := range val {
-			items = append(items, formatValueWithResolution(item, allWrapped, visited))
+			rv, sv := formatValueWithResolution(item, allWrapped, visited)
+			items = append(items, rv)
+			strs = append(strs, sv)
 		}
-		return "[" + strings.Join(items, ", ") + "]"
+		return items, "[" + strings.Join(strs, ", ") + "]"
 	}
-	return fmt.Sprint(v)
+	s := fmt.Sprint(v)
+	return v, s
 }
 
-func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) string {
+func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
 	id := sw.ID.String()
 	if visited[id] {
-		return "ref:" + simplifyTerm(sw.ID)
+		ref := "ref:" + simplifyTerm(sw.ID)
+		return ref, ref
 	}
 	visited[id] = true
 	defer delete(visited, id)
 
 	constraints := extractConstraints(sw, allWrapped, visited)
 	if len(constraints) == 0 {
-		return simplifyTerm(sw.ID)
+		s := simplifyTerm(sw.ID)
+		return s, s
 	}
 
 	var parts []string
@@ -356,5 +367,5 @@ func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapp
 		}
 		parts = append(parts, fmt.Sprintf("%s(%s)", c.Component, details))
 	}
-	return "{" + strings.Join(parts, ", ") + "}"
+	return constraints, "{" + strings.Join(parts, ", ") + "}"
 }

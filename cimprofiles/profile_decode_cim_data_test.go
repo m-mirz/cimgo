@@ -43,6 +43,10 @@ func TestDecode001(t *testing.T) {
 }
 
 func TestDecode002(t *testing.T) {
+	// The file contains an elements with rdf:about attribute, which is a common way to identify elements in RDF/XML.
+	// The test checks if the decoder can handle this format correctly and extract the relevant information from the rdf:about attribute.
+	// It is not required that rdf:about is also used for the export since this would require information which profile is exported.
+	// The test is more about the flexibility of the decoder to handle different formats of CIM data.
 	DecodeTest(t, "../testdata/test_002.xml")
 }
 

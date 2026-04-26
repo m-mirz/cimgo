@@ -9,37 +9,13 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"cimgo/validation"
 )
 
 const (
 	SHACL_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
 )
-
-type ConstraintInfo struct {
-	Path      string         `json:"path,omitempty"`
-	Severity  string         `json:"severity"`
-	Message   string         `json:"message"`
-	Component string         `json:"component"`
-	Payload   map[string]any `json:"payload,omitempty"`
-	Details   string         `json:"details"`
-}
-
-type AttributeInfo struct {
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	Constraints []ConstraintInfo `json:"constraints"`
-}
-
-type ClassInfo struct {
-	Name        string           `json:"name"`
-	Constraints []ConstraintInfo `json:"constraints"`
-	Attributes  []AttributeInfo  `json:"attributes"`
-}
-
-type FileResults struct {
-	FileName string      `json:"file_name"`
-	Classes  []ClassInfo `json:"classes"`
-}
 
 func main() {
 	shaclPattern := flag.String("shacl", SHACL_SCHEMA, "glob pattern for shacl files")
@@ -73,19 +49,19 @@ func processFile(file string, outputDir string) error {
 	shapes := shacl.ParseShapes(g)
 	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 
-	results := FileResults{
+	results := validation.FileResults{
 		FileName: baseName,
-		Classes:  []ClassInfo{},
+		Classes:  []validation.ClassInfo{},
 	}
 
-	allWrapped := make(map[string]*ShapeWrapper)
+	allWrapped := make(map[string]*validation.ShapeWrapper)
 	for k := range shapes {
-		allWrapped[k] = wrapShape(shapes[k])
+		allWrapped[k] = validation.WrapShape(shapes[k])
 	}
 
-	isNested := identifyNestedShapes(shapes)
+	isNested := validation.IdentifyNestedShapes(shapes)
 
-	classMap := make(map[string]*ClassInfo)
+	classMap := make(map[string]*validation.ClassInfo)
 
 	for k := range shapes {
 		if isNested[k] {
@@ -98,7 +74,7 @@ func processFile(file string, outputDir string) error {
 		var explicitTargets []string
 		var implicitTargets []string
 		for _, t := range sw.Targets {
-			termVal := simplifyTerm(t.Value)
+			termVal := validation.SimplifyTerm(t.Value)
 			if t.Kind == shacl.TargetClass || t.Kind == shacl.TargetNode {
 				explicitTargets = append(explicitTargets, termVal)
 			} else if t.Kind == shacl.TargetImplicitClass {
@@ -120,7 +96,7 @@ func processFile(file string, outputDir string) error {
 			if info, ok := classMap[className]; ok {
 				mergeIntoClassInfo(info, sw, allWrapped)
 			} else {
-				classInfo := convertToClassInfo(sw, allWrapped, className)
+				classInfo := validation.ConvertToClassInfo(sw, allWrapped, className)
 				classMap[className] = &classInfo
 			}
 		}
@@ -154,13 +130,13 @@ func processFile(file string, outputDir string) error {
 	return nil
 }
 
-func mergeIntoClassInfo(info *ClassInfo, sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper) {
+func mergeIntoClassInfo(info *validation.ClassInfo, sw *validation.ShapeWrapper, allWrapped map[string]*validation.ShapeWrapper) {
 	// Add class-level constraints
-	info.Constraints = append(info.Constraints, extractConstraints(sw, allWrapped, make(map[string]bool))...)
+	info.Constraints = append(info.Constraints, validation.ExtractConstraints(sw, allWrapped, make(map[string]bool))...)
 
 	// Add attributes
 	for _, pw := range sw.Properties {
-		attrInfo := convertToAttributeInfo(pw, allWrapped)
+		attrInfo := validation.ConvertToAttributeInfo(pw, allWrapped)
 		if len(attrInfo.Constraints) > 0 {
 			// Check if attribute already exists to merge constraints
 			found := false
@@ -176,196 +152,4 @@ func mergeIntoClassInfo(info *ClassInfo, sw *ShapeWrapper, allWrapped map[string
 			}
 		}
 	}
-}
-
-func identifyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
-	isNested := make(map[string]bool)
-	for _, s := range shapes {
-		for _, ps := range s.Properties {
-			isNested[ps.ID.String()] = true
-		}
-		for _, c := range s.Constraints {
-			markNested(isNested, c)
-		}
-	}
-	return isNested
-}
-
-func markNested(isNested map[string]bool, c shacl.Constraint) {
-	switch con := c.(type) {
-	case *shacl.AndConstraint:
-		for _, sRef := range con.Shapes {
-			isNested[sRef.String()] = true
-		}
-	case *shacl.OrConstraint:
-		for _, sRef := range con.Shapes {
-			isNested[sRef.String()] = true
-		}
-	case *shacl.XoneConstraint:
-		for _, sRef := range con.Shapes {
-			isNested[sRef.String()] = true
-		}
-	case *shacl.NotConstraint:
-		isNested[con.ShapeRef.String()] = true
-	case *shacl.NodeConstraint:
-		isNested[con.ShapeRef.String()] = true
-	case *shacl.QualifiedValueShapeConstraint:
-		isNested[con.ShapeRef.String()] = true
-	case *shacl.SeverityOverrideConstraint:
-		markNested(isNested, con.Inner())
-	}
-}
-
-func convertToClassInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, name string) ClassInfo {
-	classInfo := ClassInfo{
-		Name:        name,
-		Constraints: extractConstraints(sw, allWrapped, make(map[string]bool)),
-		Attributes:  []AttributeInfo{},
-	}
-
-	for _, pw := range sw.Properties {
-		attrInfo := convertToAttributeInfo(pw, allWrapped)
-		if len(attrInfo.Constraints) > 0 {
-			classInfo.Attributes = append(classInfo.Attributes, attrInfo)
-		}
-	}
-
-	return classInfo
-}
-
-func convertToAttributeInfo(pw *ShapeWrapper, allWrapped map[string]*ShapeWrapper) AttributeInfo {
-	name := formatPath(pw.Path)
-
-	var descriptions []string
-	for _, d := range pw.Description {
-		descriptions = append(descriptions, d.Value())
-	}
-
-	attrInfo := AttributeInfo{
-		Name:        name,
-		Description: strings.Join(descriptions, "\n"),
-		Constraints: extractConstraints(pw, allWrapped, make(map[string]bool)),
-	}
-
-	return attrInfo
-}
-
-func extractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) []ConstraintInfo {
-	var constraints []ConstraintInfo
-
-	defaultSeverity := simplifyTerm(sw.Severity)
-	if defaultSeverity == "" {
-		defaultSeverity = "sh.Violation"
-	}
-
-	var messages []string
-	for _, m := range sw.Messages {
-		messages = append(messages, simplifyTerm(m))
-	}
-	defaultMessage := strings.Join(messages, "; ")
-
-	path := formatPath(sw.Path)
-
-	for _, cw := range sw.Constraints {
-		if !cw.IsSHACL() {
-			continue
-		}
-
-		severity := defaultSeverity
-		displayData := cw.Data
-
-		if soc, ok := cw.Data.(*shacl.SeverityOverrideConstraint); ok {
-			displayData = soc.Inner()
-			severity = simplifyTerm(soc.Severity)
-		}
-
-		data, _ := json.Marshal(displayData)
-		var m map[string]any
-		json.Unmarshal(data, &m)
-
-		payload := make(map[string]any)
-		var details []string
-		for k, v := range m {
-			resolvedVal, strVal := formatValueWithResolution(v, allWrapped, visited)
-			payload[k] = resolvedVal
-			details = append(details, fmt.Sprintf("%s: %s", k, strVal))
-		}
-
-		constraints = append(constraints, ConstraintInfo{
-			Path:      path,
-			Severity:  severity,
-			Message:   defaultMessage,
-			Component: simplifyIRI(cw.Type),
-			Payload:   payload,
-			Details:   strings.Join(details, ", "),
-		})
-	}
-
-	return constraints
-}
-
-func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
-	switch val := v.(type) {
-	case map[string]any:
-		if kind, ok := val["kind"].(string); ok {
-			vVal, _ := val["value"].(string)
-			var key string
-			if kind == "IRI" {
-				key = "<" + vVal + ">"
-			} else if kind == "BlankNode" {
-				key = "_:" + vVal
-			}
-
-			if key != "" {
-				if resolved, ok := allWrapped[key]; ok {
-					return resolveShapeConstraints(resolved, allWrapped, visited)
-				}
-				if kind == "IRI" {
-					return simplifyIRI(vVal), simplifyIRI(vVal)
-				}
-			}
-			return vVal, vVal
-		}
-	case []any:
-		var items []any
-		var strs []string
-		for _, item := range val {
-			rv, sv := formatValueWithResolution(item, allWrapped, visited)
-			items = append(items, rv)
-			strs = append(strs, sv)
-		}
-		return items, "[" + strings.Join(strs, ", ") + "]"
-	}
-	s := fmt.Sprint(v)
-	return v, s
-}
-
-func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
-	id := sw.ID.String()
-	if visited[id] {
-		ref := "ref:" + simplifyTerm(sw.ID)
-		return ref, ref
-	}
-	visited[id] = true
-	defer delete(visited, id)
-
-	constraints := extractConstraints(sw, allWrapped, visited)
-	if len(constraints) == 0 {
-		s := simplifyTerm(sw.ID)
-		return s, s
-	}
-
-	var parts []string
-	for _, c := range constraints {
-		details := c.Details
-		if c.Path != "" {
-			if details != "" {
-				details = "path: " + c.Path + ", " + details
-			} else {
-				details = "path: " + c.Path
-			}
-		}
-		parts = append(parts, fmt.Sprintf("%s(%s)", c.Component, details))
-	}
-	return constraints, "{" + strings.Join(parts, ", ") + "}"
 }

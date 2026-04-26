@@ -1,4 +1,4 @@
-package main
+package validation
 
 import (
 	"cimgo/rdf/shacl"
@@ -6,48 +6,6 @@ import (
 	"regexp"
 	"strings"
 )
-
-type fileStats struct {
-	name         string
-	shaclPath    string
-	sparqlPath   string
-	shaclCounts  map[string]int
-	sparqlCounts map[string]int
-}
-
-type ConstraintWrapper struct {
-	Type string
-	Data shacl.Constraint
-}
-
-func (cw ConstraintWrapper) IsSPARQL() bool {
-	_, ok := cw.Data.(*shacl.SPARQLConstraint)
-	return ok
-}
-
-func (cw ConstraintWrapper) IsSHACL() bool {
-	return !cw.IsSPARQL()
-}
-
-type ShapeWrapper struct {
-	*shacl.Shape
-	Constraints []ConstraintWrapper
-	Properties  []*ShapeWrapper
-}
-
-func wrapShape(s *shacl.Shape) *ShapeWrapper {
-	if s == nil {
-		return nil
-	}
-	sw := &ShapeWrapper{Shape: s}
-	for _, c := range s.Constraints {
-		sw.Constraints = append(sw.Constraints, ConstraintWrapper{Type: c.ComponentIRI(), Data: c})
-	}
-	for _, ps := range s.Properties {
-		sw.Properties = append(sw.Properties, wrapShape(ps))
-	}
-	return sw
-}
 
 var prefixes = map[string]string{
 	"http://www.w3.org/1999/02/22-rdf-syntax-ns#":                                                "rdf",
@@ -142,7 +100,49 @@ var prefixes = map[string]string{
 	"http://iec.ch/TC57/ns/CIM/IdentifiedObject/constraints/3.0#":                                "io",
 }
 
-func simplifyIRI(iri string) string {
+type FileStats struct {
+	Name         string
+	ShaclPath    string
+	SparqlPath   string
+	ShaclCounts  map[string]int
+	SparqlCounts map[string]int
+}
+
+type ConstraintWrapper struct {
+	Type string
+	Data shacl.Constraint
+}
+
+func (cw ConstraintWrapper) IsSPARQL() bool {
+	_, ok := cw.Data.(*shacl.SPARQLConstraint)
+	return ok
+}
+
+func (cw ConstraintWrapper) IsSHACL() bool {
+	return !cw.IsSPARQL()
+}
+
+type ShapeWrapper struct {
+	*shacl.Shape
+	Constraints []ConstraintWrapper
+	Properties  []*ShapeWrapper
+}
+
+func WrapShape(s *shacl.Shape) *ShapeWrapper {
+	if s == nil {
+		return nil
+	}
+	sw := &ShapeWrapper{Shape: s}
+	for _, c := range s.Constraints {
+		sw.Constraints = append(sw.Constraints, ConstraintWrapper{Type: c.ComponentIRI(), Data: c})
+	}
+	for _, ps := range s.Properties {
+		sw.Properties = append(sw.Properties, WrapShape(ps))
+	}
+	return sw
+}
+
+func SimplifyIRI(iri string) string {
 	for ns, pref := range prefixes {
 		if strings.HasPrefix(iri, ns) {
 			return pref + "." + strings.TrimPrefix(iri, ns)
@@ -154,85 +154,85 @@ func simplifyIRI(iri string) string {
 	return iri
 }
 
-func simplifyTerm(t shacl.Term) string {
+func SimplifyTerm(t shacl.Term) string {
 	if t.IsIRI() {
-		return simplifyIRI(t.Value())
+		return SimplifyIRI(t.Value())
 	}
 	return t.String()
 }
 
-func formatValue(v any) string {
+func FormatValue(v any) string {
 	switch val := v.(type) {
 	case map[string]any:
 		if kind, ok := val["kind"].(string); ok {
 			vIRI, _ := val["value"].(string)
 			if kind == "IRI" {
-				return simplifyIRI(vIRI)
+				return SimplifyIRI(vIRI)
 			}
 			return vIRI
 		}
 	case []any:
 		var items []string
 		for _, item := range val {
-			items = append(items, formatValue(item))
+			items = append(items, FormatValue(item))
 		}
 		return "[" + strings.Join(items, ", ") + "]"
 	}
 	return fmt.Sprint(v)
 }
 
-func formatPath(p *shacl.PropertyPath) string {
+func FormatPath(p *shacl.PropertyPath) string {
 	if p == nil {
 		return ""
 	}
 	switch p.Kind {
 	case shacl.PathPredicate:
-		return simplifyTerm(p.Pred)
+		return SimplifyTerm(p.Pred)
 	case shacl.PathInverse:
-		return "^" + formatPath(p.Sub)
+		return "^" + FormatPath(p.Sub)
 	case shacl.PathSequence:
 		var parts []string
 		for _, e := range p.Elements {
-			parts = append(parts, formatPath(e))
+			parts = append(parts, FormatPath(e))
 		}
 		return strings.Join(parts, " / ")
 	case shacl.PathAlternative:
 		var parts []string
 		for _, e := range p.Elements {
-			parts = append(parts, formatPath(e))
+			parts = append(parts, FormatPath(e))
 		}
 		return "(" + strings.Join(parts, " | ") + ")"
 	case shacl.PathZeroOrMore:
-		return formatPath(p.Sub) + "*"
+		return FormatPath(p.Sub) + "*"
 	case shacl.PathOneOrMore:
-		return formatPath(p.Sub) + "+"
+		return FormatPath(p.Sub) + "+"
 	case shacl.PathZeroOrOne:
-		return formatPath(p.Sub) + "?"
+		return FormatPath(p.Sub) + "?"
 	}
 	return "unknown"
 }
 
 // hasContent checks if the shape or any of its nested properties contain constraints that match the filter
-func hasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
+func HasContent(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) bool {
 	for _, c := range sw.Constraints {
 		if filter(c) {
 			return true
 		}
 	}
 	for _, p := range sw.Properties {
-		if hasContent(p, filter) {
+		if HasContent(p, filter) {
 			return true
 		}
 	}
 	return false
 }
 
-type sparqlInfo struct {
-	id    string
-	query string
+type SparqlInfo struct {
+	Id    string
+	Query string
 }
 
-func collectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []sparqlInfo) []sparqlInfo {
+func CollectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []SparqlInfo) []SparqlInfo {
 	if sw.Values == nil {
 		return queries
 	}
@@ -240,12 +240,12 @@ func collectSPARQLValues(sb *strings.Builder, sw *ShapeWrapper, queries []sparql
 	if sw.Values.Expr != "" {
 		query = sw.Values.Prefixes + "SELECT (" + sw.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
 	}
-	queries = append(queries, sparqlInfo{id: "Values", query: query})
+	queries = append(queries, SparqlInfo{Id: "Values", Query: query})
 	sb.WriteString("**SPARQL Values:** [See below](#sparql-values)\n\n")
 	return queries
 }
 
-func filterConstraints(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) []ConstraintWrapper {
+func FilterConstraints(sw *ShapeWrapper, filter func(ConstraintWrapper) bool) []ConstraintWrapper {
 	var filtered []ConstraintWrapper
 	for _, c := range sw.Constraints {
 		if filter(c) {

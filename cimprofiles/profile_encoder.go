@@ -1,4 +1,4 @@
-package encoding
+package cimprofiles
 
 import (
 	"cimgo/cimgostructs"

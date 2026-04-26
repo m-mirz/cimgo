@@ -3,7 +3,7 @@ package validation
 import (
 	"bytes"
 	"cimgo/cimgostructs"
-	"cimgo/encoding"
+	"cimgo/cimprofiles"
 	"os"
 	"testing"
 )
@@ -21,7 +21,7 @@ func TestSPARQLRules(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read %s: %v", file, err)
 		}
-		_, err = encoding.DecodeProfile(bytes.NewReader(b), dataset)
+		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
 		if err != nil {
 			t.Fatalf("Failed to decode %s: %v", file, err)
 		}

@@ -15,7 +15,7 @@ type Violation struct {
 	Severity string
 }
 
-func getCIMTypeName(obj interface{}) string {
+func getCIMTypeNameSPARQL(obj interface{}) string {
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -172,7 +172,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementLi
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
-		typeName := getCIMTypeName(obj)
+		typeName := getCIMTypeNameSPARQL(obj)
 		if typeName == "ACLineSegment" || typeName == "EquivalentBranch" || typeName == "SeriesCompensator" || typeName == "Equipment" {
 			continue
 		}
@@ -197,7 +197,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementLi
 			ecID := strings.TrimPrefix(ecMRID, "#")
 
 			if ecObj, ok := dataset.Elements[ecID]; ok {
-				if getCIMTypeName(ecObj) == "VoltageLevel" {
+				if getCIMTypeNameSPARQL(ecObj) == "VoltageLevel" {
 					violations = append(violations, Violation{
 						ObjectID: id,
 						Class:    typeName,

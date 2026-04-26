@@ -4,7 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"cimgo/cimgostructs"
-	cimenc "cimgo/encoding"
+	"cimgo/cimprofiles"
+	"cimgo/cimproto"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -173,7 +174,7 @@ func processCIMFiles(id string) error {
 			return fmt.Errorf("failed to read file %s: %w", entry, err)
 		}
 
-		_, err = cimenc.DecodeProfile(bytes.NewReader(b), mergedCIMData)
+		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), mergedCIMData)
 		if err != nil {
 			return fmt.Errorf("failed to decode profile %s: %w", entry, err)
 		}
@@ -192,7 +193,7 @@ func processCIMFiles(id string) error {
 	}
 
 	// Generate Protobuf serialization
-	protoList, err := cimenc.ToProto(mergedCIMData)
+	protoList, err := cimproto.ToProto(mergedCIMData)
 	if err != nil {
 		return fmt.Errorf("failed to convert to proto: %w", err)
 	}

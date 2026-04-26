@@ -1,8 +1,9 @@
-package encoding
+package validation
 
 import (
 	"bytes"
 	"cimgo/cimgostructs"
+	"cimgo/cimprofiles"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -292,7 +293,7 @@ func TestValidateCIMData(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		DecodeProfile(bytes.NewReader(b), mergedCIMData)
+		cimprofiles.DecodeProfile(bytes.NewReader(b), mergedCIMData)
 	}
 
 	var allViolations []string

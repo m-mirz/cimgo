@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:Terminal rdf:about="#Terminal.N0">
+    <cim:Terminal.TopologicalNode rdf:resource="#N0" />
+  </cim:Terminal>
+  <cim:TopologicalNode rdf:ID="N0">
+    <cim:IdentifiedObject.name>N0</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+</rdf:RDF>

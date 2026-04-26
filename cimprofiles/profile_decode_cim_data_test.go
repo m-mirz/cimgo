@@ -10,10 +10,9 @@ import (
 	"testing"
 )
 
-func TestDecodeCIMData(t *testing.T) {
-	t.Log("Start CIM-Data decoding test")
+func DecodeTest(t *testing.T, filePattern string) {
 
-	entries, err := filepath.Glob("../testdata/test_001.xml")
+	entries, err := filepath.Glob(filePattern)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,20 +22,40 @@ func TestDecodeCIMData(t *testing.T) {
 
 		b, err := os.ReadFile(entry)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		cimData, err := DecodeProfile(bytes.NewReader(b), nil)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		jsonOut, err := json.MarshalIndent(cimData.Elements, "", "  ")
 		if err != nil {
 			t.Fatalf("Failed to create a nicely formatted JSON: %v", err)
 		}
-		t.Log("Decoded CIM data:\n" + string(jsonOut))
+		t.Log("CIM data:\n" + string(jsonOut))
 	}
+}
+
+func TestDecode001(t *testing.T) {
+	DecodeTest(t, "../testdata/test_001.xml")
+}
+
+func TestDecode002(t *testing.T) {
+	DecodeTest(t, "../testdata/test_002.xml")
+}
+
+func TestDecode003(t *testing.T) {
+	DecodeTest(t, "../testdata/test_003.xml")
+}
+
+func TestDecode004(t *testing.T) {
+	DecodeTest(t, "../testdata/test_004.xml")
+}
+
+func TestDecode005(t *testing.T) {
+	DecodeTest(t, "../testdata/test_005.xml")
 }
 
 func TestMergeData(t *testing.T) {

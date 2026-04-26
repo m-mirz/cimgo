@@ -10,3 +10,5 @@ require (
 )
 
 require github.com/google/uuid v1.6.0
+
+tool google.golang.org/protobuf/cmd/protoc-gen-go

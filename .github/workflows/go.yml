@@ -22,9 +22,6 @@ jobs:
     - name: Generate code
       run: go generate ./...
 
-    - name: Generate protocol buffers
-      run: make proto
-
     - name: Build
       run: go build -v ./...
 

@@ -14,42 +14,23 @@ or clone the submodule in a second step
 
 Ensure that GOPATH is set and included in your PATH.
 
+For the protobuf code generation, you also require the proto compiler
+
+    sudo apt-get install -y protobuf-compiler
+    # install tools from mod file
+    go get tool
+
 First, you need to generate the cim based code to be able to build the entire package.
 
 ```bash
 go generate ./...
 ```
 
-This will run:
-
-```bash
-go run cmd/cimgen/main.go
-go run cmd/cimgen/main.go -lang proto
-```
-
-Alternatively, you can install cimgen.
-
-    go install ./...
-
 ## How to Test
 
 Run the test suite using the `go test` command. The `-v` flag provides verbose output.
 
     go test -v ./...
-
-
-## proto generation
-
-Ensure that the protobuf tools are installed
-
-    protoc --version
-    
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest # If you also need gRPC services
-
-Generate
-    
-    protoc --go_out=. --proto_path=./proto/definitions  proto/definitions/*.proto
 
 
 ## Architecture

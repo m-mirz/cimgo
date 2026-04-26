@@ -1,8 +1,8 @@
 package encoding
 
 import (
-	"cimgo/encoding/cimgostructs"
-	"cimgo/encoding/cimgoxml"
+	"cimgo/cimgostructs"
+	"cimgo/cimxml"
 	"encoding/xml"
 	"io"
 	"strings"
@@ -30,7 +30,7 @@ func DecodeProfile(r io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostr
 	if cimData == nil {
 		cimData = cimgostructs.NewCIMElementList()
 	}
-	dec := cimgoxml.NewDecoder(r)
+	dec := cimxml.NewDecoder(r)
 
 	for {
 		token, err := dec.Token()

@@ -1,7 +1,7 @@
 package encoding
 
 import (
-	"cimgo/encoding/cimgostructs"
+	"cimgo/cimgostructs"
 	apiv1 "cimgo/proto/api/v1"
 	"fmt"
 	"reflect"

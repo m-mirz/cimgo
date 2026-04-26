@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/encoding/cimgostructs"
+	"cimgo/cimgostructs"
 	"fmt"
 	"reflect"
 	"strings"

@@ -2,8 +2,8 @@ package validation
 
 import (
 	"bytes"
+	"cimgo/cimgostructs"
 	"cimgo/encoding"
-	"cimgo/encoding/cimgostructs"
 	"os"
 	"testing"
 )

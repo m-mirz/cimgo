@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // A modified version of std xmlread.go for cimgo
-package cimgoxml
+package cimxml
 
 import (
 	"bytes"

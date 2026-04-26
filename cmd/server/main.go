@@ -3,8 +3,8 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"cimgo/cimgostructs"
 	cimenc "cimgo/encoding"
-	"cimgo/encoding/cimgostructs"
 	"encoding/json"
 	"fmt"
 	"io"

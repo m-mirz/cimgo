@@ -2,7 +2,7 @@ package encoding
 
 import (
 	"bytes"
-	"cimgo/encoding/cimgostructs"
+	"cimgo/cimgostructs"
 	"encoding/json"
 	"fmt"
 	"os"

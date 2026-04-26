@@ -1,8 +1,8 @@
 package encoding
 
 import (
-	"cimgo/encoding/cimgostructs"
-	"cimgo/encoding/cimgoxml"
+	"cimgo/cimgostructs"
+	"cimgo/cimxml"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -14,7 +14,7 @@ func EncodeProfile(w io.Writer, cimData *cimgostructs.CIMElementList) error {
 		return err
 	}
 
-	enc := cimgoxml.NewEncoder(w)
+	enc := cimxml.NewEncoder(w)
 	enc.Indent("", "  ")
 
 	start := xml.StartElement{

@@ -2,6 +2,7 @@ package cimgostructs
 
 import "cimgo/cimgobase"
 
+// {{.Comment}}
 type {{.Id}} struct {
 {{- if .SuperType}}
     {{.SuperType}}
@@ -11,6 +12,7 @@ type {{.Id}} struct {
 
 {{- range .Attributes}}
 {{- if .IsAssociationUsed }}
+    // {{.Comment}}
 {{- if or .IsPrimitive .IsCIMDatatype}}
     {{capitalFirstLetter .Label}} {{.LangType}} `xml:"{{.Id}},omitempty"`
 {{- else if .IsEnumValue}}
@@ -30,17 +32,17 @@ var info{{.Id}} = cimgobase.CIMTypeInfo{
     Id: "{{.Id}}",
     Label: "{{.Label}}",
     Namespace: "{{.Namespace}}",
-    Comment: "{{.Comment}}",
-    SuperType: "{{.SuperType}}",
     Origin: "{{.Origin}}",
     Origins: []string{ {{- range .Origins}}
-        "{{.}}",{{- end}} },
+        "{{.}}",{{- end}} 
+    },
     Attributes: map[string]cimgobase.CIMAttributeInfo{
 {{- range .Attributes}}
 {{- if .IsAssociationUsed }}
         "{{.Id}}": {
             Label: "{{.Label}}",
-            IsList: {{.IsList}},
+            Namespace: "{{.Namespace}}",
+            Origin: "{{.Origin}}",            
         },
 {{- end}}
 {{- end}}

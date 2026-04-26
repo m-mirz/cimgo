@@ -30,8 +30,8 @@ func TestSPARQLRules(t *testing.T) {
 	t.Logf("Loaded %d elements", len(dataset.Elements))
 
 	// 2. Run validations
-	t.Run("ACDCTerminalSequenceNumbering", func(t *testing.T) {
-		violations := CheckACDCTerminalSequenceNumbering(dataset)
+	t.Run("EquipmentProfile", func(t *testing.T) {
+		violations := ValidateEquipmentProfile(dataset)
 		if len(violations) > 0 {
 			t.Logf("Found %d violations", len(violations))
 			for _, v := range violations {
@@ -42,8 +42,8 @@ func TestSPARQLRules(t *testing.T) {
 		}
 	})
 
-	t.Run("TerminalPhasesConsistency", func(t *testing.T) {
-		violations := CheckTerminalPhasesConsistencyEquipment(dataset)
+	t.Run("SSHProfile", func(t *testing.T) {
+		violations := ValidateSSHProfile(dataset)
 		if len(violations) > 0 {
 			t.Logf("Found %d violations", len(violations))
 			for _, v := range violations {
@@ -54,8 +54,32 @@ func TestSPARQLRules(t *testing.T) {
 		}
 	})
 
-	t.Run("ConductingEquipmentBaseVoltageUsage", func(t *testing.T) {
-		violations := CheckConductingEquipmentBaseVoltageUsage(dataset)
+	t.Run("DynamicsProfile", func(t *testing.T) {
+		violations := ValidateDynamicsProfile(dataset)
+		if len(violations) > 0 {
+			t.Logf("Found %d violations", len(violations))
+			for _, v := range violations {
+				t.Logf("Violation: %+v", v)
+			}
+		} else {
+			t.Log("No violations found")
+		}
+	})
+
+	t.Run("ShortCircuitProfile", func(t *testing.T) {
+		violations := ValidateShortCircuitProfile(dataset)
+		if len(violations) > 0 {
+			t.Logf("Found %d violations", len(violations))
+			for _, v := range violations {
+				t.Logf("Violation: %+v", v)
+			}
+		} else {
+			t.Log("No violations found")
+		}
+	})
+
+	t.Run("StateVariablesProfile", func(t *testing.T) {
+		violations := ValidateStateVariablesProfile(dataset)
 		if len(violations) > 0 {
 			t.Logf("Found %d violations", len(violations))
 			for _, v := range violations {

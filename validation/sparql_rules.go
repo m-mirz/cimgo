@@ -15,7 +15,7 @@ type Violation struct {
 	Severity string
 }
 
-func getCIMTypeNameSPARQL(obj interface{}) string {
+func goTypeName(obj interface{}) string {
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -239,7 +239,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementLi
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
-		typeName := getCIMTypeNameSPARQL(obj)
+		typeName := goTypeName(obj)
 		if typeName == "ACLineSegment" || typeName == "EquivalentBranch" || typeName == "SeriesCompensator" || typeName == "Equipment" {
 			continue
 		}
@@ -264,7 +264,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementLi
 			ecID := strings.TrimPrefix(ecMRID, "#")
 
 			if ecObj, ok := dataset.Elements[ecID]; ok {
-				if getCIMTypeNameSPARQL(ecObj) == "VoltageLevel" {
+				if goTypeName(ecObj) == "VoltageLevel" {
 					violations = append(violations, Violation{
 						ObjectID: id,
 						Class:    typeName,
@@ -1023,7 +1023,7 @@ func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimgostruc
 	for id, obj := range dataset.Elements {
 		// Using reflect to check if it's a subtype of ExcitationSystemDynamics
 		// but since we only have some structs, let's check by type name prefix or manual list
-		typeName := getCIMTypeNameSPARQL(obj)
+		typeName := goTypeName(obj)
 		if !strings.HasPrefix(typeName, "Exc") {
 			continue
 		}

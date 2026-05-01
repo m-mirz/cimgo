@@ -11,12 +11,8 @@ import (
 	"unicode"
 )
 
-const (
-	CGMES3_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/RDFS/61970-600-2_*-AP-Voc-RDFS2020.rdf"
-)
-
 func main() {
-	schemaPattern := flag.String("schema", CGMES3_SCHEMA, "glob pattern for CIM schema files")
+	schemaPattern := flag.String("schema", cimgen.DefaultRDFSPattern, "glob pattern for CIM schema files")
 	outputDir := flag.String("out", "pages/docs", "output directory for markdown files")
 	flag.Parse()
 

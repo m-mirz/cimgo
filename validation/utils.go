@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const DefaultSHACLPattern = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
+
 var prefixes = map[string]string{
 	"http://www.w3.org/1999/02/22-rdf-syntax-ns#":                                                "rdf",
 	"http://www.w3.org/2000/01/rdf-schema#":                                                      "rdfs",
@@ -181,35 +183,46 @@ func FormatValue(v any) string {
 	return fmt.Sprint(v)
 }
 
-func FormatPath(p *shacl.PropertyPath) string {
+// FormatPath renders a SHACL property path as a list of sequence steps.
+// A simple predicate or inverse is a single-element list; a sh:sequencePath
+// becomes one element per step. Alternatives and modifiers (*, +, ?) are
+// collapsed back into a single element so the list shape mirrors the
+// sequence structure only.
+func FormatPath(p *shacl.PropertyPath) []string {
 	if p == nil {
-		return ""
+		return nil
 	}
 	switch p.Kind {
 	case shacl.PathPredicate:
-		return SimplifyTerm(p.Pred)
+		return []string{SimplifyTerm(p.Pred)}
 	case shacl.PathInverse:
-		return "^" + FormatPath(p.Sub)
+		return []string{"^" + FormatPathString(p.Sub)}
 	case shacl.PathSequence:
 		var parts []string
 		for _, e := range p.Elements {
-			parts = append(parts, FormatPath(e))
+			parts = append(parts, FormatPath(e)...)
 		}
-		return strings.Join(parts, " / ")
+		return parts
 	case shacl.PathAlternative:
 		var parts []string
 		for _, e := range p.Elements {
-			parts = append(parts, FormatPath(e))
+			parts = append(parts, FormatPathString(e))
 		}
-		return "(" + strings.Join(parts, " | ") + ")"
+		return []string{"(" + strings.Join(parts, " | ") + ")"}
 	case shacl.PathZeroOrMore:
-		return FormatPath(p.Sub) + "*"
+		return []string{FormatPathString(p.Sub) + "*"}
 	case shacl.PathOneOrMore:
-		return FormatPath(p.Sub) + "+"
+		return []string{FormatPathString(p.Sub) + "+"}
 	case shacl.PathZeroOrOne:
-		return FormatPath(p.Sub) + "?"
+		return []string{FormatPathString(p.Sub) + "?"}
 	}
-	return "unknown"
+	return []string{"unknown"}
+}
+
+// FormatPathString joins the FormatPath segments with " / " for callers that
+// need a single-string rendering (e.g. attribute names, markdown output).
+func FormatPathString(p *shacl.PropertyPath) string {
+	return strings.Join(FormatPath(p), " / ")
 }
 
 // hasContent checks if the shape or any of its nested properties contain constraints that match the filter

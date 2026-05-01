@@ -12,10 +12,6 @@ import (
 	"strings"
 )
 
-const (
-	SHACL_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
-)
-
 // generateMarkdown creates a Markdown string for the given shapes, filtering constraints based on the provided filter function
 func generateMarkdown(title string, wrapped map[string]*validation.ShapeWrapper, filter func(validation.ConstraintWrapper) bool) string {
 	var sb strings.Builder
@@ -52,7 +48,7 @@ func renderShapes(sb *strings.Builder, shapes []*validation.ShapeWrapper, level 
 	sort.Slice(shapes, func(i, j int) bool {
 		si, sj := shapes[i], shapes[j]
 		if si.IsProperty && sj.IsProperty && si.Path != nil && sj.Path != nil {
-			return validation.FormatPath(si.Path) < validation.FormatPath(sj.Path)
+			return validation.FormatPathString(si.Path) < validation.FormatPathString(sj.Path)
 		}
 		return si.ID.String() < sj.ID.String()
 	})
@@ -82,7 +78,7 @@ func renderShapeHeading(sb *strings.Builder, s *validation.ShapeWrapper, level i
 
 func renderShapeBasicInfo(sb *strings.Builder, first *validation.ShapeWrapper) {
 	if first.IsProperty && first.Path != nil {
-		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", validation.FormatPath(first.Path)))
+		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", validation.FormatPathString(first.Path)))
 	}
 
 	if len(first.Description) > 0 {
@@ -186,7 +182,7 @@ func renderNestedProperties(sb *strings.Builder, sw *validation.ShapeWrapper, le
 func main() {
 	flagJSON := flag.Bool("json", false, "Generate JSON output")
 	flagMD := flag.Bool("md", false, "Generate Markdown output")
-	shaclPattern := flag.String("shacl", SHACL_SCHEMA, "glob pattern for shacl files")
+	shaclPattern := flag.String("shacl", validation.DefaultSHACLPattern, "glob pattern for shacl files")
 	outputDir := flag.String("out", "pages/docs", "output directory for generated files")
 	flag.Parse()
 

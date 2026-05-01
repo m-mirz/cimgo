@@ -3,81 +3,200 @@ package validation
 import (
 	"cimgo/rdf/shacl"
 	"encoding/json"
-	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-const (
-	SHACL_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
-)
-
-func importSHACLRules() {
-	outputDir := "pages/docs/struct"
-
-	shaclFiles, err := filepath.Glob(SHACL_SCHEMA)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error globbing files: %v\n", err)
-		return
-	}
-
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating output directory: %v\n", err)
-		return
-	}
-
-	for _, file := range shaclFiles {
-		results, err := processFileToResults(file)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", file, err)
-			continue
-		}
-
-		data, err := json.MarshalIndent(results, "", "  ")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error marshaling %s: %v\n", file, err)
-			continue
-		}
-
-		baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
-		outFile := filepath.Join(outputDir, baseName+".json")
-		if err := os.WriteFile(outFile, data, 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing %s: %v\n", outFile, err)
-			continue
-		}
-		fmt.Printf("Exported struct to %s\n", outFile)
-	}
-}
-
-func GetSHACLRules(shaclPattern string) (map[string]ClassInfo, error) {
-	rules := make(map[string]ClassInfo)
-	shaclFiles, err := filepath.Glob(shaclPattern)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, file := range shaclFiles {
-		results, err := processFileToResults(file)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, cls := range results.Classes {
-			if existing, ok := rules[cls.Name]; ok {
-				existing.Constraints = append(existing.Constraints, cls.Constraints...)
-				existing.Attributes = append(existing.Attributes, cls.Attributes...)
-				rules[cls.Name] = existing
-			} else {
-				rules[cls.Name] = cls
+func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
+	// Pre-scan
+	hasAnyDatatype := false
+	hasClass := false
+	hasMinCount0 := false
+	hasMinCount1 := false
+	hasMaxCount1 := false
+	for _, c := range constraints {
+		switch c.Component {
+		case "sh.DatatypeConstraintComponent":
+			hasAnyDatatype = true
+		case "sh.ClassConstraintComponent":
+			hasClass = true
+		case "sh.MinCountConstraintComponent":
+			switch anyToFloat(c.Payload["MinCount"]) {
+			case 0:
+				hasMinCount0 = true
+			case 1:
+				hasMinCount1 = true
+			}
+		case "sh.MaxCountConstraintComponent":
+			if anyToFloat(c.Payload["MaxCount"]) == 1 {
+				hasMaxCount1 = true
 			}
 		}
 	}
-	return rules, nil
+	mergeRequired := hasMinCount1 && hasMaxCount1
+	mergeOptional := hasMinCount0 && hasMaxCount1
+
+	var result []ConstraintInfo
+	requiredAdded := false
+	optionalAdded := false
+	for _, c := range constraints {
+		// Rule 1: any sh:datatype implies sh:Literal — drop redundant NodeKind=Literal
+		if hasAnyDatatype && c.Component == "sh.NodeKindConstraintComponent" {
+			if nk, ok := c.Payload["NodeKind"].(string); ok && nk == "sh.Literal" {
+				continue
+			}
+		}
+		// Rule 2: drop NodeKind=BlankNodeOrIRI (the SHACL non-literal default), and
+		// drop NodeKind=IRI when sh:class is present (sh:class already implies IRI-like).
+		if c.Component == "sh.NodeKindConstraintComponent" {
+			if nk, ok := c.Payload["NodeKind"].(string); ok {
+				if nk == "sh.BlankNodeOrIRI" {
+					continue
+				}
+				if hasClass && nk == "sh.IRI" {
+					continue
+				}
+			}
+		}
+		// Rule 3: minCount=0 is vacuously true — drop it
+		if c.Component == "sh.MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 0 {
+			continue
+		}
+		// sh:in with a single value is equivalent to sh:hasValue.
+		if c.Component == "sh.InConstraintComponent" {
+			if vals, ok := c.Payload["Values"].([]any); ok && len(vals) == 1 {
+				result = append(result, ConstraintInfo{
+					Path:      c.Path,
+					Severity:  c.Severity,
+					Message:   c.Message,
+					Component: "sh.HasValueConstraintComponent",
+					Payload:   map[string]any{"Value": vals[0]},
+				})
+				continue
+			}
+		}
+		// Rule 4: minCount=0 + maxCount=1 → Optional (maxCount=1 entry is replaced;
+		// the minCount=0 entry is already dropped by Rule 3 above)
+		if mergeOptional && c.Component == "sh.MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
+			if !optionalAdded {
+				result = append(result, ConstraintInfo{
+					Path:      c.Path,
+					Severity:  c.Severity,
+					Message:   c.Message,
+					Component: "sh.OptionalConstraintComponent",
+				})
+				optionalAdded = true
+			}
+			continue
+		}
+		// Existing rule: minCount=1 + maxCount=1 → Required
+		if mergeRequired {
+			if c.Component == "sh.MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 1 {
+				if !requiredAdded {
+					result = append(result, ConstraintInfo{
+						Path:      c.Path,
+						Severity:  c.Severity,
+						Message:   c.Message,
+						Component: "sh.RequiredConstraintComponent",
+					})
+					requiredAdded = true
+				}
+				continue
+			}
+			if c.Component == "sh.MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
+				continue
+			}
+		}
+		result = append(result, c)
+	}
+	for i := range result {
+		if result[i].Severity == "sh.Violation" {
+			result[i].Severity = ""
+		}
+		for k, v := range result[i].Payload {
+			result[i].Payload[k] = stripSHPrefix(v)
+		}
+	}
+	return result
 }
 
-func processFileToResults(file string) (*FileResults, error) {
+// stripSHPrefix recursively walks a payload value and removes the leading "sh."
+// prefix from string values (e.g. "sh.IRI" → "IRI"). Severity fields on any
+// nested ConstraintInfo are also normalized to drop the default "sh.Violation".
+func stripSHPrefix(v any) any {
+	switch val := v.(type) {
+	case string:
+		return strings.TrimPrefix(val, "sh.")
+	case []any:
+		for i := range val {
+			val[i] = stripSHPrefix(val[i])
+		}
+		return val
+	case map[string]any:
+		for k, vv := range val {
+			val[k] = stripSHPrefix(vv)
+		}
+		return val
+	case []ConstraintInfo:
+		for i := range val {
+			if val[i].Severity == "sh.Violation" {
+				val[i].Severity = ""
+			}
+			for k, vv := range val[i].Payload {
+				val[i].Payload[k] = stripSHPrefix(vv)
+			}
+		}
+		return val
+	}
+	return v
+}
+
+func SimplifyFileResults(fr *FileResults) *FileResults {
+	simplified := &FileResults{
+		FileName: fr.FileName,
+		Classes:  make([]ClassInfo, 0, len(fr.Classes)),
+	}
+	for _, cls := range fr.Classes {
+		sCls := ClassInfo{
+			Name:        cls.Name,
+			Constraints: simplifyConstraints(cls.Constraints),
+			Attributes:  make([]AttributeInfo, 0, len(cls.Attributes)),
+		}
+		for _, attr := range cls.Attributes {
+			sCls.Attributes = append(sCls.Attributes, AttributeInfo{
+				Name:        attr.Name,
+				Description: attr.Description,
+				Constraints: simplifyConstraints(attr.Constraints),
+			})
+		}
+		simplified.Classes = append(simplified.Classes, sCls)
+	}
+	return simplified
+}
+
+// resolveSubClassOf follows rdfs:subClassOf in the graph until no further
+// superclass is found, returning the most-general class available in the graph.
+// This maps profile-specific subclasses (e.g. prof10:FullModel-EQ) to their
+// canonical CIM base class (e.g. mdc:FullModel).
+func resolveSubClassOf(g *shacl.Graph, class shacl.Term) shacl.Term {
+	visited := map[string]bool{class.Value(): true}
+	current := class
+	for {
+		supers := g.Objects(current, shacl.IRI(shacl.RDFSSubClassOf))
+		if len(supers) == 0 {
+			return current
+		}
+		next := supers[0]
+		if visited[next.Value()] {
+			return current
+		}
+		visited[next.Value()] = true
+		current = next
+	}
+}
+
+func ProcessFileToResults(file string) (*FileResults, error) {
 	g, err := shacl.LoadTurtleFile(file)
 	if err != nil {
 		return nil, err
@@ -107,15 +226,21 @@ func processFileToResults(file string) (*FileResults, error) {
 
 		sw := allWrapped[k]
 
-		// Determine target classes/nodes
+		// Determine target classes/nodes.
+		// For class targets (explicit and implicit) follow rdfs:subClassOf to
+		// the base CIM class so that profile-specific subclasses like
+		// prof10:FullModel-EQ resolve to their canonical class (mdc:FullModel).
 		var explicitTargets []string
 		var implicitTargets []string
 		for _, t := range sw.Targets {
-			termVal := SimplifyTerm(t.Value)
-			if t.Kind == shacl.TargetClass || t.Kind == shacl.TargetNode {
-				explicitTargets = append(explicitTargets, termVal)
+			if t.Kind == shacl.TargetNode {
+				explicitTargets = append(explicitTargets, SimplifyTerm(t.Value))
+			} else if t.Kind == shacl.TargetClass {
+				resolved := resolveSubClassOf(g, t.Value)
+				explicitTargets = append(explicitTargets, SimplifyTerm(resolved))
 			} else if t.Kind == shacl.TargetImplicitClass {
-				implicitTargets = append(implicitTargets, termVal)
+				resolved := resolveSubClassOf(g, t.Value)
+				implicitTargets = append(implicitTargets, SimplifyTerm(resolved))
 			}
 		}
 
@@ -235,7 +360,7 @@ func ConvertToClassInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, n
 }
 
 func ConvertToAttributeInfo(pw *ShapeWrapper, allWrapped map[string]*ShapeWrapper) AttributeInfo {
-	name := FormatPath(pw.Path)
+	name := FormatPathString(pw.Path)
 
 	var descriptions []string
 	for _, d := range pw.Description {
@@ -286,11 +411,8 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 		json.Unmarshal(data, &m)
 
 		payload := make(map[string]any)
-		var details []string
 		for k, v := range m {
-			resolvedVal, strVal := formatValueWithResolution(v, allWrapped, visited)
-			payload[k] = resolvedVal
-			details = append(details, fmt.Sprintf("%s: %s", k, strVal))
+			payload[k] = formatValueWithResolution(v, allWrapped, visited)
 		}
 
 		constraints = append(constraints, ConstraintInfo{
@@ -299,14 +421,13 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 			Message:   defaultMessage,
 			Component: SimplifyIRI(cw.Type),
 			Payload:   payload,
-			Details:   strings.Join(details, ", "),
 		})
 	}
 
 	return constraints
 }
 
-func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
+func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visited map[string]bool) any {
 	switch val := v.(type) {
 	case map[string]any:
 		if kind, ok := val["kind"].(string); ok {
@@ -323,51 +444,32 @@ func formatValueWithResolution(v any, allWrapped map[string]*ShapeWrapper, visit
 					return resolveShapeConstraints(resolved, allWrapped, visited)
 				}
 				if kind == "IRI" {
-					return SimplifyIRI(vVal), SimplifyIRI(vVal)
+					return SimplifyIRI(vVal)
 				}
 			}
-			return vVal, vVal
+			return vVal
 		}
 	case []any:
-		var items []any
-		var strs []string
+		items := make([]any, 0, len(val))
 		for _, item := range val {
-			rv, sv := formatValueWithResolution(item, allWrapped, visited)
-			items = append(items, rv)
-			strs = append(strs, sv)
+			items = append(items, formatValueWithResolution(item, allWrapped, visited))
 		}
-		return items, "[" + strings.Join(strs, ", ") + "]"
+		return items
 	}
-	s := fmt.Sprint(v)
-	return v, s
+	return v
 }
 
-func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) (any, string) {
+func resolveShapeConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) any {
 	id := sw.ID.String()
 	if visited[id] {
-		ref := "ref:" + SimplifyTerm(sw.ID)
-		return ref, ref
+		return "ref:" + SimplifyTerm(sw.ID)
 	}
 	visited[id] = true
 	defer delete(visited, id)
 
 	constraints := ExtractConstraints(sw, allWrapped, visited)
 	if len(constraints) == 0 {
-		s := SimplifyTerm(sw.ID)
-		return s, s
+		return SimplifyTerm(sw.ID)
 	}
-
-	var parts []string
-	for _, c := range constraints {
-		details := c.Details
-		if c.Path != "" {
-			if details != "" {
-				details = "path: " + c.Path + ", " + details
-			} else {
-				details = "path: " + c.Path
-			}
-		}
-		parts = append(parts, fmt.Sprintf("%s(%s)", c.Component, details))
-	}
-	return constraints, "{" + strings.Join(parts, ", ") + "}"
+	return constraints
 }

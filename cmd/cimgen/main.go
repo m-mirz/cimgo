@@ -8,22 +8,15 @@ import (
 	"os"
 )
 
-const (
-	CGMES2        = "2.4.15"
-	CGMES3        = "3.0.0"
-	CGMES2_SCHEMA = ""
-	CGMES3_SCHEMA = "application-profiles-library/CGMES/CurrentRelease/RDFS/61970-600-2_*-AP-Voc-RDFS2020.rdf"
-)
-
 func main() {
 	var schemaPattern string
 	var language string
 	var cgmesVersion string
 	var verbose bool
 
-	flag.StringVar(&schemaPattern, "schema", CGMES3_SCHEMA, "glob pattern for CIM schema files")
+	flag.StringVar(&schemaPattern, "schema", cimgen.DefaultRDFSPattern, "glob pattern for CIM schema files")
 	flag.StringVar(&language, "lang", "go", "output language (go, proto)")
-	flag.StringVar(&cgmesVersion, "version", CGMES3, "CGMES version")
+	flag.StringVar(&cgmesVersion, "version", cimgen.CGMESVersion_3_0_0, "CGMES version")
 	flag.BoolVar(&verbose, "v", false, "verbose logging")
 	flag.Parse()
 

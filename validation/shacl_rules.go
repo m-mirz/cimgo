@@ -7,18 +7,27 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // Models for the struct JSON documentation
 type ConstraintInfo struct {
-	Path      string         `json:"path"`
-	Severity  string         `json:"severity"`
-	Message   string         `json:"message"`
+	Path      []string       `json:"path"`
+	Severity  string         `json:"severity,omitempty"`
+	Message   string         `json:"message,omitempty"`
 	Component string         `json:"component"`
 	Payload   map[string]any `json:"payload"`
-	Details   string         `json:"details"`
+}
+
+// isInversePath reports whether p is a single-step inverse path like ^cim.X.Y.
+// countInverseRelations only handles single-step inverses, so a multi-step
+// sequence beginning with an inverse is not treated as one.
+func isInversePath(p []string) bool {
+	return len(p) == 1 && strings.HasPrefix(p[0], "^")
 }
 
 type AttributeInfo struct {
@@ -38,11 +47,24 @@ type FileResults struct {
 	Classes  []ClassInfo `json:"classes"`
 }
 
-func loadAllRules(t *testing.T, structDir string) map[string]ClassInfo {
+func loadAllRules(t *testing.T, structPaths ...string) map[string]ClassInfo {
 	rules := make(map[string]ClassInfo)
-	files, err := filepath.Glob(filepath.Join(structDir, "*.json"))
-	if err != nil {
-		t.Fatal(err)
+
+	var files []string
+	for _, structPath := range structPaths {
+		info, err := os.Stat(structPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.IsDir() {
+			glob, err := filepath.Glob(filepath.Join(structPath, "*.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			files = append(files, glob...)
+		} else {
+			files = append(files, structPath)
+		}
 	}
 
 	for _, file := range files {
@@ -69,12 +91,24 @@ func loadAllRules(t *testing.T, structDir string) map[string]ClassInfo {
 	return rules
 }
 
+// goTypeToCIMPrefix maps Go struct type names to their CIM namespace prefix
+// for types that are not in the default "cim" namespace (http://iec.ch/TC57/CIM100#).
+var goTypeToCIMPrefix = map[string]string{
+	"FullModel":       "mdc",
+	"DifferenceModel": "diff",
+	"Statements":      "rdf",
+}
+
 func getCIMTypeName(obj interface{}) string {
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	return "cim." + t.Name()
+	name := t.Name()
+	if prefix, ok := goTypeToCIMPrefix[name]; ok {
+		return prefix + "." + name
+	}
+	return "cim." + name
 }
 
 func validateObject(t *testing.T, obj interface{}, rules map[string]ClassInfo, dataset *cimgostructs.CIMElementList) []string {
@@ -100,21 +134,34 @@ func validateObject(t *testing.T, obj interface{}, rules map[string]ClassInfo, d
 
 	// 2. Validate Attributes
 	for _, attrRule := range classRule.Attributes {
-		fieldName := attrRule.Name
-		if lastDot := strings.LastIndex(fieldName, "."); lastDot != -1 {
-			fieldName = fieldName[lastDot+1:]
-		}
-		fieldName = strings.ToUpper(fieldName[:1]) + fieldName[1:]
+		path := attrRule.Name
 
-		field := val.FieldByName(fieldName)
-		if !field.IsValid() {
+		// Inverse paths (^...) are resolved by checkConstraint via
+		// countInverseRelations, which needs the focus node, not a field.
+		if strings.HasPrefix(strings.TrimSpace(path), "^") {
+			for _, constraint := range attrRule.Constraints {
+				if v := checkConstraint(val, constraint, dataset); v != "" {
+					violations = append(violations, fmt.Sprintf("[%s] %s: %s", cimType, path, v))
+				}
+			}
 			continue
 		}
 
+		segments := strings.Split(path, " / ")
+		fields := resolvePathSegments(val, segments)
+
 		for _, constraint := range attrRule.Constraints {
-			v := checkConstraint(field, constraint, dataset)
-			if v != "" {
-				violations = append(violations, fmt.Sprintf("[%s] %s: %s", cimType, attrRule.Name, v))
+			if constraint.Component == "sh.HasValueConstraintComponent" {
+				// HasValue requires at least one terminal value to match.
+				if v := checkHasValue(fields, constraint); v != "" {
+					violations = append(violations, fmt.Sprintf("[%s] %s: %s", cimType, path, v))
+				}
+			} else {
+				for _, field := range fields {
+					if v := checkConstraint(field, constraint, dataset); v != "" {
+						violations = append(violations, fmt.Sprintf("[%s] %s: %s", cimType, path, v))
+					}
+				}
 			}
 		}
 	}
@@ -137,10 +184,10 @@ func checkConstraint(field reflect.Value, c ConstraintInfo, dataset *cimgostruct
 
 	case "sh.MinCountConstraintComponent":
 		if minVal, ok := c.Payload["MinCount"]; ok {
-			min := int(reflect.ValueOf(minVal).Float()) // JSON numbers are float64
+			min := int(anyToFloat(minVal))
 			var count int
-			if c.Path != "" && strings.HasPrefix(c.Path, "^") {
-				count = countInverseRelations(field, c.Path, dataset)
+			if isInversePath(c.Path) {
+				count = countInverseRelations(field, c.Path[0], dataset)
 			} else {
 				count = getCount(field)
 			}
@@ -151,10 +198,10 @@ func checkConstraint(field reflect.Value, c ConstraintInfo, dataset *cimgostruct
 
 	case "sh.MaxCountConstraintComponent":
 		if maxVal, ok := c.Payload["MaxCount"]; ok {
-			max := int(reflect.ValueOf(maxVal).Float())
+			max := int(anyToFloat(maxVal))
 			var count int
-			if c.Path != "" && strings.HasPrefix(c.Path, "^") {
-				count = countInverseRelations(field, c.Path, dataset)
+			if isInversePath(c.Path) {
+				count = countInverseRelations(field, c.Path[0], dataset)
 			} else {
 				count = getCount(field)
 			}
@@ -165,14 +212,103 @@ func checkConstraint(field reflect.Value, c ConstraintInfo, dataset *cimgostruct
 
 	case "sh.MinInclusiveConstraintComponent":
 		if minVal, ok := c.Payload["Value"]; ok {
-			min := reflect.ValueOf(minVal).Float()
+			min := anyToFloat(minVal)
 			val, ok := getFloat(field)
-			if ok && val < min {
-				return fmt.Sprintf("MinInclusive violation: got %v, want %v", val, min)
+			if ok && getCount(field) > 0 && val < min {
+				return fmt.Sprintf("MinInclusive violation: got %v, want >= %v", val, min)
+			}
+		}
+
+	case "sh.MaxInclusiveConstraintComponent":
+		if maxVal, ok := c.Payload["Value"]; ok {
+			max := anyToFloat(maxVal)
+			val, ok := getFloat(field)
+			if ok && getCount(field) > 0 && val > max {
+				return fmt.Sprintf("MaxInclusive violation: got %v, want <= %v", val, max)
+			}
+		}
+
+	case "sh.MinExclusiveConstraintComponent":
+		if minVal, ok := c.Payload["Value"]; ok {
+			min := anyToFloat(minVal)
+			val, ok := getFloat(field)
+			if ok && getCount(field) > 0 && val <= min {
+				return fmt.Sprintf("MinExclusive violation: got %v, want > %v", val, min)
+			}
+		}
+
+	case "sh.MaxExclusiveConstraintComponent":
+		if maxVal, ok := c.Payload["Value"]; ok {
+			max := anyToFloat(maxVal)
+			val, ok := getFloat(field)
+			if ok && getCount(field) > 0 && val >= max {
+				return fmt.Sprintf("MaxExclusive violation: got %v, want < %v", val, max)
+			}
+		}
+
+	case "sh.RequiredConstraintComponent":
+		var count int
+		if isInversePath(c.Path) {
+			count = countInverseRelations(field, c.Path[0], dataset)
+		} else {
+			count = getCount(field)
+		}
+		if count != 1 {
+			return fmt.Sprintf("Required violation: got %d values, want exactly 1", count)
+		}
+
+	case "sh.OptionalConstraintComponent":
+		var count int
+		if isInversePath(c.Path) {
+			count = countInverseRelations(field, c.Path[0], dataset)
+		} else {
+			count = getCount(field)
+		}
+		if count > 1 {
+			return fmt.Sprintf("Optional violation: got %d values, want at most 1", count)
+		}
+
+	case "sh.MinLengthConstraintComponent":
+		if minVal, ok := c.Payload["MinLength"]; ok {
+			min := int(anyToFloat(minVal))
+			if s, ok := getString(field); ok && utf8.RuneCountInString(s) < min {
+				return fmt.Sprintf("MinLength violation: got %d chars, want at least %d", utf8.RuneCountInString(s), min)
+			}
+		}
+
+	case "sh.MaxLengthConstraintComponent":
+		if maxVal, ok := c.Payload["MaxLength"]; ok {
+			max := int(anyToFloat(maxVal))
+			if s, ok := getString(field); ok && utf8.RuneCountInString(s) > max {
+				return fmt.Sprintf("MaxLength violation: got %d chars, want at most %d", utf8.RuneCountInString(s), max)
+			}
+		}
+
+	case "sh.PatternConstraintComponent":
+		if patVal, ok := c.Payload["Pattern"].(string); ok {
+			pat := patVal
+			if flagsVal, ok := c.Payload["Flags"].(string); ok && flagsVal != "" {
+				pat = "(?" + flagsVal + ")" + pat
+			}
+			if re, err := regexp.Compile(pat); err == nil {
+				if s, ok := getString(field); ok && !re.MatchString(s) {
+					return fmt.Sprintf("Pattern violation: %q does not match %q", s, patVal)
+				}
 			}
 		}
 	}
 	return ""
+}
+
+func anyToFloat(v interface{}) float64 {
+	switch val := v.(type) {
+	case float64:
+		return val
+	case string:
+		f, _ := strconv.ParseFloat(val, 64)
+		return f
+	}
+	return 0
 }
 
 func getCount(v reflect.Value) int {
@@ -203,6 +339,93 @@ func getFloat(v reflect.Value) (float64, bool) {
 		return float64(v.Int()), true
 	}
 	return 0, false
+}
+
+func getString(v reflect.Value) (string, bool) {
+	switch v.Kind() {
+	case reflect.String:
+		return v.String(), true
+	case reflect.Ptr:
+		if !v.IsNil() {
+			return getString(v.Elem())
+		}
+	}
+	return "", false
+}
+
+// resolvePathSegments walks a struct following a sequence of property path
+// segments (split from " / ") and returns all terminal reflect.Values.
+// Each segment's Go field name is the last dot-separated token, capitalised.
+// Pointers are dereferenced and slices are fanned out at every step.
+func resolvePathSegments(val reflect.Value, segments []string) []reflect.Value {
+	for val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+	}
+	if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
+		var results []reflect.Value
+		for i := 0; i < val.Len(); i++ {
+			results = append(results, resolvePathSegments(val.Index(i), segments)...)
+		}
+		return results
+	}
+	if len(segments) == 0 {
+		return []reflect.Value{val}
+	}
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+	seg := strings.TrimSpace(segments[0])
+	fieldName := seg
+	if dot := strings.LastIndex(seg, "."); dot != -1 {
+		fieldName = seg[dot+1:]
+	}
+	if fieldName == "" {
+		return nil
+	}
+	fieldName = strings.ToUpper(fieldName[:1]) + fieldName[1:]
+	field := val.FieldByName(fieldName)
+	if !field.IsValid() {
+		return nil
+	}
+	return resolvePathSegments(field, segments[1:])
+}
+
+// checkHasValue reports a violation if none of the terminal values matches the
+// expected value from the sh:hasValue payload. The expected value may be an IRI
+// stored as "<http://...>" or a plain string literal.
+func checkHasValue(fields []reflect.Value, c ConstraintInfo) string {
+	want, ok := c.Payload["Value"].(string)
+	if !ok {
+		return ""
+	}
+	want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
+	for _, f := range fields {
+		if hasValue(f, want) {
+			return ""
+		}
+	}
+	return fmt.Sprintf("HasValue violation: want %q", want)
+}
+
+func hasValue(v reflect.Value, want string) bool {
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.String {
+		return v.String() == want
+	}
+	if v.Kind() == reflect.Struct {
+		if id := v.FieldByName("Id"); id.IsValid() && id.Kind() == reflect.String {
+			return id.String() == want
+		}
+	}
+	return false
 }
 
 func countInverseRelations(field reflect.Value, path string, dataset *cimgostructs.CIMElementList) int {
@@ -236,9 +459,18 @@ func countInverseRelations(field reflect.Value, path string, dataset *cimgostruc
 			continue
 		}
 		if f.Kind() == reflect.Ptr && !f.IsNil() {
-			refId := f.Elem().FieldByName("Id")
-			if refId.IsValid() && refId.String() == id {
-				count++
+			elem := f.Elem()
+			refId := elem.FieldByName("Id")
+			if !refId.IsValid() {
+				// CIM reference stubs use MRID instead of Id
+				refId = elem.FieldByName("MRID")
+			}
+			if refId.IsValid() {
+				// rdf:resource="#_uuid" → strip leading "#" before comparing to rdf:ID="_uuid"
+				refVal := strings.TrimPrefix(refId.String(), "#")
+				if refVal == id {
+					count++
+				}
 			}
 		}
 	}
@@ -259,12 +491,20 @@ func checkOrOption(field reflect.Value, shape any, dataset *cimgostructs.CIMElem
 			return false
 		}
 
-		// Map map[string]interface{} to ConstraintInfo
+		component, _ := ciMap["component"].(string)
+		var path []string
+		if rawPath, ok := ciMap["path"].([]interface{}); ok {
+			for _, p := range rawPath {
+				if s, ok := p.(string); ok {
+					path = append(path, s)
+				}
+			}
+		}
+		payload, _ := ciMap["payload"].(map[string]interface{})
 		ci := ConstraintInfo{
-			Component: ciMap["component"].(string),
-			Path:      ciMap["path"].(string),
-			Payload:   ciMap["payload"].(map[string]interface{}),
-			Details:   ciMap["details"].(string),
+			Component: component,
+			Path:      path,
+			Payload:   payload,
 		}
 
 		if checkConstraint(field, ci, dataset) != "" {

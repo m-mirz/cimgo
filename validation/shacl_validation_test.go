@@ -97,6 +97,49 @@ func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 	}
 }
 
+func TestValidateDiagramObjectPointSequenceNumber(t *testing.T) {
+	// The rule says DiagramObjectPoint.sequenceNumber must be > 0 (sh:minExclusive 0.0).
+	rules := loadAllRules(t,
+		"../shacljson/struct-simplified/61970-301_DiagramLayout-AP-Con-Complex-SHACL.json",
+	)
+	if len(rules) == 0 {
+		t.Skip("No rules found")
+	}
+
+	dataFile := "../testdata/test_shacl_003_DL.xml"
+	dataset := cimgostructs.NewCIMElementList()
+
+	b, err := os.ReadFile(dataFile)
+	if err != nil {
+		t.Fatalf("Failed to read %s: %v", dataFile, err)
+	}
+	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+
+	t.Logf("Loaded %d elements", len(dataset.Elements))
+
+	var violationsByID = map[string][]string{}
+	for id, obj := range dataset.Elements {
+		for _, v := range validateObject(t, obj, rules, dataset) {
+			violationsByID[id] = append(violationsByID[id], v)
+		}
+	}
+
+	if got := len(violationsByID["DiagramObjectPoint.OK"]); got != 0 {
+		t.Errorf("DiagramObjectPoint.OK (sequenceNumber=1): expected 0 violations, got %d: %v",
+			got, violationsByID["DiagramObjectPoint.OK"])
+	}
+	if got := len(violationsByID["DiagramObjectPoint.NEG"]); got != 1 {
+		t.Errorf("DiagramObjectPoint.NEG (sequenceNumber=-1): expected 1 violation, got %d: %v",
+			got, violationsByID["DiagramObjectPoint.NEG"])
+	}
+
+	for id, vs := range violationsByID {
+		for _, v := range vs {
+			t.Logf("Object %s: %s", id, v)
+		}
+	}
+}
+
 func TestValidatePSTType1EQ(t *testing.T) {
 	// Load both the Equipment-profile rules (cim.* class names — match Go struct
 	// types) and the Prof10 header rules. Prof10 uses implicit-class targets like

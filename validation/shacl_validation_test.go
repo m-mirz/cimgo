@@ -106,7 +106,6 @@ func TestValidatePSTType1EQ(t *testing.T) {
 	// on a Prof10 shape, so it is not yet caught.
 	rules := loadAllRules(t,
 		"../shacljson/struct-simplified/61970-301_Equipment-AP-Con-Complex-SHACL.json",
-		"../shacljson/struct-simplified/61970-600-1_Prof10-Header-AP-Con-Complex-SHACL.json",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")

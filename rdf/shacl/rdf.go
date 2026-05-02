@@ -335,6 +335,16 @@ func (g *Graph) Triples() []Triple {
 func (g *Graph) All(s, p, o *Term) []Triple {
 	g.ensureIndexes()
 
+	if s != nil && p != nil && o != nil {
+		ok := o.TermKey()
+		for _, obj := range g.spoIdx[s.TermKey()][p.TermKey()] {
+			if obj.TermKey() == ok {
+				return []Triple{{Subject: *s, Predicate: *p, Object: *o}}
+			}
+		}
+		return nil
+	}
+
 	if s != nil && p != nil && o == nil {
 		objs := g.spoIdx[s.TermKey()][p.TermKey()]
 		result := make([]Triple, len(objs))
@@ -357,21 +367,9 @@ func (g *Graph) All(s, p, o *Term) []Triple {
 		return g.pIdx[p.TermKey()]
 	}
 
-	// Fallback: subject-only or all wildcards
+	// Fallback: subject-only
 	if s != nil && p == nil && o == nil {
-		sk := s.TermKey()
-		sp, ok := g.spoIdx[sk]
-		if !ok {
-			return nil
-		}
 		var result []Triple
-		for _, objs := range sp {
-			for _, obj := range objs {
-				result = append(result, Triple{Subject: *s, Predicate: obj, Object: obj})
-			}
-		}
-		// Wrong — need to iterate properly. Use rdflibgo.
-		result = nil
 		sub := toSubject(*s)
 		g.g.Triples(sub, nil, nil)(func(t term.Triple) bool {
 			result = append(result, Triple{
@@ -399,6 +397,26 @@ func (g *Graph) One(s, p, o *Term) (Triple, bool) {
 
 // Has returns true if at least one triple matches the pattern.
 func (g *Graph) Has(s, p, o *Term) bool {
+	g.ensureIndexes()
+
+	if s != nil && p != nil && o != nil {
+		ok := o.TermKey()
+		for _, obj := range g.spoIdx[s.TermKey()][p.TermKey()] {
+			if obj.TermKey() == ok {
+				return true
+			}
+		}
+		return false
+	}
+	if s != nil && p != nil {
+		return len(g.spoIdx[s.TermKey()][p.TermKey()]) > 0
+	}
+	if p != nil && o != nil {
+		return len(g.posIdx[p.TermKey()][o.TermKey()]) > 0
+	}
+	if p != nil {
+		return len(g.pIdx[p.TermKey()]) > 0
+	}
 	return len(g.All(s, p, o)) > 0
 }
 

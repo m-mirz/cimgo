@@ -13,7 +13,7 @@ import (
 
 func main() {
 	schemaPattern := flag.String("schema", cimgen.DefaultRDFSPattern, "glob pattern for CIM schema files")
-	outputDir := flag.String("out", "pages/docs", "output directory for markdown files")
+	outputDir := flag.String("out", "docs", "output directory for markdown files")
 	flag.Parse()
 
 	classesDir := filepath.Join(*outputDir, "Classes")

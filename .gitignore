@@ -6,4 +6,5 @@ proto
 *.out.xml
 *_test.json
 *.zip
-pages
+docs
+shacljson

@@ -183,7 +183,7 @@ func main() {
 	flagJSON := flag.Bool("json", false, "Generate JSON output")
 	flagMD := flag.Bool("md", false, "Generate Markdown output")
 	shaclPattern := flag.String("shacl", validation.DefaultSHACLPattern, "glob pattern for shacl files")
-	outputDir := flag.String("out", "pages/docs", "output directory for generated files")
+	outputDir := flag.String("out", "docs", "output directory for generated files")
 	flag.Parse()
 
 	doJSON, doMD := *flagJSON, *flagMD

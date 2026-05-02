@@ -11,7 +11,6 @@ import (
 func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 	// Pre-scan
 	hasAnyDatatype := false
-	hasClass := false
 	hasMinCount0 := false
 	hasMinCount1 := false
 	hasMaxCount1 := false
@@ -19,8 +18,6 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		switch c.Component {
 		case "sh.DatatypeConstraintComponent":
 			hasAnyDatatype = true
-		case "sh.ClassConstraintComponent":
-			hasClass = true
 		case "sh.MinCountConstraintComponent":
 			switch anyToFloat(c.Payload["MinCount"]) {
 			case 0:
@@ -48,13 +45,14 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 			}
 		}
 		// Rule 2: drop NodeKind=BlankNodeOrIRI (the SHACL non-literal default), and
-		// drop NodeKind=IRI when sh:class is present (sh:class already implies IRI-like).
+		// drop NodeKind=IRI unconditionally — every IRI-typed property in the CIM
+		// schema is generated as a Go reference field (*struct{ MRID string }), so
+		// the type system already enforces the IRI shape and the runtime check
+		// can never fail on well-formed Go data.
 		if c.Component == "sh.NodeKindConstraintComponent" {
 			if nk, ok := c.Payload["NodeKind"].(string); ok {
-				if nk == "sh.BlankNodeOrIRI" {
-					continue
-				}
-				if hasClass && nk == "sh.IRI" {
+				nk = strings.TrimPrefix(nk, "sh.")
+				if nk == "BlankNodeOrIRI" || nk == "IRI" {
 					continue
 				}
 			}
@@ -62,6 +60,25 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		// Rule 3: minCount=0 is vacuously true — drop it
 		if c.Component == "sh.MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 0 {
 			continue
+		}
+		// Drop sh:datatype for xsd types that map to native Go scalars: the
+		// generated struct field is already typed (int, float64, bool, string),
+		// so the XML decoder rejects malformed values before validation runs.
+		// Non-native types (dateTime, gMonthDay, anyURI map to Go string and
+		// have no format enforcement) are left in for future format checking.
+		if c.Component == "sh.DatatypeConstraintComponent" {
+			if dt, ok := c.Payload["Datatype"].(string); ok {
+				switch strings.TrimPrefix(dt, "xsd.") {
+				case "integer", "int", "long", "short", "byte",
+					"nonNegativeInteger", "positiveInteger",
+					"nonPositiveInteger", "negativeInteger",
+					"unsignedInt", "unsignedLong", "unsignedShort", "unsignedByte",
+					"float", "double", "decimal",
+					"boolean",
+					"string", "normalizedString", "token":
+					continue
+				}
+			}
 		}
 		// sh:in with a single value is equivalent to sh:hasValue.
 		if c.Component == "sh.InConstraintComponent" {

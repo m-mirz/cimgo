@@ -4,47 +4,96 @@ import (
 	"bytes"
 	"cimgo/cimgostructs"
 	"cimgo/cimprofiles"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
 )
 
-func TestValidateCIMData(t *testing.T) {
-	rules := loadAllRules(t, "../pages/docs/struct-simplified")
+func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
+	rules := loadAllRules(t,
+		"../shacljson/struct-simplified/61968-13_GeographicalLocation-AP-Con-Complex-SHACL.json",
+	)
 	if len(rules) == 0 {
-		t.Skip("No rules found in ../pages/docs/struct-simplified")
+		t.Skip("No rules found")
 	}
 
-	dataFiles := []string{
-		"../testdata/test_001.xml",
-		"../testdata/test_009_EQ.xml",
+	dataFile := "../testdata/test_shacl_001_GL.xml"
+	dataset := cimgostructs.NewCIMElementList()
+
+	b, err := os.ReadFile(dataFile)
+	if err != nil {
+		t.Fatalf("Failed to read %s: %v", dataFile, err)
+	}
+	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+
+	t.Logf("Loaded %d elements", len(dataset.Elements))
+
+	var violationsByID = map[string][]string{}
+	for id, obj := range dataset.Elements {
+		for _, v := range validateObject(t, obj, rules, dataset) {
+			violationsByID[id] = append(violationsByID[id], v)
+		}
 	}
 
-	mergedCIMData := cimgostructs.NewCIMElementList()
-	for _, file := range dataFiles {
-		b, err := os.ReadFile(file)
-		if err != nil {
-			continue
-		}
-		cimprofiles.DecodeProfile(bytes.NewReader(b), mergedCIMData)
+	if got := len(violationsByID["CoordinateSystem.WGS84"]); got != 0 {
+		t.Errorf("CoordinateSystem.WGS84 (default crsUrn): expected 0 violations, got %d: %v",
+			got, violationsByID["CoordinateSystem.WGS84"])
+	}
+	if got := len(violationsByID["CoordinateSystem.ETRS89"]); got != 1 {
+		t.Errorf("CoordinateSystem.ETRS89 (non-default crsUrn): expected 1 violation, got %d: %v",
+			got, violationsByID["CoordinateSystem.ETRS89"])
 	}
 
-	var allViolations []string
-	for id, obj := range mergedCIMData.Elements {
-		violations := validateObject(t, obj, rules, mergedCIMData)
-		for _, v := range violations {
-			allViolations = append(allViolations, fmt.Sprintf("Object %s: %s", id, v))
+	for id, vs := range violationsByID {
+		for _, v := range vs {
+			t.Logf("Object %s: %s", id, v)
 		}
 	}
-	// 4. Report
-	if len(allViolations) > 0 {
-		t.Logf("Found %d validation violations (test marked passed):", len(allViolations))
-		for _, v := range allViolations {
-			t.Log(v)
+}
+
+func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
+	// The rule says DiagramObject.IdentifiedObject must be an IRI and must NOT
+	// point to a cim.GeneratingUnit (it should reference SynchronousMachine).
+	rules := loadAllRules(t,
+		"../shacljson/struct-simplified/61970-301_DiagramLayout-AP-Con-Complex-NotSolvedMAS-SHACL.json",
+	)
+	if len(rules) == 0 {
+		t.Skip("No rules found")
+	}
+
+	dataFile := "../testdata/test_shacl_002_DL.xml"
+	dataset := cimgostructs.NewCIMElementList()
+
+	b, err := os.ReadFile(dataFile)
+	if err != nil {
+		t.Fatalf("Failed to read %s: %v", dataFile, err)
+	}
+	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+
+	t.Logf("Loaded %d elements", len(dataset.Elements))
+
+	var violationsByID = map[string][]string{}
+	for id, obj := range dataset.Elements {
+		for _, v := range validateObject(t, obj, rules, dataset) {
+			violationsByID[id] = append(violationsByID[id], v)
 		}
-	} else {
-		t.Log("No validation violations found.")
+	}
+
+	if got := len(violationsByID["DiagramObject.OK"]); got != 0 {
+		t.Errorf("DiagramObject.OK (points to SynchronousMachine): expected 0 violations, got %d: %v",
+			got, violationsByID["DiagramObject.OK"])
+	}
+	for _, badID := range []string{"DiagramObject.BAD", "TextDiagramObject.BAD"} {
+		if got := len(violationsByID[badID]); got != 1 {
+			t.Errorf("%s (points to GeneratingUnit): expected 1 violation, got %d: %v",
+				badID, got, violationsByID[badID])
+		}
+	}
+
+	for id, vs := range violationsByID {
+		for _, v := range vs {
+			t.Logf("Object %s: %s", id, v)
+		}
 	}
 }
 
@@ -56,8 +105,8 @@ func TestValidatePSTType1EQ(t *testing.T) {
 	// added. The one non-SPARQL CSV violation is a sh:HasValueConstraintComponent
 	// on a Prof10 shape, so it is not yet caught.
 	rules := loadAllRules(t,
-		"../pages/docs/struct-simplified/61970-301_Equipment-AP-Con-Complex-SHACL.json",
-		"../pages/docs/struct-simplified/61970-600-1_Prof10-Header-AP-Con-Complex-SHACL.json",
+		"../shacljson/struct-simplified/61970-301_Equipment-AP-Con-Complex-SHACL.json",
+		"../shacljson/struct-simplified/61970-600-1_Prof10-Header-AP-Con-Complex-SHACL.json",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")

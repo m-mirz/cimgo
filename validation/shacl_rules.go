@@ -296,6 +296,123 @@ func checkConstraint(field reflect.Value, c ConstraintInfo, dataset *cimgostruct
 				}
 			}
 		}
+
+	case "sh.NodeKindConstraintComponent":
+		if getCount(field) == 0 {
+			return ""
+		}
+		nk, ok := c.Payload["NodeKind"].(string)
+		if !ok {
+			return ""
+		}
+		// NodeKind=IRI and NodeKind=BlankNodeOrIRI are dropped by the simplifier
+		// (see import_shacl_rules.go) because all IRI-typed CIM properties are
+		// already typed as Go reference fields. Only Literal can fail in practice.
+		if strings.TrimPrefix(nk, "sh.") == "Literal" && !isLiteral(field) {
+			return "NodeKind violation: value is not a Literal"
+		}
+
+	case "sh.ClassConstraintComponent":
+		if getCount(field) == 0 {
+			return ""
+		}
+		want, ok := c.Payload["Class"].(string)
+		if !ok {
+			return ""
+		}
+		got := getReferencedClass(field, dataset)
+		if got == "" {
+			return ""
+		}
+		if got != want {
+			return fmt.Sprintf("Class violation: target is %s, want %s", got, want)
+		}
+
+	case "sh.NotConstraintComponent":
+		shapes, ok := c.Payload["ShapeRef"].([]interface{})
+		if !ok || len(shapes) == 0 {
+			return ""
+		}
+		// The wrapped shape conforms iff ALL its constraints conform. The Not
+		// fires (= violation) precisely when the wrapped shape conforms.
+		for _, ciRaw := range shapes {
+			ciMap, ok := ciRaw.(map[string]interface{})
+			if !ok {
+				return ""
+			}
+			component, _ := ciMap["component"].(string)
+			payload, _ := ciMap["payload"].(map[string]interface{})
+			if checkConstraint(field, ConstraintInfo{Component: component, Payload: payload}, dataset) != "" {
+				return ""
+			}
+		}
+		return "Not violation: value conforms to forbidden shape"
+	}
+	return ""
+}
+
+func isIRI(v reflect.Value) bool {
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return false
+	}
+	if mrid := v.FieldByName("MRID"); mrid.IsValid() && mrid.Kind() == reflect.String && mrid.String() != "" {
+		return true
+	}
+	if id := v.FieldByName("Id"); id.IsValid() && id.Kind() == reflect.String && id.String() != "" {
+		return true
+	}
+	return false
+}
+
+func isLiteral(v reflect.Value) bool {
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	switch v.Kind() {
+	case reflect.String, reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return true
+	}
+	return false
+}
+
+// getReferencedClass returns the cim.* type name of the dataset element that
+// the field's MRID/Id points to. Returns "" if the field is not a reference,
+// has no dataset entry, or no dataset was supplied.
+func getReferencedClass(field reflect.Value, dataset *cimgostructs.CIMElementList) string {
+	if dataset == nil {
+		return ""
+	}
+	for field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			return ""
+		}
+		field = field.Elem()
+	}
+	if field.Kind() != reflect.Struct {
+		return ""
+	}
+	idField := field.FieldByName("MRID")
+	if !idField.IsValid() {
+		idField = field.FieldByName("Id")
+	}
+	if !idField.IsValid() || idField.Kind() != reflect.String {
+		return ""
+	}
+	id := strings.TrimPrefix(idField.String(), "#")
+	if obj, ok := dataset.Elements[id]; ok {
+		return getCIMTypeName(obj)
 	}
 	return ""
 }
@@ -386,7 +503,15 @@ func resolvePathSegments(val reflect.Value, segments []string) []reflect.Value {
 		return nil
 	}
 	fieldName = strings.ToUpper(fieldName[:1]) + fieldName[1:]
-	field := val.FieldByName(fieldName)
+	// Prefer the renamed pointer field (e.g. "IdentifiedObject_") when it
+	// exists alongside an embedded struct of the same base name. The generator
+	// suffixes the relation field with "_" to disambiguate from the embedded
+	// supertype, and that renamed field is the one carrying the rdf:resource
+	// MRID we want to traverse.
+	field := val.FieldByName(fieldName + "_")
+	if !field.IsValid() {
+		field = val.FieldByName(fieldName)
+	}
 	if !field.IsValid() {
 		return nil
 	}

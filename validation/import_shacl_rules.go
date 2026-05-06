@@ -236,7 +236,16 @@ func ProcessFileToResults(file string) (*FileResults, error) {
 
 	classMap := make(map[string]*ClassInfo)
 
+	// Sort shape IDs so attribute order within each class is deterministic.
+	// Previously a bare `range shapes` produced different attribute orderings
+	// between runs, which surfaced as spurious diffs in the generated code.
+	shapeKeys := make([]string, 0, len(shapes))
 	for k := range shapes {
+		shapeKeys = append(shapeKeys, k)
+	}
+	sort.Strings(shapeKeys)
+
+	for _, k := range shapeKeys {
 		if isNested[k] {
 			continue
 		}

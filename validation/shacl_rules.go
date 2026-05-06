@@ -2,10 +2,7 @@ package validation
 
 import (
 	"cimgo/cimgostructs"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -47,38 +44,19 @@ type FileResults struct {
 	Classes  []ClassInfo `json:"classes"`
 }
 
-func loadAllRules(t *testing.T, structPaths ...string) map[string]ClassInfo {
+// loadAllRules parses one or more SHACL Turtle files and returns a per-class
+// rule map suitable for the runtime evaluator. Each file is processed via the
+// same ProcessFileToResults + SimplifyFileResults pipeline used by shaclgen,
+// so the runtime evaluator and the code generator see identical inputs.
+func loadAllRules(t *testing.T, shaclFiles ...string) map[string]ClassInfo {
 	rules := make(map[string]ClassInfo)
-
-	var files []string
-	for _, structPath := range structPaths {
-		info, err := os.Stat(structPath)
+	for _, file := range shaclFiles {
+		fr, err := ProcessFileToResults(file)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("ProcessFileToResults(%s): %v", file, err)
 		}
-		if info.IsDir() {
-			glob, err := filepath.Glob(filepath.Join(structPath, "*.json"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			files = append(files, glob...)
-		} else {
-			files = append(files, structPath)
-		}
-	}
-
-	for _, file := range files {
-		data, err := os.ReadFile(file)
-		if err != nil {
-			continue
-		}
-
-		var res FileResults
-		if err := json.Unmarshal(data, &res); err != nil {
-			continue
-		}
-
-		for _, cls := range res.Classes {
+		simplified := SimplifyFileResults(fr)
+		for _, cls := range simplified.Classes {
 			if existing, ok := rules[cls.Name]; ok {
 				existing.Constraints = append(existing.Constraints, cls.Constraints...)
 				existing.Attributes = append(existing.Attributes, cls.Attributes...)
@@ -329,20 +307,14 @@ func checkConstraint(field reflect.Value, c ConstraintInfo, dataset *cimgostruct
 		}
 
 	case "sh.NotConstraintComponent":
-		shapes, ok := c.Payload["ShapeRef"].([]interface{})
+		shapes, ok := payloadConstraintList(c.Payload["ShapeRef"])
 		if !ok || len(shapes) == 0 {
 			return ""
 		}
 		// The wrapped shape conforms iff ALL its constraints conform. The Not
 		// fires (= violation) precisely when the wrapped shape conforms.
-		for _, ciRaw := range shapes {
-			ciMap, ok := ciRaw.(map[string]interface{})
-			if !ok {
-				return ""
-			}
-			component, _ := ciMap["component"].(string)
-			payload, _ := ciMap["payload"].(map[string]interface{})
-			if checkConstraint(field, ConstraintInfo{Component: component, Payload: payload}, dataset) != "" {
+		for _, ci := range shapes {
+			if checkConstraint(field, ci, dataset) != "" {
 				return ""
 			}
 		}
@@ -603,38 +575,51 @@ func countInverseRelations(field reflect.Value, path string, dataset *cimgostruc
 }
 
 func checkOrOption(field reflect.Value, shape any, dataset *cimgostructs.CIMElementList) bool {
-	// A shape in an OR constraint is a list of constraints (ANDed)
-	// After JSON unmarshaling, it's a []interface{} where each item is a map matching ConstraintInfo
-	constraints, ok := shape.([]interface{})
+	// A shape in an OR constraint is a list of constraints (ANDed). The list
+	// is either []ConstraintInfo (when the rules came straight from
+	// SimplifyFileResults) or []any of map[string]any (after a JSON
+	// round-trip). payloadConstraintList accepts both.
+	constraints, ok := payloadConstraintList(shape)
 	if !ok {
 		return false
 	}
-
-	for _, ciRaw := range constraints {
-		ciMap, ok := ciRaw.(map[string]interface{})
-		if !ok {
+	for _, ci := range constraints {
+		if checkConstraint(field, ci, dataset) != "" {
 			return false
 		}
+	}
+	return true
+}
 
-		component, _ := ciMap["component"].(string)
+// payloadConstraintList normalises a nested-shape payload value into a typed
+// constraint slice. It accepts either []ConstraintInfo (the in-memory shape
+// produced by SimplifyFileResults) or []any of map[string]any (the shape
+// after a JSON round-trip). Returns ok=false for any other shape.
+func payloadConstraintList(v any) ([]ConstraintInfo, bool) {
+	if cs, ok := v.([]ConstraintInfo); ok {
+		return cs, true
+	}
+	arr, ok := v.([]interface{})
+	if !ok {
+		return nil, false
+	}
+	out := make([]ConstraintInfo, 0, len(arr))
+	for _, item := range arr {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		component, _ := m["component"].(string)
 		var path []string
-		if rawPath, ok := ciMap["path"].([]interface{}); ok {
+		if rawPath, ok := m["path"].([]interface{}); ok {
 			for _, p := range rawPath {
 				if s, ok := p.(string); ok {
 					path = append(path, s)
 				}
 			}
 		}
-		payload, _ := ciMap["payload"].(map[string]interface{})
-		ci := ConstraintInfo{
-			Component: component,
-			Path:      path,
-			Payload:   payload,
-		}
-
-		if checkConstraint(field, ci, dataset) != "" {
-			return false
-		}
+		payload, _ := m["payload"].(map[string]interface{})
+		out = append(out, ConstraintInfo{Component: component, Path: path, Payload: payload})
 	}
-	return true
+	return out, true
 }

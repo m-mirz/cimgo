@@ -11,7 +11,7 @@ import (
 
 func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
 	rules := loadAllRules(t,
-		"../shacljson/struct-simplified/61968-13_GeographicalLocation-AP-Con-Complex-SHACL.json",
+		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61968-13_GeographicalLocation-AP-Con-Complex-SHACL.ttl",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")
@@ -55,7 +55,7 @@ func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must be an IRI and must NOT
 	// point to a cim.GeneratingUnit (it should reference SynchronousMachine).
 	rules := loadAllRules(t,
-		"../shacljson/struct-simplified/61970-301_DiagramLayout-AP-Con-Complex-NotSolvedMAS-SHACL.json",
+		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_DiagramLayout-AP-Con-Complex-NotSolvedMAS-SHACL.ttl",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")
@@ -100,7 +100,7 @@ func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 func TestValidateDiagramObjectPointSequenceNumber(t *testing.T) {
 	// The rule says DiagramObjectPoint.sequenceNumber must be > 0 (sh:minExclusive 0.0).
 	rules := loadAllRules(t,
-		"../shacljson/struct-simplified/61970-301_DiagramLayout-AP-Con-Complex-SHACL.json",
+		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_DiagramLayout-AP-Con-Complex-SHACL.ttl",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")
@@ -148,7 +148,7 @@ func TestValidatePSTType1EQ(t *testing.T) {
 	// added. The one non-SPARQL CSV violation is a sh:HasValueConstraintComponent
 	// on a Prof10 shape, so it is not yet caught.
 	rules := loadAllRules(t,
-		"../shacljson/struct-simplified/61970-301_Equipment-AP-Con-Complex-SHACL.json",
+		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_Equipment-AP-Con-Complex-SHACL.ttl",
 	)
 	if len(rules) == 0 {
 		t.Skip("No rules found")

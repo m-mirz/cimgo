@@ -13,33 +13,20 @@ import (
 )
 
 // generateMarkdown creates a Markdown string for the given shapes, filtering constraints based on the provided filter function
-func generateMarkdown(title string, wrapped map[string]*validation.ShapeWrapper, filter func(validation.ConstraintWrapper) bool) string {
+func generateMarkdown(title string, topLevel []*validation.ShapeWrapper, allWrapped map[string]*validation.ShapeWrapper, filter func(validation.ConstraintWrapper) bool) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# %s\n\n", title))
 
-	var keys []string
-	for k, w := range wrapped {
-		if validation.HasContent(w, filter) {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-
-	if len(keys) == 0 {
+	if len(topLevel) == 0 {
 		return ""
 	}
 
-	var shapes []*validation.ShapeWrapper
-	for _, k := range keys {
-		shapes = append(shapes, wrapped[k])
-	}
-
-	renderShapes(&sb, shapes, 2, filter)
+	renderShapes(&sb, topLevel, 2, filter, allWrapped, make(map[string]bool))
 
 	return sb.String()
 }
 
-func renderShapes(sb *strings.Builder, shapes []*validation.ShapeWrapper, level int, filter func(validation.ConstraintWrapper) bool) {
+func renderShapes(sb *strings.Builder, shapes []*validation.ShapeWrapper, level int, filter func(validation.ConstraintWrapper) bool, allWrapped map[string]*validation.ShapeWrapper, visited map[string]bool) {
 	if len(shapes) == 0 {
 		return
 	}
@@ -54,6 +41,14 @@ func renderShapes(sb *strings.Builder, shapes []*validation.ShapeWrapper, level 
 	})
 
 	for _, s := range shapes {
+		id := s.ID.String()
+		if visited[id] {
+			renderShapeHeading(sb, s, level)
+			sb.WriteString(fmt.Sprintf("*(Recursive reference to %s)*\n\n", validation.SimplifyTerm(s.ID)))
+			continue
+		}
+		visited[id] = true
+
 		renderShapeHeading(sb, s, level)
 		renderShapeBasicInfo(sb, s)
 		renderShapeTargets(sb, s)
@@ -63,11 +58,13 @@ func renderShapes(sb *strings.Builder, shapes []*validation.ShapeWrapper, level 
 
 		filteredConstraints := validation.FilterConstraints(s, filter)
 		if len(filteredConstraints) > 0 {
-			sparqlQueries = renderConstraintsTable(sb, filteredConstraints, sparqlQueries)
+			sparqlQueries = renderConstraintsList(sb, filteredConstraints, level, filter, allWrapped, visited, sparqlQueries)
 		}
 
 		renderSPARQLQueries(sb, sparqlQueries)
-		renderNestedProperties(sb, s, level, filter)
+		renderNestedProperties(sb, s, level, filter, allWrapped, visited)
+
+		delete(visited, id)
 	}
 }
 
@@ -113,47 +110,92 @@ func renderShapeTargets(sb *strings.Builder, s *validation.ShapeWrapper) {
 	}
 }
 
-func renderConstraintsTable(sb *strings.Builder, constraints []validation.ConstraintWrapper, queries []validation.SparqlInfo) []validation.SparqlInfo {
+func renderConstraintsList(sb *strings.Builder, constraints []validation.ConstraintWrapper, level int, filter func(validation.ConstraintWrapper) bool, allWrapped map[string]*validation.ShapeWrapper, visited map[string]bool, queries []validation.SparqlInfo) []validation.SparqlInfo {
 	sb.WriteString("**Constraints:**\n\n")
-	sb.WriteString("| Component | Details |\n")
-	sb.WriteString("| --- | --- |\n")
 	for i, c := range constraints {
 		typeName := validation.SimplifyIRI(c.Type)
+		sb.WriteString(fmt.Sprintf("- **%s**", typeName))
+
 		displayData := c.Data
 		var severityOverride string
 		if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
 			displayData = soc.Inner()
-			severityOverride = fmt.Sprintf("<br>**Severity:** %s", validation.SimplifyTerm(soc.Severity))
+			severityOverride = fmt.Sprintf(" (Severity: %s)", validation.SimplifyTerm(soc.Severity))
 		}
-
-		data, _ := json.Marshal(displayData)
-		var m map[string]any
-		json.Unmarshal(data, &m)
-		var details []string
+		sb.WriteString(severityOverride + "\n")
 
 		if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
 			id := fmt.Sprintf("SPARQL-%d", i+1)
 			queries = append(queries, validation.SparqlInfo{Id: id, Query: sc.Prefixes + sc.Select})
-			details = append(details, fmt.Sprintf("Query: [See %s below](#%s) ", id, strings.ToLower(id)))
+			sb.WriteString(fmt.Sprintf("  - Query: [See %s below](#%s)\n", id, strings.ToLower(id)))
 			if len(sc.Messages) > 0 {
 				var msgs []string
 				for _, msg := range sc.Messages {
 					msgs = append(msgs, validation.SimplifyTerm(msg))
 				}
-				details = append(details, fmt.Sprintf("Messages: `[%s]` ", strings.Join(msgs, ", ")))
+				sb.WriteString(fmt.Sprintf("  - Messages: `[%s]`\n", strings.Join(msgs, ", ")))
 			}
 		} else {
-			for k, v := range m {
-				if k != "Prefixes" {
-					details = append(details, fmt.Sprintf("%s: `%s` ", k, validation.FormatValue(v)))
-				}
-			}
+			renderConstraintDetails(sb, displayData, level+1, filter, allWrapped, visited)
 		}
-		sort.Strings(details)
-		sb.WriteString(fmt.Sprintf("| %s | %s%s |\n", typeName, strings.Join(details, "<br>"), severityOverride))
 	}
 	sb.WriteString("\n")
 	return queries
+}
+
+func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int, filter func(validation.ConstraintWrapper) bool, allWrapped map[string]*validation.ShapeWrapper, visited map[string]bool) {
+	var nestedShapes []*validation.ShapeWrapper
+	switch con := c.(type) {
+	case *shacl.AndConstraint:
+		for _, sRef := range con.Shapes {
+			if sw, ok := allWrapped[sRef.String()]; ok {
+				nestedShapes = append(nestedShapes, sw)
+			}
+		}
+	case *shacl.OrConstraint:
+		for _, sRef := range con.Shapes {
+			if sw, ok := allWrapped[sRef.String()]; ok {
+				nestedShapes = append(nestedShapes, sw)
+			}
+		}
+	case *shacl.XoneConstraint:
+		for _, sRef := range con.Shapes {
+			if sw, ok := allWrapped[sRef.String()]; ok {
+				nestedShapes = append(nestedShapes, sw)
+			}
+		}
+	case *shacl.NotConstraint:
+		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
+			nestedShapes = append(nestedShapes, sw)
+		}
+	case *shacl.NodeConstraint:
+		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
+			nestedShapes = append(nestedShapes, sw)
+		}
+	case *shacl.QualifiedValueShapeConstraint:
+		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
+			nestedShapes = append(nestedShapes, sw)
+		}
+	}
+
+	if len(nestedShapes) > 0 {
+		renderShapes(sb, nestedShapes, level, filter, allWrapped, visited)
+		return
+	}
+
+	data, _ := json.Marshal(c)
+	var m map[string]any
+	json.Unmarshal(data, &m)
+	var details []string
+	for k, v := range m {
+		if k != "Prefixes" {
+			details = append(details, fmt.Sprintf("- %s: `%s` ", k, validation.FormatValue(v)))
+		}
+	}
+	sort.Strings(details)
+	for _, d := range details {
+		sb.WriteString("  " + d + "\n")
+	}
 }
 
 func renderSPARQLQueries(sb *strings.Builder, queries []validation.SparqlInfo) {
@@ -165,7 +207,7 @@ func renderSPARQLQueries(sb *strings.Builder, queries []validation.SparqlInfo) {
 	}
 }
 
-func renderNestedProperties(sb *strings.Builder, sw *validation.ShapeWrapper, level int, filter func(validation.ConstraintWrapper) bool) {
+func renderNestedProperties(sb *strings.Builder, sw *validation.ShapeWrapper, level int, filter func(validation.ConstraintWrapper) bool, allWrapped map[string]*validation.ShapeWrapper, visited map[string]bool) {
 	var filteredProperties []*validation.ShapeWrapper
 	for _, p := range sw.Properties {
 		if validation.HasContent(p, filter) {
@@ -175,7 +217,7 @@ func renderNestedProperties(sb *strings.Builder, sw *validation.ShapeWrapper, le
 
 	if len(filteredProperties) > 0 {
 		sb.WriteString("**Nested Properties:**\n\n")
-		renderShapes(sb, filteredProperties, level+1, filter)
+		renderShapes(sb, filteredProperties, level+1, filter, allWrapped, visited)
 	}
 }
 
@@ -222,7 +264,6 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes
 	}
 
 	shapes := shacl.ParseShapes(g)
-	wrapped := make(map[string]*validation.ShapeWrapper)
 	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	stats := validation.FileStats{
 		Name:         baseName,
@@ -230,30 +271,40 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes
 		SparqlCounts: make(map[string]int),
 	}
 
-	isNested := identifyNestedShapes(shapes)
+	isNestedMD := validation.IdentifyNestedShapes(shapes)
+	isNestedJSON := identifyPropertyNestedShapes(shapes)
 
+	allWrapped := make(map[string]*validation.ShapeWrapper)
 	for k, s := range shapes {
-		w := validation.WrapShape(s)
-		if !isNested[k] {
-			wrapped[k] = w
+		allWrapped[k] = validation.WrapShape(s)
+	}
+
+	topLevelJSON := make(map[string]*validation.ShapeWrapper)
+	var topLevelMD []*validation.ShapeWrapper
+	for k, w := range allWrapped {
+		if !isNestedMD[k] {
+			topLevelMD = append(topLevelMD, w)
+		}
+		if !isNestedJSON[k] {
+			topLevelJSON[k] = w
 		}
 		updateStats(&stats, w, allSHACLTypes, allSPARQLTypes)
 	}
 
 	if doJSON {
-		if err := exportJSON(outputDir, baseName, wrapped); err != nil {
+		if err := exportJSON(outputDir, baseName, topLevelJSON); err != nil {
 			return stats, err
 		}
 	}
 
 	if doMD {
-		exportMD(&stats, outputDir, baseName, wrapped)
+		exportMD(&stats, outputDir, baseName, topLevelMD, allWrapped)
 	}
 
 	return stats, nil
 }
 
-func identifyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
+func identifyPropertyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
 	isNested := make(map[string]bool)
 	for _, s := range shapes {
 		for _, ps := range s.Properties {
@@ -290,8 +341,8 @@ func exportJSON(outputDir, baseName string, wrapped map[string]*validation.Shape
 	return nil
 }
 
-func exportMD(stats *validation.FileStats, outputDir, baseName string, wrapped map[string]*validation.ShapeWrapper) {
-	shaclMD := generateMarkdown(baseName, wrapped, func(cw validation.ConstraintWrapper) bool { return cw.IsSHACL() })
+func exportMD(stats *validation.FileStats, outputDir, baseName string, topLevel []*validation.ShapeWrapper, allWrapped map[string]*validation.ShapeWrapper) {
+	shaclMD := generateMarkdown(baseName, topLevel, allWrapped, func(cw validation.ConstraintWrapper) bool { return cw.IsSHACL() })
 	if shaclMD != "" {
 		mdOutDir := filepath.Join(outputDir, "SHACL")
 		os.MkdirAll(mdOutDir, 0755)
@@ -301,7 +352,7 @@ func exportMD(stats *validation.FileStats, outputDir, baseName string, wrapped m
 		fmt.Printf("Exported SHACL MD to %s\n", mdFile)
 	}
 
-	sparqlMD := generateMarkdown(baseName, wrapped, func(cw validation.ConstraintWrapper) bool { return cw.IsSPARQL() })
+	sparqlMD := generateMarkdown(baseName, topLevel, allWrapped, func(cw validation.ConstraintWrapper) bool { return cw.IsSPARQL() })
 	if sparqlMD != "" {
 		mdOutDir := filepath.Join(outputDir, "SPARQL")
 		os.MkdirAll(mdOutDir, 0755)

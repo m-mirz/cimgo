@@ -3,10 +3,58 @@ package validation
 import (
 	"cimgo/rdf/shacl"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
 )
+
+// ConstraintInfo, AttributeInfo, ClassInfo, FileResults are the simplified
+// SHACL representation produced by ProcessFileToResults + SimplifyFileResults
+// and consumed by cmd/shaclgen.
+type ConstraintInfo struct {
+	Path      []string       `json:"path"`
+	Severity  string         `json:"severity,omitempty"`
+	Message   string         `json:"message,omitempty"`
+	Component string         `json:"component"`
+	Payload   map[string]any `json:"payload"`
+}
+
+type AttributeInfo struct {
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	Constraints []ConstraintInfo `json:"constraints"`
+}
+
+type ClassInfo struct {
+	Name        string           `json:"name"`
+	Constraints []ConstraintInfo `json:"constraints"`
+	Attributes  []AttributeInfo  `json:"attributes"`
+}
+
+type FileResults struct {
+	FileName string      `json:"file_name"`
+	Classes  []ClassInfo `json:"classes"`
+}
+
+// anyToFloat coerces a SHACL payload value into a float64. SHACL counts and
+// thresholds arrive as float64 (after JSON round-trip), int (in-memory ints
+// from the simplifier), or string (literal values from the RDF parser).
+func anyToFloat(v any) float64 {
+	switch x := v.(type) {
+	case float64:
+		return x
+	case int:
+		return float64(x)
+	case int64:
+		return float64(x)
+	case string:
+		var f float64
+		fmt.Sscanf(x, "%f", &f)
+		return f
+	}
+	return 0
+}
 
 func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 	// Pre-scan

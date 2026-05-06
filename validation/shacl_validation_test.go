@@ -5,185 +5,105 @@ import (
 	"cimgo/cimgostructs"
 	"cimgo/cimprofiles"
 	"os"
-	"strings"
 	"testing"
 )
 
-func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
-	rules := loadAllRules(t,
-		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61968-13_GeographicalLocation-AP-Con-Complex-SHACL.ttl",
-	)
-	if len(rules) == 0 {
-		t.Skip("No rules found")
+// indexByID groups generated SHACL violations by their focus-node MRID so the
+// per-object assertions below stay readable.
+func indexByID(violations []Violation) map[string][]Violation {
+	out := make(map[string][]Violation)
+	for _, v := range violations {
+		out[v.ObjectID] = append(out[v.ObjectID], v)
 	}
+	return out
+}
 
-	dataFile := "../testdata/test_shacl_001_GL.xml"
+func loadDataset(t *testing.T, path string) *cimgostructs.CIMElementList {
+	t.Helper()
 	dataset := cimgostructs.NewCIMElementList()
-
-	b, err := os.ReadFile(dataFile)
+	b, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("Failed to read %s: %v", dataFile, err)
+		t.Fatalf("Failed to read %s: %v", path, err)
 	}
 	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-
 	t.Logf("Loaded %d elements", len(dataset.Elements))
+	return dataset
+}
 
-	var violationsByID = map[string][]string{}
-	for id, obj := range dataset.Elements {
-		for _, v := range validateObject(t, obj, rules, dataset) {
-			violationsByID[id] = append(violationsByID[id], v)
-		}
-	}
-
-	if got := len(violationsByID["CoordinateSystem.WGS84"]); got != 0 {
-		t.Errorf("CoordinateSystem.WGS84 (default crsUrn): expected 0 violations, got %d: %v",
-			got, violationsByID["CoordinateSystem.WGS84"])
-	}
-	if got := len(violationsByID["CoordinateSystem.ETRS89"]); got != 1 {
-		t.Errorf("CoordinateSystem.ETRS89 (non-default crsUrn): expected 1 violation, got %d: %v",
-			got, violationsByID["CoordinateSystem.ETRS89"])
-	}
-
-	for id, vs := range violationsByID {
+func logViolations(t *testing.T, byID map[string][]Violation) {
+	for id, vs := range byID {
 		for _, v := range vs {
-			t.Logf("Object %s: %s", id, v)
+			t.Logf("Object %s: [%s] %s: %s", id, v.Class, v.Property, v.Message)
 		}
 	}
+}
+
+func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
+	dataset := loadDataset(t, "../testdata/test_shacl_001_GL.xml")
+
+	byID := indexByID(ValidateGeneratedGeographicallocation6196813ComplexProfile(dataset))
+
+	if got := len(byID["CoordinateSystem.WGS84"]); got != 0 {
+		t.Errorf("CoordinateSystem.WGS84 (default crsUrn): expected 0 violations, got %d: %v",
+			got, byID["CoordinateSystem.WGS84"])
+	}
+	if got := len(byID["CoordinateSystem.ETRS89"]); got != 1 {
+		t.Errorf("CoordinateSystem.ETRS89 (non-default crsUrn): expected 1 violation, got %d: %v",
+			got, byID["CoordinateSystem.ETRS89"])
+	}
+	logViolations(t, byID)
 }
 
 func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must be an IRI and must NOT
 	// point to a cim.GeneratingUnit (it should reference SynchronousMachine).
-	rules := loadAllRules(t,
-		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_DiagramLayout-AP-Con-Complex-NotSolvedMAS-SHACL.ttl",
-	)
-	if len(rules) == 0 {
-		t.Skip("No rules found")
-	}
+	dataset := loadDataset(t, "../testdata/test_shacl_002_DL.xml")
 
-	dataFile := "../testdata/test_shacl_002_DL.xml"
-	dataset := cimgostructs.NewCIMElementList()
+	byID := indexByID(ValidateGeneratedDiagramlayout61970301ComplexNotsolvedmasProfile(dataset))
 
-	b, err := os.ReadFile(dataFile)
-	if err != nil {
-		t.Fatalf("Failed to read %s: %v", dataFile, err)
-	}
-	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-
-	t.Logf("Loaded %d elements", len(dataset.Elements))
-
-	var violationsByID = map[string][]string{}
-	for id, obj := range dataset.Elements {
-		for _, v := range validateObject(t, obj, rules, dataset) {
-			violationsByID[id] = append(violationsByID[id], v)
-		}
-	}
-
-	if got := len(violationsByID["DiagramObject.OK"]); got != 0 {
+	if got := len(byID["DiagramObject.OK"]); got != 0 {
 		t.Errorf("DiagramObject.OK (points to SynchronousMachine): expected 0 violations, got %d: %v",
-			got, violationsByID["DiagramObject.OK"])
+			got, byID["DiagramObject.OK"])
 	}
 	for _, badID := range []string{"DiagramObject.BAD", "TextDiagramObject.BAD"} {
-		if got := len(violationsByID[badID]); got != 1 {
+		if got := len(byID[badID]); got != 1 {
 			t.Errorf("%s (points to GeneratingUnit): expected 1 violation, got %d: %v",
-				badID, got, violationsByID[badID])
+				badID, got, byID[badID])
 		}
 	}
-
-	for id, vs := range violationsByID {
-		for _, v := range vs {
-			t.Logf("Object %s: %s", id, v)
-		}
-	}
+	logViolations(t, byID)
 }
 
 func TestValidateDiagramObjectPointSequenceNumber(t *testing.T) {
 	// The rule says DiagramObjectPoint.sequenceNumber must be > 0 (sh:minExclusive 0.0).
-	rules := loadAllRules(t,
-		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_DiagramLayout-AP-Con-Complex-SHACL.ttl",
-	)
-	if len(rules) == 0 {
-		t.Skip("No rules found")
-	}
+	dataset := loadDataset(t, "../testdata/test_shacl_003_DL.xml")
 
-	dataFile := "../testdata/test_shacl_003_DL.xml"
-	dataset := cimgostructs.NewCIMElementList()
+	byID := indexByID(ValidateGeneratedDiagramlayout61970301ComplexProfile(dataset))
 
-	b, err := os.ReadFile(dataFile)
-	if err != nil {
-		t.Fatalf("Failed to read %s: %v", dataFile, err)
-	}
-	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-
-	t.Logf("Loaded %d elements", len(dataset.Elements))
-
-	var violationsByID = map[string][]string{}
-	for id, obj := range dataset.Elements {
-		for _, v := range validateObject(t, obj, rules, dataset) {
-			violationsByID[id] = append(violationsByID[id], v)
-		}
-	}
-
-	if got := len(violationsByID["DiagramObjectPoint.OK"]); got != 0 {
+	if got := len(byID["DiagramObjectPoint.OK"]); got != 0 {
 		t.Errorf("DiagramObjectPoint.OK (sequenceNumber=1): expected 0 violations, got %d: %v",
-			got, violationsByID["DiagramObjectPoint.OK"])
+			got, byID["DiagramObjectPoint.OK"])
 	}
-	if got := len(violationsByID["DiagramObjectPoint.NEG"]); got != 1 {
+	if got := len(byID["DiagramObjectPoint.NEG"]); got != 1 {
 		t.Errorf("DiagramObjectPoint.NEG (sequenceNumber=-1): expected 1 violation, got %d: %v",
-			got, violationsByID["DiagramObjectPoint.NEG"])
+			got, byID["DiagramObjectPoint.NEG"])
 	}
-
-	for id, vs := range violationsByID {
-		for _, v := range vs {
-			t.Logf("Object %s: %s", id, v)
-		}
-	}
+	logViolations(t, byID)
 }
 
 func TestValidatePSTType1EQ(t *testing.T) {
-	// Load both the Equipment-profile rules (cim.* class names — match Go struct
-	// types) and the Prof10 header rules. Prof10 uses implicit-class targets like
-	// prof10.FullModel-EQ which require RDFS subclass reasoning to map to Go
-	// types; those rules are loaded but will not fire until subclass mapping is
-	// added. The one non-SPARQL CSV violation is a sh:HasValueConstraintComponent
-	// on a Prof10 shape, so it is not yet caught.
-	rules := loadAllRules(t,
-		"../application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/61970-301_Equipment-AP-Con-Complex-SHACL.ttl",
-	)
-	if len(rules) == 0 {
-		t.Skip("No rules found")
+	// Smoke test: conformant EQ data should produce zero generated violations.
+	// Hand-written cross-cutting checks (ValidateEquipmentProfile) and SPARQL/
+	// model-metadata constraints in the CSV reference are out of scope here.
+	dataset := loadDataset(t, "../CGMES-Test-Configurations/v3.0/PST/PST_PhaseTapChangerLinear_Type1/PST_Type1_EQ.xml")
+
+	violations := ValidateGeneratedEquipment61970301ComplexProfile(dataset)
+	t.Logf("Focus node,Path,Constraint Component,Message,Severity")
+	for _, v := range violations {
+		t.Logf("%s,%s,%s,%s,%s", v.ObjectID, v.Property, v.Class, v.Message, v.Severity)
 	}
-
-	dataFile := "../CGMES-Test-Configurations/v3.0/PST/PST_PhaseTapChangerLinear_Type1/PST_Type1_EQ.xml"
-	dataset := cimgostructs.NewCIMElementList()
-
-	b, err := os.ReadFile(dataFile)
-	if err != nil {
-		t.Fatalf("Failed to read %s: %v", dataFile, err)
+	t.Logf("Total violations: %d (expected 0 for conformant EQ data)", len(violations))
+	if len(violations) != 0 {
+		t.Errorf("expected 0 violations for conformant EQ data, got %d", len(violations))
 	}
-	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-
-	t.Logf("Loaded %d elements", len(dataset.Elements))
-
-	// Produce output similar to the CSV (ignoring SPARQL rules)
-	t.Log("Focus node,Path,Constraint Component,Message,Severity")
-
-	var count int
-	for id, obj := range dataset.Elements {
-		violations := validateObject(t, obj, rules, dataset)
-		for _, v := range violations {
-			count++
-			path := ""
-			msg := v
-			if colIndex := strings.Index(v, "]: "); colIndex != -1 {
-				msg = v[colIndex+3:]
-				if spIndex := strings.Index(msg, ": "); spIndex != -1 {
-					path = msg[:spIndex]
-					msg = msg[spIndex+2:]
-				}
-			}
-			t.Logf("%s,%s,sh:ConstraintComponent,%s,sh:Violation", id, path, msg)
-		}
-	}
-	t.Logf("Total violations: %d (expected 0 for conformant EQ data; CSV warnings are SPARQL or model-metadata constraints)", count)
 }

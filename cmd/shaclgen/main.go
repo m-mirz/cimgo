@@ -35,6 +35,7 @@ func main() {
 	shaclPattern := flag.String("shacl", validation.DefaultSHACLPattern, "glob pattern for SHACL Turtle files")
 	outDir := flag.String("out", "validation", "output directory for generated Go files")
 	pkg := flag.String("pkg", "validation", "package name in generated files")
+	skipReport := flag.Bool("skip-report", false, "instead of writing files, print every skip reason to stderr")
 	flag.Parse()
 
 	matches, err := filepath.Glob(*shaclPattern)
@@ -81,6 +82,11 @@ func main() {
 		totalChecks += len(spec.Checks)
 		totalSkipped += len(skipReasons)
 		totalFiles++
+		if *skipReport {
+			for _, r := range skipReasons {
+				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
+			}
+		}
 		fmt.Printf("Generated %s (%d checks, %d skipped)\n", spec.FileName, len(spec.Checks), len(skipReasons))
 	}
 
@@ -607,46 +613,44 @@ func buildCheckSpec(stemCamel, structName string, structType reflect.Type, c val
 	return cs, imports, nil
 }
 
-// TODO: remaining gaps vs the runtime evaluator in validation/shacl_rules.go.
-// Each item below is currently skipped here and falls through to runtime
-// SHACL. Counts in [brackets] are occurrences in the current SHACL JSON.
+// Status of remaining SHACL constraint shapes, audited against the live
+// CGMES TTL files. Counts in [brackets] are occurrences in the current data.
 //
-//   Structurally satisfied (skipped intentionally, NOT runtime-deferred —
-//   the Go data model already encodes the constraint):
-//     - Inverse Class [15]: every `^cim.X.Y` + sh.Class case verified
-//       against the data has Class == X (the path's target class), and
-//       the inverse-index loop already filters to `*X` exactly, so the
-//       constraint is true by construction.
+//   Open work — items still emitting "skipped" reasons that could be closed:
+//
+//     - Multi-segment Required not ending in rdf:type [3]: paths into
+//       rdf.Statements via diff.DifferenceModel. The Go struct
+//       cimgostructs.Statements exists but isn't in cimgostructs.StructMap
+//       because it has no UML stereotype (it's an RDF reification type, not
+//       a CIM concrete/compound class). Recommended fix: hand-register in
+//       a new cimgostructs/struct_map_extras.go via init() that adds
+//       StructMap["Statements"] = func() any { return &Statements{} }.
+//       Targeted (one entry) — alternative of widening the generator
+//       template to empty-stereotype classes would scoop up unrelated
+//       internal classes too.
+//
+//     - Inverse HasValue [4]: needs collecting field values from inverse
+//       referrers, not just counting them. The single live payload pattern
+//       is `^cim.Terminal.phases` + sh.HasValue cim.PhaseCode.N. With the
+//       enum-URI handling in place, the implementation is: extend
+//       inverseCountCheck-style prelude to collect the URI of `r.<Field>`
+//       for matching referrers, then compare against the enum constant.
+//       Skipped today because it's new infrastructure (inverse walk that
+//       *visits* referrers, not just counts them) for only 4 cases.
+//
+//   Structurally satisfied — skipped intentionally; the Go data model
+//   already encodes the constraint, no code worth emitting:
+//
+//     - Inverse Class [15]: every `^cim.X.Y` + sh.Class case has Class == X
+//       (the path's target class), and the inverse-index loop already
+//       filters to *X exactly, so the constraint holds by construction.
 //     - Multi-segment MaxCount=1 along forward chains [56]: every ref hop
-//       in the Go model is 0..1, so the path-end value-count cannot
-//       exceed 1.
-//
-//   Genuine gaps still falling through to the runtime evaluator:
-//     - sh.NodeKindConstraintComponent [11]: Literal/IRI/BlankNode is
-//       almost always structurally satisfied by Go's static types, but
-//       all 11 live occurrences sit on multi-segment paths so we'd need
-//       chain walking *and* node-kind logic together. Likely a no-op when
-//       implemented; low value.
-//     - Inverse HasValue [4]: would require collecting field values from
-//       inverse referrers (not just counting them). The single live
-//       payload (Terminal.phases vs. PhaseCode.N) compares against an
-//       enum-as-IRI struct {URI string}, which the runtime evaluator
-//       *also* gets wrong (its `hasValue` only knows about Id-bearing
-//       structs) — so re-implementing here would just propagate that bug.
-//     - Multi-segment Required not ending in rdf.type [3]: all live
-//       occurrences are on `diff.DifferenceModel` paths into rdf:Statements,
-//       which doesn't map to cimgostructs at all.
-//     - Multi-segment Datatype [2]: chain ending in a leaf string field
-//       with xsd.dateTime; mechanical to add (extend walkForwardRefChain
-//       with a final-field accessor) but only 2 occurrences.
-//     - sh.OptionalConstraintComponent: zero occurrences in current data.
-//
-//   HasValue / In on plain (single-segment) reference fields:
-//     - Currently restricted to string fields. For enum-typed fields the
-//       payload is an IRI like "cim.PhaseCode.N" and the field is a
-//       struct{URI string}; needs URI normalisation that depends on the
-//       active CIM namespace (and the runtime evaluator is broken here
-//       too — see inverse HasValue note above).
+//       in the Go model is 0..1, so the path-end value-count cannot exceed 1.
+//     - sh.NodeKindConstraintComponent [11]: all live occurrences sit on
+//       multi-segment paths ending in rdf:type. Once the chain resolves to
+//       a typed *cim.X, NodeKind=Literal/IRI/BlankNode is automatically
+//       satisfied by Go's static type system; any emitted check would be
+//       a no-op.
 
 // componentShort returns the camel-case suffix used in generated function
 // names for each supported SHACL constraint component. Returning ok=false
@@ -777,17 +781,25 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 	}
 }
 
-// hasValueCondition handles sh.HasValue for string-typed fields. Reference and
-// enum fields are deferred — the payload may carry a class IRI like
-// "cim.Foo", but those compare against MRID/URI on a wrapped struct, not the
-// field itself, and the runtime evaluator's own handling is partial. Skip
-// rather than emit code with mismatched semantics.
+// hasValueCondition handles sh.HasValue for string-typed fields and for
+// enum-as-IRI reference fields (pointer to struct{URI string}). The runtime
+// evaluator's hasValue helper only knows about Id-bearing structs, so it
+// silently misses violations on enum-URI fields — the generator catches them
+// here by comparing v.Field.URI against the matching cimgostructs constant.
 func hasValueCondition(field reflect.StructField, payload any) (string, string, error) {
 	want, ok := payload.(string)
 	if !ok {
 		return "", "", fmt.Errorf("HasValue payload is not a string")
 	}
 	want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
+	if constIdent, isEnum, err := enumURIFieldConst(field, want); isEnum {
+		if err != nil {
+			return "", "", err
+		}
+		guard := fmt.Sprintf("\t\tif v.%s == nil {\n\t\t\tcontinue\n\t\t}", field.Name)
+		cond := fmt.Sprintf("v.%s.URI != cimgostructs.%s", field.Name, constIdent)
+		return guard, cond, nil
+	}
 	if field.Type.Kind() != reflect.String {
 		return "", "", fmt.Errorf("HasValue on non-string field (%s) not yet supported", field.Type.Kind())
 	}
@@ -796,16 +808,12 @@ func hasValueCondition(field reflect.StructField, payload any) (string, string, 
 	return guard, cond, nil
 }
 
-// inCondition handles sh.In for string-typed fields by emitting an inline
-// allow-set check. Non-string fields are deferred; the same caveat as HasValue
-// applies to enum/reference values.
+// inCondition handles sh.In for string-typed fields and for enum-as-IRI
+// reference fields. Same enum-URI rationale as hasValueCondition.
 func inCondition(field reflect.StructField, payload any) (string, string, error) {
 	rawValues, ok := payload.([]any)
 	if !ok {
 		return "", "", fmt.Errorf("In payload is not a list")
-	}
-	if field.Type.Kind() != reflect.String {
-		return "", "", fmt.Errorf("In on non-string field (%s) not yet supported", field.Type.Kind())
 	}
 	values := make([]string, 0, len(rawValues))
 	for _, v := range rawValues {
@@ -814,6 +822,33 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 			return "", "", fmt.Errorf("In list contains non-string %v", v)
 		}
 		values = append(values, strings.TrimPrefix(strings.TrimSuffix(s, ">"), "<"))
+	}
+	if len(values) > 0 {
+		if _, isEnum, _ := enumURIFieldConst(field, values[0]); isEnum {
+			consts := make([]string, 0, len(values))
+			for _, want := range values {
+				constIdent, _, err := enumURIFieldConst(field, want)
+				if err != nil {
+					return "", "", err
+				}
+				consts = append(consts, constIdent)
+			}
+			var b strings.Builder
+			fmt.Fprintf(&b, "\t\tif v.%s == nil {\n\t\t\tcontinue\n\t\t}\n", field.Name)
+			b.WriteString("\t\tallowed := map[string]bool{")
+			for i, c := range consts {
+				if i > 0 {
+					b.WriteString(", ")
+				}
+				fmt.Fprintf(&b, "cimgostructs.%s: true", c)
+			}
+			b.WriteString("}")
+			cond := fmt.Sprintf("!allowed[v.%s.URI]", field.Name)
+			return b.String(), cond, nil
+		}
+	}
+	if field.Type.Kind() != reflect.String {
+		return "", "", fmt.Errorf("In on non-string field (%s) not yet supported", field.Type.Kind())
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "\t\tif v.%s == \"\" {\n\t\t\tcontinue\n\t\t}\n", field.Name)
@@ -827,6 +862,37 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 	b.WriteString("}")
 	cond := fmt.Sprintf("!allowed[v.%s]", field.Name)
 	return b.String(), cond, nil
+}
+
+// enumURIFieldConst inspects field for the enum-as-IRI shape (pointer to a
+// struct with a single string field named URI). When the shape matches, the
+// returned constIdent is the cimgostructs constant identifier corresponding
+// to payload — derived by stripping the cim. prefix and dropping the dot
+// between enum name and member, since cimgostructs names enum constants
+// `<EnumName><Member>` (e.g. cim.InputSignalKind.generatorElectricalPower →
+// InputSignalKindgeneratorElectricalPower). A missing constant turns into a
+// build error in the generated code, not a silent miscompare here.
+func enumURIFieldConst(field reflect.StructField, payload string) (string, bool, error) {
+	if field.Type.Kind() != reflect.Ptr {
+		return "", false, nil
+	}
+	elem := field.Type.Elem()
+	if elem.Kind() != reflect.Struct || elem.NumField() != 1 {
+		return "", false, nil
+	}
+	uriField := elem.Field(0)
+	if uriField.Name != "URI" || uriField.Type.Kind() != reflect.String {
+		return "", false, nil
+	}
+	rest, ok := stripCIMPrefix(payload)
+	if !ok {
+		return "", true, fmt.Errorf("enum payload %q not in cim namespace", payload)
+	}
+	dot := strings.IndexByte(rest, '.')
+	if dot < 0 {
+		return "", true, fmt.Errorf("enum payload %q missing '.member' segment", payload)
+	}
+	return rest[:dot] + rest[dot+1:], true, nil
 }
 
 // minLengthCondition handles sh.MinLength on string fields. Skip absent

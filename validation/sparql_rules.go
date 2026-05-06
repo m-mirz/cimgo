@@ -21,7 +21,13 @@ func goTypeName(obj interface{}) string {
 	return t.Name()
 }
 
-// ValidateEquipmentProfile runs checks from 61970-301_Equipment-AP-Con-Complex-SHACL (eqc.*).
+// Hand-written profile checks. Each Validate<Profile>Profile bundles only the
+// SPARQL-style cross-cutting rules that don't reduce to a single attribute
+// constraint; per-attribute SHACL checks come from the generated profile
+// orchestrators (see generated_index.go) and are run separately by
+// ValidateAllProfiles.
+
+// ValidateEquipmentProfile runs hand-written checks for 61970-301_Equipment-AP-Con-Complex-SHACL.
 func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACDCTerminalSequenceNumbering(dataset)...)
@@ -58,30 +64,24 @@ func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation 
 	return violations
 }
 
-// ValidateDiagramLayoutProfile runs checks from 61970-301_DiagramLayout-AP-Con-Complex-SHACL (dlc.*).
+// ValidateDiagramLayoutProfile runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
 func ValidateDiagramLayoutProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckDiagramObjectIdentifiedObjectType(dataset)...)
-	return violations
+	return CheckDiagramObjectIdentifiedObjectType(dataset)
 }
 
-// ValidateTopologyNotSolvedMASProfile runs checks from
-// 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL (topcns.*).
+// ValidateTopologyNotSolvedMASProfile runs hand-written checks for
+// 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateTopologyNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
-	return violations
+	return CheckTerminalPhasesConsistencyTopologicalNode(dataset)
 }
 
-// ValidateEquipmentNotSolvedMASProfile runs checks from
-// 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL (eqcns.*).
+// ValidateEquipmentNotSolvedMASProfile runs hand-written checks for
+// 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateEquipmentNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
-	return violations
+	return CheckACLineSegmentBaseVoltage(dataset)
 }
 
-// ValidateSSHProfile runs checks from 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL (sshc.*).
+// ValidateSSHProfile runs hand-written checks for 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL.
 func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckEnergySourceActivePowerConsumer(dataset)...)
@@ -93,8 +93,8 @@ func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	return violations
 }
 
-// ValidateSSHNotSolvedMASProfile runs checks from
-// 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL (sshcns.*).
+// ValidateSSHNotSolvedMASProfile runs hand-written checks for
+// 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckLinearShuntCompensatorSectionsRange(dataset)...)
@@ -104,7 +104,7 @@ func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Viol
 	return violations
 }
 
-// ValidateDynamicsProfile runs checks from 61970-457_Dynamics-AP-Con-Complex-SHACL (dyn457.*).
+// ValidateDynamicsProfile runs hand-written checks for 61970-457_Dynamics-AP-Con-Complex-SHACL.
 func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
@@ -112,50 +112,40 @@ func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	return violations
 }
 
-// ValidateDynamicsNotSolvedMASProfile runs checks from
-// 61970-457_Dynamics-AP-Con-Complex-NotSolvedMAS-SHACL (dyn457ns.*).
-func ValidateDynamicsNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return nil
-}
-
-// ValidateShortCircuitProfile runs checks from 61970-301_ShortCircuit-AP-Con-Complex-SHACL (scc.*).
+// ValidateShortCircuitProfile runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
 func ValidateShortCircuitProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckSeriesCompensatorVaristorUsage(dataset)...)
-	return violations
+	return CheckSeriesCompensatorVaristorUsage(dataset)
 }
 
-// ValidateShortCircuitNotSolvedMASProfile runs checks from
-// 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS-SHACL (sccns.*).
+// ValidateShortCircuitNotSolvedMASProfile runs hand-written checks for
+// 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateShortCircuitNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckMutualCouplingTerminalsAssignment(dataset)...)
-	return violations
+	return CheckMutualCouplingTerminalsAssignment(dataset)
 }
 
-// ValidateStateVariablesProfile runs checks from 61970-301_StateVariables-AP-Con-Complex-SHACL (svc.*).
+// ValidateStateVariablesProfile runs hand-written checks for 61970-301_StateVariables-AP-Con-Complex-SHACL.
 func ValidateStateVariablesProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckCsConverterStateValueRange(dataset)...)
-	return violations
+	return CheckCsConverterStateValueRange(dataset)
 }
 
-// ValidateStateVariablesSolvedMASProfile runs checks from
+// ValidateStateVariablesSolvedMASProfile runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL.
 func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
-	return violations
+	return CheckSvTapStepPositionRange(dataset)
 }
 
+// ValidateAllProfiles runs every generated SHACL profile orchestrator plus
+// every hand-written profile-level check. The two are independent: the
+// generated set comes from ValidateAllGeneratedProfiles in generated_index.go;
+// the hand-written ones are the Validate<Profile>Profile functions above.
 func ValidateAllProfiles(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
+	violations = append(violations, ValidateAllGeneratedProfiles(dataset)...)
 	violations = append(violations, ValidateEquipmentProfile(dataset)...)
 	violations = append(violations, ValidateEquipmentNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateSSHProfile(dataset)...)
 	violations = append(violations, ValidateSSHNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateDynamicsProfile(dataset)...)
-	violations = append(violations, ValidateDynamicsNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateShortCircuitProfile(dataset)...)
 	violations = append(violations, ValidateShortCircuitNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateStateVariablesProfile(dataset)...)

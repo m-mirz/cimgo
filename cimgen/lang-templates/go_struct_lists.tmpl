@@ -9,7 +9,7 @@ import (
 type CIMElementList struct {
 	Elements map[string]interface{}
 	{{- range .Types}}
-	{{- if eq .CIMStereotype "concrete"}}
+	{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 	{{.Id}}s map[string]*{{.Id}}
 	{{- end}}
 	{{- end}}
@@ -19,7 +19,7 @@ func NewCIMElementList() *CIMElementList {
 	return &CIMElementList{
 		Elements: make(map[string]interface{}),
 		{{- range .Types}}
-		{{- if eq .CIMStereotype "concrete"}}
+		{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 		{{.Id}}s: make(map[string]*{{.Id}}),
 		{{- end}}
 		{{- end}}
@@ -43,7 +43,7 @@ func (ds *CIMElementList) AddElement(element interface{}) error {
 		ds.Elements[id] = element
 		switch e := element.(type) {
 		{{- range .Types}}
-		{{- if eq .CIMStereotype "concrete"}}
+		{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 		case *{{.Id}}:
 			ds.{{.Id}}s[e.GetId()] = e
 			{{- end}}
@@ -57,7 +57,7 @@ func (ds *CIMElementList) AddElement(element interface{}) error {
 
 var StructMap = map[string]func() interface{}{
 	{{- range .Types}}
-	{{- if eq .CIMStereotype "concrete"}}
+	{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 	"{{.Id}}": func() interface{} {
 		return &{{.Id}}{}
 	},

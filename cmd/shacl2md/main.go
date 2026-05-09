@@ -1,7 +1,6 @@
 package main
 
 import (
-	"cimgo/rdf/shacl"
 	"cimgo/shaclimport"
 	"encoding/json"
 	"flag"
@@ -13,20 +12,20 @@ import (
 )
 
 // generateMarkdown creates a Markdown string for the given shapes, filtering constraints based on the provided filter function
-func generateMarkdown(title string, topLevel []*shaclimport.ShapeWrapper, allWrapped map[string]*shaclimport.ShapeWrapper, filter func(shaclimport.ConstraintWrapper) bool) string {
+func generateMarkdown(title string, shapes []shaclimport.ShapeInfo, filter func(shaclimport.ConstraintInfo) bool) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# %s\n\n", title))
 
-	if len(topLevel) == 0 {
+	if len(shapes) == 0 {
 		return ""
 	}
 
-	renderShapes(&sb, topLevel, 2, filter, allWrapped, make(map[string]bool))
+	renderShapes(&sb, shapes, 2, filter, make(map[string]bool))
 
 	return sb.String()
 }
 
-func renderShapes(sb *strings.Builder, shapes []*shaclimport.ShapeWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
+func renderShapes(sb *strings.Builder, shapes []shaclimport.ShapeInfo, level int, filter func(shaclimport.ConstraintInfo) bool, visited map[string]bool) {
 	if len(shapes) == 0 {
 		return
 	}
@@ -34,34 +33,37 @@ func renderShapes(sb *strings.Builder, shapes []*shaclimport.ShapeWrapper, level
 	// Sort shapes: properties first, then by path, then by ID
 	sort.Slice(shapes, func(i, j int) bool {
 		si, sj := shapes[i], shapes[j]
-		if si.IsProperty && sj.IsProperty && si.Path != nil && sj.Path != nil {
-			return shaclimport.FormatPathString(si.Path) < shaclimport.FormatPathString(sj.Path)
+		if len(si.Path) > 0 && len(sj.Path) > 0 {
+			return strings.Join(si.Path, " / ") < strings.Join(sj.Path, " / ")
 		}
-		return si.ID.String() < sj.ID.String()
+		return si.ID < sj.ID
 	})
 
 	for i, s := range shapes {
-		id := s.ID.String()
-		if visited[id] {
+		if s.ID != "" && visited[s.ID] {
 			renderShapeHeading(sb, s, level)
-			sb.WriteString(fmt.Sprintf("*(Recursive reference to %s)*\n\n", shaclimport.SimplifyTerm(s.ID)))
+			sb.WriteString(fmt.Sprintf("*(Recursive reference to %s)*\n\n", s.ID))
 			continue
 		}
-		visited[id] = true
+		if s.ID != "" {
+			visited[s.ID] = true
+		}
 
-		if s.ID.IsBlank() && len(shapes) > 1 {
+		if (s.ID == "" || strings.HasPrefix(s.ID, "_:")) && len(shapes) > 1 {
 			sb.WriteString(fmt.Sprintf("**Item %d:**\n\n", i+1))
 		} else {
 			renderShapeHeading(sb, s, level)
 		}
 
-		renderShapeContent(sb, s, level, filter, allWrapped, visited)
+		renderShapeContent(sb, s, level, filter, visited)
 
-		delete(visited, id)
+		if s.ID != "" {
+			delete(visited, s.ID)
+		}
 	}
 }
 
-func renderShapeContent(sb *strings.Builder, s *shaclimport.ShapeWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
+func renderShapeContent(sb *strings.Builder, s shaclimport.ShapeInfo, level int, filter func(shaclimport.ConstraintInfo) bool, visited map[string]bool) {
 	renderShapeBasicInfo(sb, s)
 	renderShapeTargets(sb, s)
 
@@ -75,131 +77,170 @@ func renderShapeContent(sb *strings.Builder, s *shaclimport.ShapeWrapper, level 
 		sb.WriteString("\n```\n\n")
 	}
 
-	filteredConstraints := shaclimport.FilterConstraints(s, filter)
-	if len(filteredConstraints) > 0 {
-		renderConstraintsList(sb, filteredConstraints, level, filter, allWrapped, visited)
-	}
-
-	renderNestedProperties(sb, s, level, filter, allWrapped, visited)
-}
-
-func renderShapeHeading(sb *strings.Builder, s *shaclimport.ShapeWrapper, level int) {
-	if s.ID.IsBlank() {
-		return
-	}
-	title := shaclimport.SimplifyTerm(s.ID)
-	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), title))
-}
-
-func renderShapeBasicInfo(sb *strings.Builder, first *shaclimport.ShapeWrapper) {
-	if first.IsProperty && first.Path != nil {
-		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", shaclimport.FormatPathString(first.Path)))
-	}
-
-	if len(first.Description) > 0 {
-		for _, d := range first.Description {
-			sb.WriteString(fmt.Sprintf("%s\n\n", d.Value()))
+	var filteredConstraints []shaclimport.ConstraintInfo
+	for _, c := range s.Constraints {
+		if filter(c) {
+			filteredConstraints = append(filteredConstraints, c)
 		}
 	}
 
-	if first.Severity.Value() != "" && first.Severity.Value() != "http://www.w3.org/ns/shacl#Violation" {
-		sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", shaclimport.SimplifyTerm(first.Severity)))
+	if len(filteredConstraints) > 0 {
+		renderConstraintsList(sb, filteredConstraints, level, visited)
 	}
 
-	if len(first.Messages) > 0 {
+	if len(s.Properties) > 0 {
+		var filteredProperties []shaclimport.ShapeInfo
+		for _, p := range s.Properties {
+			if hasContent(p, filter) {
+				filteredProperties = append(filteredProperties, p)
+			}
+		}
+
+		if len(filteredProperties) > 0 {
+			sb.WriteString("**Nested Properties:**\n\n")
+			renderShapes(sb, filteredProperties, level+1, filter, visited)
+		}
+	}
+}
+
+func hasContent(s shaclimport.ShapeInfo, filter func(shaclimport.ConstraintInfo) bool) bool {
+	for _, c := range s.Constraints {
+		if filter(c) {
+			return true
+		}
+	}
+	for _, p := range s.Properties {
+		if hasContent(p, filter) {
+			return true
+		}
+	}
+	return false
+}
+
+func renderShapeHeading(sb *strings.Builder, s shaclimport.ShapeInfo, level int) {
+	if s.ID == "" || strings.HasPrefix(s.ID, "_:") {
+		return
+	}
+	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), s.ID))
+}
+
+func renderShapeBasicInfo(sb *strings.Builder, s shaclimport.ShapeInfo) {
+	if len(s.Path) > 0 {
+		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", strings.Join(s.Path, " / ")))
+	}
+
+	if s.Description != "" {
+		sb.WriteString(fmt.Sprintf("%s\n\n", s.Description))
+	}
+
+	if s.Severity != "" && s.Severity != "Violation" {
+		sb.WriteString(fmt.Sprintf("**Severity:** %s\n\n", s.Severity))
+	}
+
+	if len(s.Messages) > 0 {
 		sb.WriteString("**Messages:**\n")
-		for _, m := range first.Messages {
-			sb.WriteString(fmt.Sprintf("- %s\n", shaclimport.SimplifyTerm(m)))
+		for _, m := range s.Messages {
+			sb.WriteString(fmt.Sprintf("- %s\n", m))
 		}
 		sb.WriteString("\n")
 	}
 }
 
-func renderShapeTargets(sb *strings.Builder, s *shaclimport.ShapeWrapper) {
-	if s.IsProperty {
-		return
-	}
+func renderShapeTargets(sb *strings.Builder, s shaclimport.ShapeInfo) {
 	if len(s.Targets) > 0 {
 		sb.WriteString("**Targets:**\n")
 		for _, t := range s.Targets {
-			sb.WriteString(fmt.Sprintf("- %s: %s\n", t.Kind.String(), shaclimport.SimplifyTerm(t.Value)))
+			sb.WriteString(fmt.Sprintf("- %s: %s\n", t.Kind, t.Value))
 		}
 		sb.WriteString("\n")
 	}
 }
 
-func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.ConstraintWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
+func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.ConstraintInfo, level int, visited map[string]bool) {
 	sb.WriteString("**Constraints:**\n\n")
 	for _, c := range constraints {
-		typeName := shaclimport.SimplifyIRI(c.Type)
-		sb.WriteString(fmt.Sprintf("- **%s**", typeName))
+		sb.WriteString(fmt.Sprintf("- **%s**", c.Component))
 
-		displayData := c.Data
-		var severityOverride string
-		if soc, ok := c.Data.(*shacl.SeverityOverrideConstraint); ok {
-			displayData = soc.Inner()
-			severityOverride = fmt.Sprintf(" (Severity: %s)", shaclimport.SimplifyTerm(soc.Severity))
+		if c.Severity != "" {
+			sb.WriteString(fmt.Sprintf(" (Severity: %s)", c.Severity))
 		}
-		sb.WriteString(severityOverride + "\n")
+		sb.WriteString("\n")
 
-		if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
-			query := sc.Prefixes + sc.Select
+		if c.IsSPARQL() {
+			query, _ := c.Payload["Select"].(string)
+			prefixes, _ := c.Payload["Prefixes"].(string)
 			sb.WriteString("\n```sparql\n")
-			sb.WriteString(query)
+			sb.WriteString(prefixes + query)
 			sb.WriteString("\n```\n")
-			if len(sc.Messages) > 0 {
-				var msgs []string
-				for _, msg := range sc.Messages {
-					msgs = append(msgs, shaclimport.SimplifyTerm(msg))
-				}
-				sb.WriteString(fmt.Sprintf("  - Messages: `[%s]`\n", strings.Join(msgs, ", ")))
+			if c.Message != "" {
+				sb.WriteString(fmt.Sprintf("  - Messages: `[%s]`\n", c.Message))
 			}
 		} else {
-			renderConstraintDetails(sb, displayData, level+1, filter, allWrapped, visited)
+			renderConstraintDetails(sb, c, level+1, visited)
 		}
 	}
 	sb.WriteString("\n")
 }
 
-func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
-	var nestedShapes []*shaclimport.ShapeWrapper
-	switch con := c.(type) {
-	case *shacl.AndConstraint:
-		for _, sRef := range con.Shapes {
-			if sw, ok := allWrapped[sRef.String()]; ok {
-				nestedShapes = append(nestedShapes, sw)
+func renderConstraintDetails(sb *strings.Builder, c shaclimport.ConstraintInfo, level int, visited map[string]bool) {
+	// Look for nested constraint lists in payload (And/Or/Xone/Not/Node/QualifiedValueShape)
+	var nestedLists [][]shaclimport.ConstraintInfo
+
+	// Sort payload keys for deterministic output
+	keys := make([]string, 0, len(c.Payload))
+	for k := range c.Payload {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := c.Payload[k]
+		if list, ok := v.([]shaclimport.ConstraintInfo); ok {
+			nestedLists = append(nestedLists, list)
+		} else if list, ok := v.([]any); ok {
+			// Try to convert []any to []ConstraintInfo if possible
+			var ciList []shaclimport.ConstraintInfo
+			allCI := true
+			for _, item := range list {
+				if ci, ok := item.(shaclimport.ConstraintInfo); ok {
+					ciList = append(ciList, ci)
+				} else if m, ok := item.(map[string]any); ok {
+					// Handle JSON-like map structure if needed
+					data, _ := json.Marshal(m)
+					var ci shaclimport.ConstraintInfo
+					if err := json.Unmarshal(data, &ci); err == nil && ci.Component != "" {
+						ciList = append(ciList, ci)
+					} else {
+						allCI = false; break
+					}
+				} else {
+					allCI = false; break
+				}
 			}
-		}
-	case *shacl.OrConstraint:
-		for _, sRef := range con.Shapes {
-			if sw, ok := allWrapped[sRef.String()]; ok {
-				nestedShapes = append(nestedShapes, sw)
+			if allCI && len(ciList) > 0 {
+				nestedLists = append(nestedLists, ciList)
 			}
-		}
-	case *shacl.XoneConstraint:
-		for _, sRef := range con.Shapes {
-			if sw, ok := allWrapped[sRef.String()]; ok {
-				nestedShapes = append(nestedShapes, sw)
-			}
-		}
-	case *shacl.NotConstraint:
-		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
-			nestedShapes = append(nestedShapes, sw)
-		}
-	case *shacl.NodeConstraint:
-		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
-			nestedShapes = append(nestedShapes, sw)
-		}
-	case *shacl.QualifiedValueShapeConstraint:
-		if sw, ok := allWrapped[con.ShapeRef.String()]; ok {
-			nestedShapes = append(nestedShapes, sw)
+		} else if ci, ok := v.(shaclimport.ConstraintInfo); ok {
+			nestedLists = append(nestedLists, []shaclimport.ConstraintInfo{ci})
 		}
 	}
 
-	if len(nestedShapes) > 0 {
+	if len(nestedLists) > 0 {
 		sb.WriteString("\n")
 		var sub strings.Builder
-		renderShapes(&sub, nestedShapes, level, filter, allWrapped, visited)
+		for i, list := range nestedLists {
+			if len(nestedLists) > 1 {
+				sub.WriteString(fmt.Sprintf("**Item %d:**\n\n", i+1))
+			}
+			// Use a dummy shape to reuse renderShapeContent logic if needed, 
+			// or just render the constraints directly.
+			// Here we just render the constraints directly.
+			sub.WriteString("**Constraints:**\n\n")
+			for _, ci := range list {
+				sub.WriteString(fmt.Sprintf("- **%s**\n", ci.Component))
+				renderConstraintDetails(&sub, ci, level+1, visited)
+			}
+		}
 
 		lines := strings.Split(strings.TrimSpace(sub.String()), "\n")
 		inCodeBlock := false
@@ -220,32 +261,16 @@ func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int,
 		return
 	}
 
-	data, _ := json.Marshal(c)
-	var m map[string]any
-	json.Unmarshal(data, &m)
+	// Normal attributes
 	var details []string
-	for k, v := range m {
-		if k != "Prefixes" {
-			details = append(details, fmt.Sprintf("- %s: `%s` ", k, shaclimport.FormatValue(v)))
+	for k, v := range c.Payload {
+		if k != "Prefixes" && k != "Select" {
+			details = append(details, fmt.Sprintf("- %s: `%v` ", k, v))
 		}
 	}
 	sort.Strings(details)
 	for _, d := range details {
 		sb.WriteString("  " + d + "\n")
-	}
-}
-
-func renderNestedProperties(sb *strings.Builder, sw *shaclimport.ShapeWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
-	var filteredProperties []*shaclimport.ShapeWrapper
-	for _, p := range sw.Properties {
-		if shaclimport.HasContent(p, filter) {
-			filteredProperties = append(filteredProperties, p)
-		}
-	}
-
-	if len(filteredProperties) > 0 {
-		sb.WriteString("**Nested Properties:**\n\n")
-		renderShapes(sb, filteredProperties, level+1, filter, allWrapped, visited)
 	}
 }
 
@@ -286,12 +311,12 @@ func main() {
 }
 
 func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes, allSPARQLTypes map[string]bool) (shaclimport.FileStats, error) {
-	g, err := shacl.LoadTurtleFile(file)
+	fr, err := shaclimport.ProcessFileToResults(file)
 	if err != nil {
 		return shaclimport.FileStats{}, err
 	}
+	fr = shaclimport.SimplifyFileResults(fr)
 
-	shapes := shacl.ParseShapes(g)
 	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	stats := shaclimport.FileStats{
 		Name:         baseName,
@@ -299,68 +324,42 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes
 		SparqlCounts: make(map[string]int),
 	}
 
-	isNestedMD := shaclimport.IdentifyNestedShapes(shapes)
-	isNestedJSON := identifyPropertyNestedShapes(shapes)
-
-	allWrapped := make(map[string]*shaclimport.ShapeWrapper)
-	for k, s := range shapes {
-		allWrapped[k] = shaclimport.WrapShape(s)
-	}
-
-	topLevelJSON := make(map[string]*shaclimport.ShapeWrapper)
-	var topLevelMD []*shaclimport.ShapeWrapper
-	for k, w := range allWrapped {
-		if !isNestedMD[k] {
-			topLevelMD = append(topLevelMD, w)
-		}
-		if !isNestedJSON[k] {
-			topLevelJSON[k] = w
-		}
-		updateStats(&stats, w, allSHACLTypes, allSPARQLTypes)
-	}
+	updateStats(&stats, fr.Shapes, allSHACLTypes, allSPARQLTypes)
 
 	if doJSON {
-		if err := exportJSON(outputDir, baseName, topLevelJSON); err != nil {
+		if err := exportJSON(outputDir, baseName, fr.Shapes); err != nil {
 			return stats, err
 		}
 	}
 
 	if doMD {
-		exportMD(&stats, outputDir, baseName, topLevelMD, allWrapped)
+		exportMD(&stats, outputDir, baseName, fr.Shapes)
 	}
 
 	return stats, nil
 }
 
-func identifyPropertyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
-	isNested := make(map[string]bool)
+func updateStats(stats *shaclimport.FileStats, shapes []shaclimport.ShapeInfo, allSHACLTypes, allSPARQLTypes map[string]bool) {
 	for _, s := range shapes {
-		for _, ps := range s.Properties {
-			isNested[ps.ID.String()] = true
+		for _, c := range s.Constraints {
+			if c.IsSPARQL() {
+				stats.SparqlCounts[c.Component]++
+				allSPARQLTypes[c.Component] = true
+			} else {
+				stats.ShaclCounts[c.Component]++
+				allSHACLTypes[c.Component] = true
+			}
 		}
-	}
-	return isNested
-}
-
-func updateStats(stats *shaclimport.FileStats, w *shaclimport.ShapeWrapper, allSHACLTypes, allSPARQLTypes map[string]bool) {
-	for _, c := range w.Constraints {
-		typeName := shaclimport.SimplifyIRI(c.Type)
-		if c.IsSPARQL() {
-			stats.SparqlCounts[typeName]++
-			allSPARQLTypes[typeName] = true
-		} else {
-			stats.ShaclCounts[typeName]++
-			allSHACLTypes[typeName] = true
-		}
+		updateStats(stats, s.Properties, allSHACLTypes, allSPARQLTypes)
 	}
 }
 
-func exportJSON(outputDir, baseName string, wrapped map[string]*shaclimport.ShapeWrapper) error {
+func exportJSON(outputDir, baseName string, shapes []shaclimport.ShapeInfo) error {
 	jsonOutDir := filepath.Join(outputDir, "json")
 	if err := os.MkdirAll(jsonOutDir, 0755); err != nil {
 		return err
 	}
-	data, _ := json.MarshalIndent(wrapped, "", "  ")
+	data, _ := json.MarshalIndent(shapes, "", "  ")
 	jsonFile := filepath.Join(jsonOutDir, baseName+".json")
 	if err := os.WriteFile(jsonFile, data, 0644); err != nil {
 		return err
@@ -369,8 +368,8 @@ func exportJSON(outputDir, baseName string, wrapped map[string]*shaclimport.Shap
 	return nil
 }
 
-func exportMD(stats *shaclimport.FileStats, outputDir, baseName string, topLevel []*shaclimport.ShapeWrapper, allWrapped map[string]*shaclimport.ShapeWrapper) {
-	shaclMD := generateMarkdown(baseName, topLevel, allWrapped, func(cw shaclimport.ConstraintWrapper) bool { return cw.IsSHACL() })
+func exportMD(stats *shaclimport.FileStats, outputDir, baseName string, shapes []shaclimport.ShapeInfo) {
+	shaclMD := generateMarkdown(baseName, shapes, func(c shaclimport.ConstraintInfo) bool { return c.IsSHACL() })
 	if shaclMD != "" {
 		mdOutDir := filepath.Join(outputDir, "SHACL")
 		os.MkdirAll(mdOutDir, 0755)
@@ -380,7 +379,7 @@ func exportMD(stats *shaclimport.FileStats, outputDir, baseName string, topLevel
 		fmt.Printf("Exported SHACL MD to %s\n", mdFile)
 	}
 
-	sparqlMD := generateMarkdown(baseName, topLevel, allWrapped, func(cw shaclimport.ConstraintWrapper) bool { return cw.IsSPARQL() })
+	sparqlMD := generateMarkdown(baseName, shapes, func(c shaclimport.ConstraintInfo) bool { return c.IsSPARQL() })
 	if sparqlMD != "" {
 		mdOutDir := filepath.Join(outputDir, "SPARQL")
 		os.MkdirAll(mdOutDir, 0755)
@@ -400,7 +399,12 @@ func writeOverviewFile(path, title string, allStats []shaclimport.FileStats, typ
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("# %s Overview\n\n", title))
 
-	types := sortedKeys(typesMap)
+	var types []string
+	for k := range typesMap {
+		types = append(types, k)
+	}
+	sort.Strings(types)
+
 	if len(types) == 0 {
 		return
 	}
@@ -419,15 +423,6 @@ func writeOverviewFile(path, title string, allStats []shaclimport.FileStats, typ
 	} else {
 		fmt.Printf("Exported Overview to %s\n", path)
 	}
-}
-
-func sortedKeys(m map[string]bool) []string {
-	var keys []string
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 func renderOverviewTableHeader(sb *strings.Builder, types []string) {

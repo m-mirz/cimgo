@@ -70,6 +70,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Clean up existing generated files to ensure stale profiles are removed
+	existing, _ := filepath.Glob(filepath.Join(*outDir, "generated_*.go"))
+	for _, f := range existing {
+		os.Remove(f)
+	}
+
 	var orchestrators []string
 	totalChecks, totalSkipped, totalFiles := 0, 0, 0
 	for _, src := range matches {
@@ -78,20 +84,30 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", src, err)
 			os.Exit(1)
 		}
-		// SHACL files that don't yield any classes (e.g. policy-only files)
-		// produce empty output — skip rather than emit a trivial orchestrator.
-		if fr == nil || len(fr.Classes) == 0 {
+
+		spec, skipReasons := buildFileSpec(*pkg, fr)
+
+		if len(spec.Checks) == 0 {
+			totalSkipped += len(skipReasons)
+			if *skipReport {
+				for _, r := range skipReasons {
+					fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
+				}
+			}
 			continue
 		}
-		spec, skipReasons, err := generateFile(tmpl, fr, *outDir, *pkg)
+
+		err = writeGeneratedFile(tmpl, spec, *outDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", src, err)
 			os.Exit(1)
 		}
+
 		orchestrators = append(orchestrators, spec.OrchestratorName)
 		totalChecks += len(spec.Checks)
 		totalSkipped += len(skipReasons)
 		totalFiles++
+
 		if *skipReport {
 			for _, r := range skipReasons {
 				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
@@ -117,23 +133,19 @@ func loadFromTTL(file string) (*shaclimport.FileResults, error) {
 	return shaclimport.SimplifyFileResults(fr), nil
 }
 
-// generateFile builds a fileSpec from an in-memory FileResults and writes
-// the corresponding generated_*.go file. Returns the spec (for the index)
-// and the list of skipped constraints.
-func generateFile(tmpl *template.Template, fr *shaclimport.FileResults, outDir, pkg string) (fileSpec, []string, error) {
-	spec, skipReasons := buildFileSpec(pkg, fr)
-
-	stem := profileStem(fr.FileName)
+// writeGeneratedFile writes the spec to a generated_*.go file.
+func writeGeneratedFile(tmpl *template.Template, spec fileSpec, outDir string) error {
+	stem := profileStem(spec.FileName)
 	outPath := filepath.Join(outDir, "generated_"+stem+".go")
 	f, err := os.Create(outPath)
 	if err != nil {
-		return fileSpec{}, nil, fmt.Errorf("create: %w", err)
+		return fmt.Errorf("create: %w", err)
 	}
 	defer f.Close()
 	if err := tmpl.Execute(f, spec); err != nil {
-		return fileSpec{}, nil, fmt.Errorf("execute: %w", err)
+		return fmt.Errorf("execute: %w", err)
 	}
-	return spec, skipReasons, nil
+	return nil
 }
 
 // writeIndex emits generated_index.go, which exposes a single
@@ -195,6 +207,7 @@ type fileSpec struct {
 // instance value (typical for inverse-path checks that only consume `id`).
 type checkSpec struct {
 	Name         string
+	ShapeID      string // Original SHACL Shape ID (e.g. eqc:ACLineSegment.length-length)
 	Class        string
 	Tag          string
 	Component    string
@@ -207,6 +220,37 @@ type checkSpec struct {
 	Guard        string // tab-indented, may span multiple lines; empty if none
 	Condition    string // single expression; opens the violation block as `if <Condition> {`
 	DatasetCheck bool   // emit a single dataset-level check (no per-element loop) when true
+}
+
+func resolveConcreteClasses(targets []shaclimport.TargetInfo) []string {
+	var result []string
+	for _, t := range targets {
+		if t.Kind != "targetClass" && t.Kind != "targetImplicitClass" && t.Kind != "targetNode" {
+			continue
+		}
+		structName, ok := simpleClassName(t.Value)
+		if !ok {
+			continue
+		}
+		if _, ok := cimgostructs.StructMap[structName]; ok {
+			result = append(result, structName)
+		} else {
+			result = append(result, concreteSubclassesEmbedding(structName)...)
+		}
+	}
+	sort.Strings(result)
+	// deduplicate
+	if len(result) < 2 {
+		return result
+	}
+	j := 0
+	for i := 1; i < len(result); i++ {
+		if result[i] != result[j] {
+			j++
+			result[j] = result[i]
+		}
+	}
+	return result[:j+1]
 }
 
 func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string) {
@@ -224,50 +268,29 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 		"cimgo/shaclmodel":   {},
 	}
 
-	// Sort classes/attributes/constraints to insulate generated output from
-	// upstream iteration order. The RDF/SHACL import path traverses
-	// triple-store maps and can yield items in different orders across runs.
-	// Same-named entries are common (e.g. multiple LessThan constraints on
-	// the same attribute), so we tie-break with the JSON serialisation of
-	// the entire item — which Go's encoder writes with sorted map keys, so
-	// the result itself is stable.
-	classes := append([]shaclimport.ClassInfo(nil), fr.Classes...)
-	sortByNameAndSig(classes, func(c shaclimport.ClassInfo) string { return c.Name })
-
-	for _, cls := range classes {
-		structName, ok := simpleClassName(cls.Name)
-		if !ok {
-			skipReasons = append(skipReasons, fmt.Sprintf("class %q: not a cim.* name", cls.Name))
-			continue
-		}
-		// Resolve the focus class to one or more concrete cimgostructs
-		// types. If it's directly in StructMap that's the only target;
-		// otherwise treat it as abstract and apply the constraints to
-		// each concrete subclass that embeds it.
-		var concreteNames []string
-		if _, ok := cimgostructs.StructMap[structName]; ok {
-			concreteNames = []string{structName}
-		} else {
-			concreteNames = concreteSubclassesEmbedding(structName)
-			if len(concreteNames) == 0 {
-				skipReasons = append(skipReasons, fmt.Sprintf("class %q: no Go struct %q", cls.Name, structName))
-				continue
-			}
+	var processShape func(shape shaclimport.ShapeInfo, currentClasses []string)
+	processShape = func(shape shaclimport.ShapeInfo, currentClasses []string) {
+		concreteNames := resolveConcreteClasses(shape.Targets)
+		if len(concreteNames) > 0 {
+			currentClasses = concreteNames
 		}
 
-		attrs := append([]shaclimport.AttributeInfo(nil), cls.Attributes...)
-		sortByNameAndSig(attrs, func(a shaclimport.AttributeInfo) string { return a.Name })
+		if len(currentClasses) > 0 {
+			for _, concrete := range currentClasses {
+				factory := cimgostructs.StructMap[concrete]
+				structType := reflect.TypeOf(factory()).Elem()
 
-		for _, concrete := range concreteNames {
-			factory := cimgostructs.StructMap[concrete]
-			structType := reflect.TypeOf(factory()).Elem()
-			for _, attr := range attrs {
-				constraints := append([]shaclimport.ConstraintInfo(nil), attr.Constraints...)
+				constraints := append([]shaclimport.ConstraintInfo(nil), shape.Constraints...)
 				sortByNameAndSig(constraints, func(c shaclimport.ConstraintInfo) string { return c.Component })
+
 				for _, c := range constraints {
-					cs, imports, err := buildCheckSpec(stemCamel, concrete, structType, c, used)
+					cs, imports, err := buildCheckSpec(stemCamel, concrete, shape.ID, structType, c, used)
 					if err != nil {
-						skipReasons = append(skipReasons, fmt.Sprintf("%s.%s [%s]: %v", concrete, attr.Name, c.Component, err))
+						prop := ""
+						if len(c.Path) > 0 {
+							prop = "." + c.Path[0]
+						}
+						skipReasons = append(skipReasons, fmt.Sprintf("%s%s [%s]: %v", concrete, prop, c.Component, err))
 						continue
 					}
 					for _, imp := range imports {
@@ -277,6 +300,14 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 				}
 			}
 		}
+
+		for _, prop := range shape.Properties {
+			processShape(prop, currentClasses)
+		}
+	}
+
+	for _, shape := range fr.Shapes {
+		processShape(shape, nil)
 	}
 
 	spec.Imports = make([]string, 0, len(importSet))
@@ -287,7 +318,7 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 	return spec, skipReasons
 }
 
-func buildCheckSpec(stemCamel, structName string, structType reflect.Type, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
+func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Type, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
 	// Detect inverse and multi-segment paths up front. Inverse paths
 	// (`^cim.X.Y`) flip the constraint sense from "look at this object's
 	// field" to "scan the dataset for objects pointing at this one". Some
@@ -309,7 +340,7 @@ func buildCheckSpec(stemCamel, structName string, structType reflect.Type, c sha
 	// inverse-path machinery, which would try to parse "rdf.type" as a
 	// class.field and fail with "no Go struct rdf".
 	if isInverse && len(c.Path) == 1 && rawPath == "rdf.type" {
-		return buildDatasetCardinalityCheck(stemCamel, structName, c, used)
+		return buildDatasetCardinalityCheck(stemCamel, structName, shapeID, c, used)
 	}
 
 	// Classify multi-segment paths. The dominant shape is a forward chain
@@ -421,6 +452,7 @@ func buildCheckSpec(stemCamel, structName string, structType reflect.Type, c sha
 
 	cs := checkSpec{
 		Name:      name,
+		ShapeID:   shapeID,
 		Class:     structName,
 		Tag:       tag,
 		Component: c.Component,
@@ -1321,7 +1353,7 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 // (MinCount/MaxCount on the count of focus-class instances in the dataset).
 // Emitted as a DatasetCheck — the per-element loop is skipped entirely and
 // a single violation is appended (or not) based on the global count.
-func buildDatasetCardinalityCheck(stemCamel, structName string, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
+func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
 	compShort, ok := componentShort(c.Component)
 	if !ok {
 		return checkSpec{}, nil, fmt.Errorf("component %s not supported on ^rdf.type", c.Component)
@@ -1370,6 +1402,7 @@ func buildDatasetCardinalityCheck(stemCamel, structName string, c shaclimport.Co
 	b.WriteString("\t}")
 	cs := checkSpec{
 		Name:         name,
+		ShapeID:      shapeID,
 		Class:        structName,
 		Tag:          "^rdf.type",
 		Component:    c.Component,

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// ConstraintInfo, AttributeInfo, ClassInfo, FileResults are the simplified
+// ConstraintInfo, TargetInfo, ShapeInfo, FileResults are the simplified
 // SHACL representation produced by ProcessFileToResults + SimplifyFileResults
 // and consumed by cmd/shaclgen.
 type ConstraintInfo struct {
@@ -20,21 +20,40 @@ type ConstraintInfo struct {
 	Payload   map[string]any `json:"payload"`
 }
 
-type AttributeInfo struct {
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	Constraints []ConstraintInfo `json:"constraints"`
+func (c ConstraintInfo) IsSPARQL() bool {
+	return c.Component == "sh.SPARQLConstraintComponent"
 }
 
-type ClassInfo struct {
-	Name        string           `json:"name"`
-	Constraints []ConstraintInfo `json:"constraints"`
-	Attributes  []AttributeInfo  `json:"attributes"`
+func (c ConstraintInfo) IsSHACL() bool {
+	return !c.IsSPARQL()
+}
+
+type TargetInfo struct {
+	Kind  string `json:"kind"`  // e.g. "targetClass", "targetNode"
+	Value string `json:"value"` // Simplified IRI
+}
+
+type SparqlValuesInfo struct {
+	Select   string `json:"select"`
+	Prefixes string `json:"prefixes"`
+	Expr     string `json:"expr,omitempty"`
+}
+
+type ShapeInfo struct {
+	ID          string            `json:"id"`
+	Targets     []TargetInfo      `json:"targets,omitempty"`
+	Path        []string          `json:"path,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Constraints []ConstraintInfo  `json:"constraints,omitempty"`
+	Properties  []ShapeInfo       `json:"properties,omitempty"`
+	Values      *SparqlValuesInfo `json:"values,omitempty"`
+	Severity    string            `json:"severity,omitempty"`
+	Messages    []string          `json:"messages,omitempty"`
 }
 
 type FileResults struct {
 	FileName string      `json:"file_name"`
-	Classes  []ClassInfo `json:"classes"`
+	Shapes   []ShapeInfo `json:"shapes"`
 }
 
 // anyToFloat coerces a SHACL payload value into a float64. SHACL counts and
@@ -220,24 +239,20 @@ func stripSHPrefix(v any) any {
 func SimplifyFileResults(fr *FileResults) *FileResults {
 	simplified := &FileResults{
 		FileName: fr.FileName,
-		Classes:  make([]ClassInfo, 0, len(fr.Classes)),
+		Shapes:   make([]ShapeInfo, 0, len(fr.Shapes)),
 	}
-	for _, cls := range fr.Classes {
-		sCls := ClassInfo{
-			Name:        cls.Name,
-			Constraints: simplifyConstraints(cls.Constraints),
-			Attributes:  make([]AttributeInfo, 0, len(cls.Attributes)),
-		}
-		for _, attr := range cls.Attributes {
-			sCls.Attributes = append(sCls.Attributes, AttributeInfo{
-				Name:        attr.Name,
-				Description: attr.Description,
-				Constraints: simplifyConstraints(attr.Constraints),
-			})
-		}
-		simplified.Classes = append(simplified.Classes, sCls)
+	for _, s := range fr.Shapes {
+		simplified.Shapes = append(simplified.Shapes, simplifyShape(s))
 	}
 	return simplified
+}
+
+func simplifyShape(s ShapeInfo) ShapeInfo {
+	s.Constraints = simplifyConstraints(s.Constraints)
+	for i := range s.Properties {
+		s.Properties[i] = simplifyShape(s.Properties[i])
+	}
+	return s
 }
 
 // resolveSubClassOf follows rdfs:subClassOf in the graph until no further
@@ -272,7 +287,7 @@ func ProcessFileToResults(file string) (*FileResults, error) {
 
 	results := &FileResults{
 		FileName: baseName,
-		Classes:  []ClassInfo{},
+		Shapes:   []ShapeInfo{},
 	}
 
 	allWrapped := make(map[string]*ShapeWrapper)
@@ -282,11 +297,7 @@ func ProcessFileToResults(file string) (*FileResults, error) {
 
 	isNested := IdentifyNestedShapes(shapes)
 
-	classMap := make(map[string]*ClassInfo)
-
-	// Sort shape IDs so attribute order within each class is deterministic.
-	// Previously a bare `range shapes` produced different attribute orderings
-	// between runs, which surfaced as spurious diffs in the generated code.
+	// Sort shape IDs for deterministic output
 	shapeKeys := make([]string, 0, len(shapes))
 	for k := range shapes {
 		shapeKeys = append(shapeKeys, k)
@@ -299,82 +310,10 @@ func ProcessFileToResults(file string) (*FileResults, error) {
 		}
 
 		sw := allWrapped[k]
-
-		// Determine target classes/nodes.
-		// For class targets (explicit and implicit) follow rdfs:subClassOf to
-		// the base CIM class so that profile-specific subclasses like
-		// prof10:FullModel-EQ resolve to their canonical class (mdc:FullModel).
-		var explicitTargets []string
-		var implicitTargets []string
-		for _, t := range sw.Targets {
-			if t.Kind == shacl.TargetNode {
-				explicitTargets = append(explicitTargets, SimplifyTerm(t.Value))
-			} else if t.Kind == shacl.TargetClass {
-				resolved := resolveSubClassOf(g, t.Value)
-				explicitTargets = append(explicitTargets, SimplifyTerm(resolved))
-			} else if t.Kind == shacl.TargetImplicitClass {
-				resolved := resolveSubClassOf(g, t.Value)
-				implicitTargets = append(implicitTargets, SimplifyTerm(resolved))
-			}
-		}
-
-		var targets []string
-		if len(explicitTargets) > 0 {
-			targets = explicitTargets
-		} else {
-			targets = implicitTargets
-		}
-
-		for _, className := range targets {
-			if strings.HasPrefix(className, "_:") {
-				continue
-			}
-			if info, ok := classMap[className]; ok {
-				mergeIntoClassInfo(info, sw, allWrapped)
-			} else {
-				classInfo := ConvertToClassInfo(sw, allWrapped, className)
-				classMap[className] = &classInfo
-			}
-		}
-	}
-
-	// Sort class names for deterministic output
-	var classNames []string
-	for name := range classMap {
-		classNames = append(classNames, name)
-	}
-	sort.Strings(classNames)
-
-	for _, name := range classNames {
-		results.Classes = append(results.Classes, *classMap[name])
+		results.Shapes = append(results.Shapes, ConvertToShapeInfo(sw, allWrapped, g))
 	}
 
 	return results, nil
-}
-
-func mergeIntoClassInfo(info *ClassInfo, sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper) {
-	// Add class-level constraints
-	visited := map[string]bool{sw.ID.String(): true}
-	info.Constraints = append(info.Constraints, ExtractConstraints(sw, allWrapped, visited)...)
-
-	// Add attributes
-	for _, pw := range sw.Properties {
-		attrInfo := ConvertToAttributeInfo(pw, allWrapped)
-		if len(attrInfo.Constraints) > 0 {
-			// Check if attribute already exists to merge constraints
-			found := false
-			for i := range info.Attributes {
-				if info.Attributes[i].Name == attrInfo.Name {
-					info.Attributes[i].Constraints = append(info.Attributes[i].Constraints, attrInfo.Constraints...)
-					found = true
-					break
-				}
-			}
-			if !found {
-				info.Attributes = append(info.Attributes, attrInfo)
-			}
-		}
-	}
 }
 
 func IdentifyNestedShapes(shapes map[string]*shacl.Shape) map[string]bool {
@@ -415,40 +354,57 @@ func markNested(isNested map[string]bool, c shacl.Constraint) {
 	}
 }
 
-func ConvertToClassInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, name string) ClassInfo {
-	visited := map[string]bool{sw.ID.String(): true}
-	classInfo := ClassInfo{
-		Name:        name,
-		Constraints: ExtractConstraints(sw, allWrapped, visited),
-		Attributes:  []AttributeInfo{},
-	}
-
-	for _, pw := range sw.Properties {
-		attrInfo := ConvertToAttributeInfo(pw, allWrapped)
-		if len(attrInfo.Constraints) > 0 {
-			classInfo.Attributes = append(classInfo.Attributes, attrInfo)
+func ConvertToShapeInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, g *shacl.Graph) ShapeInfo {
+	var targets []TargetInfo
+	for _, t := range sw.Targets {
+		val := SimplifyTerm(t.Value)
+		if t.Kind == shacl.TargetClass || t.Kind == shacl.TargetImplicitClass {
+			resolved := resolveSubClassOf(g, t.Value)
+			val = SimplifyTerm(resolved)
 		}
+		targets = append(targets, TargetInfo{
+			Kind:  t.Kind.String(),
+			Value: val,
+		})
 	}
-
-	return classInfo
-}
-
-func ConvertToAttributeInfo(pw *ShapeWrapper, allWrapped map[string]*ShapeWrapper) AttributeInfo {
-	name := FormatPathString(pw.Path)
 
 	var descriptions []string
-	for _, d := range pw.Description {
+	for _, d := range sw.Description {
 		descriptions = append(descriptions, d.Value())
 	}
 
-	visited := map[string]bool{pw.ID.String(): true}
-	attrInfo := AttributeInfo{
-		Name:        name,
-		Description: strings.Join(descriptions, "\n"),
-		Constraints: ExtractConstraints(pw, allWrapped, visited),
+	var messages []string
+	for _, m := range sw.Messages {
+		messages = append(messages, SimplifyTerm(m))
 	}
 
-	return attrInfo
+	var values *SparqlValuesInfo
+	if sw.Values != nil {
+		values = &SparqlValuesInfo{
+			Select:   sw.Values.Select,
+			Prefixes: sw.Values.Prefixes,
+			Expr:     sw.Values.Expr,
+		}
+	}
+
+	visited := map[string]bool{sw.ID.String(): true}
+	info := ShapeInfo{
+		ID:          SimplifyTerm(sw.ID),
+		Targets:     targets,
+		Path:        FormatPath(sw.Path),
+		Description: strings.Join(descriptions, "\n"),
+		Constraints: ExtractConstraints(sw, allWrapped, visited),
+		Properties:  []ShapeInfo{},
+		Values:      values,
+		Severity:    SimplifyTerm(sw.Severity),
+		Messages:    messages,
+	}
+
+	for _, pw := range sw.Properties {
+		info.Properties = append(info.Properties, ConvertToShapeInfo(pw, allWrapped, g))
+	}
+
+	return info
 }
 
 func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, visited map[string]bool) []ConstraintInfo {

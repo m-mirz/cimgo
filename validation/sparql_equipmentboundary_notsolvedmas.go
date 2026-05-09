@@ -6,7 +6,9 @@ import (
 )
 
 // CheckBoundaryPointTieFlow implements eqbdn301:BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow
-// Description: If isExcludedFromAreaInterchange is false (default), a TieFlow is required.
+// Profile: 61970-301_EquipmentBoundary-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: If isExcludedFromAreaInterchange is false (default), a TieFlow is required. If true, no TieFlow should be modeled.
 func CheckBoundaryPointTieFlow(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 

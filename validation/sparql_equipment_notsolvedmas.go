@@ -7,6 +7,8 @@ import (
 )
 
 // CheckACLineSegmentBaseVoltage implements eqcns.ACLineSegment-baseVoltage
+// Profile: 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: The BaseVoltage at the two ends of ACLineSegments in a Line shall have the same
 // BaseVoltage.nominalVoltage.
 func CheckACLineSegmentBaseVoltage(dataset *cimgostructs.CIMElementList) []Violation {
@@ -79,13 +81,23 @@ func CheckACLineSegmentBaseVoltage(dataset *cimgostructs.CIMElementList) []Viola
 
 // CheckRegulatingControlTargetValueTapChanger implements eqn452:RegulatingControl.targetValue-tapChanger
 // Profile: 61970-452_Equipment-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.targetValue shall be within TapChanger capability limits.
 func CheckRegulatingControlTargetValueTapChanger(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
-		rc, ok := obj.(*cimgostructs.RegulatingControl)
-		if !ok || rc.Mode == nil || !strings.HasSuffix(rc.Mode.URI, "voltage") || !rc.Enabled {
+		var rc *cimgostructs.RegulatingControl
+		switch v := obj.(type) {
+		case *cimgostructs.RegulatingControl:
+			rc = v
+		case *cimgostructs.TapChangerControl:
+			rc = &v.RegulatingControl
+		default:
+			continue
+		}
+
+		if rc.Mode == nil || !strings.HasSuffix(rc.Mode.URI, "voltage") || !rc.Enabled {
 			continue
 		}
 
@@ -108,8 +120,10 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimgostructs.CIMElemen
 						cncID := strings.TrimPrefix(cn.ConnectivityNodeContainer.MRID, "#")
 						if vl, ok := dataset.Elements[cncID].(*cimgostructs.VoltageLevel); ok && vl.BaseVoltage != nil {
 							bvID := strings.TrimPrefix(vl.BaseVoltage.MRID, "#")
-							if bv, ok := dataset.BaseVoltages[bvID]; ok {
-								nominalU = bv.NominalVoltage
+							if bvObj, ok := dataset.Elements[bvID]; ok {
+								if bv, ok := bvObj.(*cimgostructs.BaseVoltage); ok {
+									nominalU = bv.NominalVoltage
+								}
 							}
 						}
 					}
@@ -141,6 +155,7 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimgostructs.CIMElemen
 
 // CheckACLineSegmentBaseVoltageDiff implements eqn600:ACLineSegment-BaseVoltageDiff
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: 10% difference of BaseVoltage.nominalVoltage allowed at two ends of ACLineSegment.
 func CheckACLineSegmentBaseVoltageDiff(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -221,6 +236,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimgostructs.CIMElementList) []V
 
 // CheckBoundaryPointBppl implements eqn600:BoundaryPoint-bppl1Bppl2/bppl3
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: Boundary points (ConnectivityNodes) must have connected EquivalentInjections and at least one two-terminal ConductingEquipment.
 func CheckBoundaryPointBppl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -282,6 +298,7 @@ func CheckBoundaryPointBppl(dataset *cimgostructs.CIMElementList) []Violation {
 
 // CheckEquivalentInjectionRegulationCapabilityNotHVDC implements eqn600:EquivalentInjection.regulationCapability-notHVDC
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: EquivalentInjection at non-HVDC BoundaryPoint shall have regulationCapability=false and no ReactiveCapabilityCurve.
 func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation

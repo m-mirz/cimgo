@@ -2,7 +2,10 @@ package validation
 
 import "cimgo/cimgostructs"
 
-// CheckSeriesCompensatorVaristorUsage implements scc.SeriesCompensator.varistorRatedCurrent-usage
+// CheckSeriesCompensatorVaristorUsage implements scc.SeriesCompensator.varistorRatedCurrent-usage and scc.SeriesCompensator.varistorVoltageThreshold-usage
+// Profile: 61970-301_ShortCircuit-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: varistorRatedCurrent and varistorVoltageThreshold are used for short circuit calculations and exchanged only if SeriesCompensator.varistorPresent is true.
 func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -13,12 +16,21 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) [
 		}
 
 		if !sc.VaristorPresent {
-			if sc.VaristorRatedCurrent != 0 || sc.VaristorVoltageThreshold != 0 {
+			if sc.VaristorRatedCurrent != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorRatedCurrent",
-					Message:  "The varistor attributes are present and SeriesCompensator.varistorPresent is false.",
+					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
+					Severity: "sh.Violation",
+				})
+			}
+			if sc.VaristorVoltageThreshold != 0 {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "SeriesCompensator",
+					Property: "SeriesCompensator.varistorVoltageThreshold",
+					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
 					Severity: "sh.Violation",
 				})
 			}
@@ -29,6 +41,9 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) [
 }
 
 // CheckTransformerEndGrounding implements sc452:TransformerEnd-grounding
+// Profile: 61970-452_ShortCircuit-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Missing required properties .rground or .xground when grounded=true.
 func CheckTransformerEndGrounding(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, te := range dataset.PowerTransformerEnds {
@@ -48,6 +63,9 @@ func CheckTransformerEndGrounding(dataset *cimgostructs.CIMElementList) []Violat
 }
 
 // CheckSynchronousMachineEarthing implements sc452:SynchronousMachine-attributes
+// Profile: 61970-452_ShortCircuit-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Missing required properties .earthingStarPointR or .earthingStarPointX when earthing=true.
 func CheckSynchronousMachineEarthing(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
@@ -66,17 +84,29 @@ func CheckSynchronousMachineEarthing(dataset *cimgostructs.CIMElementList) []Vio
 	return violations
 }
 
-// CheckSeriesCompensatorVaristorRequired implements sc600:SeriesCompensator.varistorRatedCurrent-required
+// CheckSeriesCompensatorVaristorRequired implements scc600-2.SeriesCompensator.varistorRatedCurrent-required and scc600-2.SeriesCompensator.varistorVoltageThreshold-required
+// Profile: 61970-600-2_ShortCircuit-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: The attributes varistorRatedCurrent and varistorVoltageThreshold are required if SeriesCompensator.varistorPresent is true.
 func CheckSeriesCompensatorVaristorRequired(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sc := range dataset.SeriesCompensators {
 		if sc.VaristorPresent {
-			if sc.VaristorRatedCurrent == 0 || sc.VaristorVoltageThreshold == 0 {
+			if sc.VaristorRatedCurrent == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					Class:    "SeriesCompensator",
-					Property: "varistorPresent",
-					Message:  "Missing required property .varistorRatedCurrent or .varistorVoltageThreshold when varistorPresent=true.",
+					Property: "SeriesCompensator.varistorRatedCurrent",
+					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",
+					Severity: "sh.Violation",
+				})
+			}
+			if sc.VaristorVoltageThreshold == 0 {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "SeriesCompensator",
+					Property: "SeriesCompensator.varistorVoltageThreshold",
+					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",
 					Severity: "sh.Violation",
 				})
 			}

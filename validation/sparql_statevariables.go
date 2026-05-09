@@ -3,6 +3,9 @@ package validation
 import "cimgo/cimgostructs"
 
 // CheckCsConverterStateValueRange implements svc.CsConverter.alpha/gamma-valueRangeTypical
+// Profile: 61970-301_StateVariables-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: alpha and gamma values should be within typical ranges for rectifier and inverter modes respectively.
 func CheckCsConverterStateValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -37,6 +40,26 @@ func CheckCsConverterStateValueRange(dataset *cimgostructs.CIMElementList) []Vio
 				})
 			}
 		}
+	}
+
+	return violations
+}
+
+// CheckTopologicalIslandCount implements sv456:TopologicalIsland-instance
+// Profile: 61970-456_StateVariables-AP-Con-Complex
+// Origin: Derived from a complex SHACL constraint (minCount 1 with inversePath) that was too complex for automated code generation.
+// Description: At least one TopologicalIsland instance shall be present per SV instance.
+func CheckTopologicalIslandCount(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	if len(dataset.TopologicalIslands) == 0 {
+		violations = append(violations, Violation{
+			ObjectID: "global",
+			Class:    "TopologicalIsland",
+			Property: "rdf:type",
+			Message:  "No TopologicalIsland instantiated.",
+			Severity: "sh.Violation",
+		})
 	}
 
 	return violations

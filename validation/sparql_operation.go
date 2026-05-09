@@ -8,6 +8,8 @@ import (
 )
 
 // CheckMeasurementTerminalRequiredCases implements opn452:Measurement.Terminal-requiredCases
+// Profile: 61970-452_Operation-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: Measurement.Terminal must reference a Terminal of the Equipment referenced by
 // Measurement.PowerSystemResource, unless measurementType is TapPosition or SwitchPosition.
 func CheckMeasurementTerminalRequiredCases(dataset *cimgostructs.CIMElementList) []Violation {

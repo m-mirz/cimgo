@@ -7,6 +7,8 @@ import (
 )
 
 // CheckMutualCouplingTerminalsAssignment implements sccns.MutualCoupling-terminalsAssignment
+// Profile: 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: The first and second terminals of a mutual coupling should point to different
 // ACLineSegments (or generic Equipment).
 func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList) []Violation {

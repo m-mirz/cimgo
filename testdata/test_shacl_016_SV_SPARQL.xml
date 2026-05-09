@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- OK: Rectifier with alpha in range [10, 18] -->
+  <cim:CsConverter rdf:ID="CSC.RECT.OK">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.rectifier" />
+    <cim:CsConverter.alpha>15</cim:CsConverter.alpha>
+  </cim:CsConverter>
+
+  <!-- OK: Inverter with gamma in range [17, 20] -->
+  <cim:CsConverter rdf:ID="CSC.INV.OK">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.inverter" />
+    <cim:CsConverter.gamma>18</cim:CsConverter.gamma>
+  </cim:CsConverter>
+
+  <!-- BAD: Rectifier with alpha out of range -->
+  <cim:CsConverter rdf:ID="CSC.RECT.BAD">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.rectifier" />
+    <cim:CsConverter.alpha>5</cim:CsConverter.alpha>
+  </cim:CsConverter>
+
+  <!-- BAD: Inverter with gamma out of range -->
+  <cim:CsConverter rdf:ID="CSC.INV.BAD">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.inverter" />
+    <cim:CsConverter.gamma>25</cim:CsConverter.gamma>
+  </cim:CsConverter>
+</rdf:RDF>

@@ -6,6 +6,8 @@ import (
 )
 
 // CheckDiagramObjectIdentifiedObjectType implements dlc.DiagramObject.IdentifiedObject-DLvalueType
+// Profile: 61970-301_DiagramLayout-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: DiagramObject.IdentifiedObject must be an IRI and must NOT point to one of:
 // Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
 func CheckDiagramObjectIdentifiedObjectType(dataset *cimgostructs.CIMElementList) []Violation {
@@ -25,11 +27,23 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimgostructs.CIMElementList
 	}
 
 	for id, obj := range dataset.Elements {
-		do, ok := obj.(*cimgostructs.DiagramObject)
-		if !ok || do.IdentifiedObject_ == nil {
+		var identifiedObject *struct {
+			MRID string `xml:"resource,attr"`
+		}
+
+		switch v := obj.(type) {
+		case *cimgostructs.DiagramObject:
+			identifiedObject = v.IdentifiedObject_
+		case *cimgostructs.TextDiagramObject:
+			identifiedObject = v.IdentifiedObject_
+		default:
 			continue
 		}
-		targetID := strings.TrimPrefix(do.IdentifiedObject_.MRID, "#")
+
+		if identifiedObject == nil {
+			continue
+		}
+		targetID := strings.TrimPrefix(identifiedObject.MRID, "#")
 		targetObj, ok := dataset.Elements[targetID]
 		if !ok {
 			continue

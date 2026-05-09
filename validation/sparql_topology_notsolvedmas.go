@@ -7,6 +7,8 @@ import (
 )
 
 // CheckTerminalPhasesConsistencyTopologicalNode implements topcns.Terminal.phases-consistencyTopologicalNode
+// Profile: 61970-301_Topology-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: The phase code on terminals connecting the same TopologicalNode shall be consistent.
 func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation

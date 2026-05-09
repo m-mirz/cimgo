@@ -3,6 +3,8 @@ package validation
 import "cimgo/cimgostructs"
 
 // CheckEnergySourceActivePowerConsumer implements sshc.EnergySource.activePower-consumer
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: Load sign convention is used, i.e. positive sign means flow out from a node.
 // Warning if EnergySource is a consumer (activePower > 0).
 func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) []Violation {
@@ -29,6 +31,8 @@ func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) 
 }
 
 // CheckRegulatingControlTargetDeadbandApplicability implements sshc.RegulatingControl.targetDeadband-applicability
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.
 func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -68,6 +72,9 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIM
 }
 
 // CheckCsConverterValueRange implements sshc.CsConverter.maxAlpha/maxGamma/minAlpha/minGamma-valueRangeTypical
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Validates that CsConverter firing and extinction angles are within typical ranges.
 func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -126,6 +133,9 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 }
 
 // CheckCsConverterPPccControl implements sshc.CsConverter.pPccControl-targetValueIdc/Udc/Ppcc
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Validates required target values for CsConverter.pPccControl based on the selected control mode.
 func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -171,6 +181,9 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 }
 
 // CheckVsConverterPPccControl implements sshc.VsConverter.pPccControl rules
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Validates required target values for VsConverter.pPccControl based on the selected control mode.
 func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -191,6 +204,26 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroop.",
+					Severity: "sh.Violation",
+				})
+			}
+		case prefix + "pPccAndUdcDroopWithCompensation":
+			if vsc.TargetPpcc == 0 || vsc.TargetUdc == 0 || vsc.Droop == 0 || vsc.DroopCompensation == 0 {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "VsConverter",
+					Property: "VsConverter.pPccControl",
+					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc, VsConverter.droop and VsConverter.droopCompensation are not provided for VsPpccControlKind.pPccAndUdcDroopWithCompensation.",
+					Severity: "sh.Violation",
+				})
+			}
+		case prefix + "pPccAndUdcDroopPilot":
+			if vsc.TargetPpcc == 0 || vsc.TargetUdc == 0 || vsc.Droop == 0 {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "VsConverter",
+					Property: "VsConverter.pPccControl",
+					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroopPilot.",
 					Severity: "sh.Violation",
 				})
 			}
@@ -231,6 +264,9 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 }
 
 // CheckVsConverterQPccControl implements sshc.VsConverter.qPccControl rules
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Validates required target values for VsConverter.qPccControl based on the selected control mode.
 func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -284,6 +320,33 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Severity: "sh.Violation",
 				})
 			}
+		}
+	}
+
+	return violations
+}
+
+// CheckEnergySourcePQ implements sshc456:EnergySource-EnergySourcePQ
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex
+// Origin: Derived from a manual complex constraint (described as textual condition in SHACL).
+// Description: voltageAngle and voltageMagnitude shall only be used when modeling a voltage source.
+func CheckEnergySourcePQ(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	for id, obj := range dataset.Elements {
+		es, ok := obj.(*cimgostructs.EnergySource)
+		if !ok {
+			continue
+		}
+
+		if es.VoltageAngle != 0 || es.VoltageMagnitude != 0 {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "EnergySource",
+				Property: "EnergySource.voltageAngle",
+				Message:  "EnergySource modelled as voltage source (attributes voltageAngle and voltageMagnitude are used). Please assess depending on the use case.",
+				Severity: "sh.Warning",
+			})
 		}
 	}
 

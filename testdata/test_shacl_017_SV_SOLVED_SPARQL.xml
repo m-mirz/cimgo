@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:RatioTapChanger rdf:ID="RTC.1">
+    <cim:TapChanger.lowStep>1</cim:TapChanger.lowStep>
+    <cim:TapChanger.highStep>10</cim:TapChanger.highStep>
+  </cim:RatioTapChanger>
+
+  <!-- OK: position in range [1, 10] -->
+  <cim:SvTapStep rdf:ID="SV.OK.1">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.1" />
+    <cim:SvTapStep.position>5</cim:SvTapStep.position>
+  </cim:SvTapStep>
+
+  <!-- BAD: position out of range (too low) -->
+  <cim:SvTapStep rdf:ID="SV.BAD.LOW">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.1" />
+    <cim:SvTapStep.position>0</cim:SvTapStep.position>
+  </cim:SvTapStep>
+
+  <!-- BAD: position out of range (too high) -->
+  <cim:SvTapStep rdf:ID="SV.BAD.HIGH">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.1" />
+    <cim:SvTapStep.position>11</cim:SvTapStep.position>
+  </cim:SvTapStep>
+</rdf:RDF>

@@ -5,7 +5,9 @@ import (
 	"strings"
 )
 
-// CheckSwitchSameTopologicalNode implements tpn456:Switch-sameTopologicalNode
+// CheckSwitchSameTopologicalNode implements topc456ns:Switch-sameTopologicalNode
+// Profile: 61970-456_Topology-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: Terminals of a retained Switch shall not be connected to the same TopologicalNode.
 func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -19,41 +21,64 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 		}
 	}
 
-	for id, sw := range dataset.Switchs {
-		if !sw.Retained {
+	for id, obj := range dataset.Elements {
+		// Extract Retained flag
+		retained := false
+		class := ""
+		
+		switch v := obj.(type) {
+		case *cimgostructs.Switch: retained, class = v.Retained, "Switch"
+		case *cimgostructs.Breaker: retained, class = v.Retained, "Breaker"
+		case *cimgostructs.Disconnector: retained, class = v.Retained, "Disconnector"
+		case *cimgostructs.Fuse: retained, class = v.Retained, "Fuse"
+		case *cimgostructs.Jumper: retained, class = v.Retained, "Jumper"
+		case *cimgostructs.LoadBreakSwitch: retained, class = v.Retained, "LoadBreakSwitch"
+		case *cimgostructs.Cut: retained, class = v.Retained, "Cut"
+		case *cimgostructs.GroundDisconnector: retained, class = v.Retained, "GroundDisconnector"
+		case *cimgostructs.DisconnectingCircuitBreaker: retained, class = v.Retained, "DisconnectingCircuitBreaker"
+		default: continue
+		}
+
+		if !retained {
 			continue
 		}
+		
 		terms := eqTerminals[id]
 		if len(terms) < 2 {
 			continue
 		}
 		
-		t1 := terms[0]
-		t2 := terms[1]
+		// Find terminals with sequenceNumber 1 and 2
+		var t1, t2 *cimgostructs.Terminal
+		for _, t := range terms {
+			if t.SequenceNumber == 1 { t1 = t }
+			if t.SequenceNumber == 2 { t2 = t }
+		}
 		
-		var tn1, tn2 string
-		if t1.TopologicalNode != nil {
-			tn1 = strings.TrimPrefix(t1.TopologicalNode.MRID, "#")
-		} else if t1.ConnectivityNode != nil {
-			cnID := strings.TrimPrefix(t1.ConnectivityNode.MRID, "#")
-			if cn, ok := dataset.ConnectivityNodes[cnID]; ok && cn.TopologicalNode != nil {
-				tn1 = strings.TrimPrefix(cn.TopologicalNode.MRID, "#")
+		if t1 == nil || t2 == nil {
+			continue
+		}
+		
+		getTN := func(t *cimgostructs.Terminal) string {
+			if t.TopologicalNode != nil {
+				return strings.TrimPrefix(t.TopologicalNode.MRID, "#")
 			}
+			if t.ConnectivityNode != nil {
+				cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
+				if cn, ok := dataset.Elements[cnID].(*cimgostructs.ConnectivityNode); ok && cn.TopologicalNode != nil {
+					return strings.TrimPrefix(cn.TopologicalNode.MRID, "#")
+				}
+			}
+			return ""
 		}
 
-		if t2.TopologicalNode != nil {
-			tn2 = strings.TrimPrefix(t2.TopologicalNode.MRID, "#")
-		} else if t2.ConnectivityNode != nil {
-			cnID := strings.TrimPrefix(t2.ConnectivityNode.MRID, "#")
-			if cn, ok := dataset.ConnectivityNodes[cnID]; ok && cn.TopologicalNode != nil {
-				tn2 = strings.TrimPrefix(cn.TopologicalNode.MRID, "#")
-			}
-		}
+		tn1 := getTN(t1)
+		tn2 := getTN(t2)
 
 		if tn1 != "" && tn1 == tn2 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				Class:    "Switch",
+				Class:    class,
 				Property: "retained",
 				Message:  "Terminals of retained Switch connect to the same TopologicalNode.",
 				Severity: "sh.Violation",
@@ -64,7 +89,9 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 	return violations
 }
 
-// CheckTerminalExch8TopologicalNode implements tpn600:Terminal-EXCH8TopologicalNode
+// CheckTerminalExch8TopologicalNode implements topc600ns:Terminal-EXCH8TopologicalNode
+// Profile: 61970-600_Topology-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: Terminal.TopologicalNode is required if a RegulatingControl is associated.
 func CheckTerminalExch8TopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation

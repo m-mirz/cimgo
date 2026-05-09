@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:eu="http://iec.ch/TC57/CIM100-European#">
+  <cim:ConnectivityNode rdf:ID="CN.BP.OK1">
+    <cim:IdentifiedObject.name>CN.BP.OK1</cim:IdentifiedObject.name>
+  </cim:ConnectivityNode>
+  <cim:Terminal rdf:ID="Term.OK1">
+    <cim:Terminal.ConnectivityNode rdf:resource="#CN.BP.OK1" />
+  </cim:Terminal>
+  <cim:TieFlow rdf:ID="TF.OK1">
+    <cim:TieFlow.Terminal rdf:resource="#Term.OK1" />
+  </cim:TieFlow>
+  <eu:BoundaryPoint rdf:ID="BP.OK1">
+    <eu:BoundaryPoint.ConnectivityNode rdf:resource="#CN.BP.OK1" />
+    <eu:BoundaryPoint.isExcludedFromAreaInterchange>false</eu:BoundaryPoint.isExcludedFromAreaInterchange>
+  </eu:BoundaryPoint>
+
+  <cim:ConnectivityNode rdf:ID="CN.BP.OK2">
+    <cim:IdentifiedObject.name>CN.BP.OK2</cim:IdentifiedObject.name>
+  </cim:ConnectivityNode>
+  <eu:BoundaryPoint rdf:ID="BP.OK2">
+    <eu:BoundaryPoint.ConnectivityNode rdf:resource="#CN.BP.OK2" />
+    <eu:BoundaryPoint.isExcludedFromAreaInterchange>true</eu:BoundaryPoint.isExcludedFromAreaInterchange>
+  </eu:BoundaryPoint>
+
+  <cim:ConnectivityNode rdf:ID="CN.BP.BAD1">
+    <cim:IdentifiedObject.name>CN.BP.BAD1</cim:IdentifiedObject.name>
+  </cim:ConnectivityNode>
+  <eu:BoundaryPoint rdf:ID="BP.BAD1">
+    <eu:BoundaryPoint.ConnectivityNode rdf:resource="#CN.BP.BAD1" />
+    <eu:BoundaryPoint.isExcludedFromAreaInterchange>false</eu:BoundaryPoint.isExcludedFromAreaInterchange>
+  </eu:BoundaryPoint>
+
+  <cim:ConnectivityNode rdf:ID="CN.BP.BAD2">
+    <cim:IdentifiedObject.name>CN.BP.BAD2</cim:IdentifiedObject.name>
+  </cim:ConnectivityNode>
+  <cim:Terminal rdf:ID="Term.BAD2">
+    <cim:Terminal.ConnectivityNode rdf:resource="#CN.BP.BAD2" />
+  </cim:Terminal>
+  <cim:TieFlow rdf:ID="TF.BAD2">
+    <cim:TieFlow.Terminal rdf:resource="#Term.BAD2" />
+  </cim:TieFlow>
+  <eu:BoundaryPoint rdf:ID="BP.BAD2">
+    <eu:BoundaryPoint.ConnectivityNode rdf:resource="#CN.BP.BAD2" />
+    <eu:BoundaryPoint.isExcludedFromAreaInterchange>true</eu:BoundaryPoint.isExcludedFromAreaInterchange>
+  </eu:BoundaryPoint>
+</rdf:RDF>

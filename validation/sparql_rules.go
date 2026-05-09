@@ -100,7 +100,8 @@ func ValidateDiagramLayoutProfile(dataset *cimgostructs.CIMElementList) []Violat
 }
 
 // ValidateTopologyNotSolvedMASProfile runs hand-written checks for
-// 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
+// 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL and
+// 61970-600_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateTopologyNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
@@ -121,7 +122,9 @@ func ValidateEquipmentNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) 
 	return violations
 }
 
-// ValidateSSHProfile runs hand-written checks for 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL.
+// ValidateSSHProfile runs hand-written checks for
+// 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL and
+// 61970-456_SteadyStateHypothesis-AP-Con-Complex-SHACL.
 func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckEnergySourceActivePowerConsumer(dataset)...)
@@ -130,6 +133,7 @@ func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	violations = append(violations, CheckCsConverterPPccControl(dataset)...)
 	violations = append(violations, CheckVsConverterPPccControl(dataset)...)
 	violations = append(violations, CheckVsConverterQPccControl(dataset)...)
+	violations = append(violations, CheckEnergySourcePQ(dataset)...)
 	violations = append(violations, CheckEquivalentInjectionRegulation(dataset)...)
 	violations = append(violations, CheckRotatingMachinePLimits(dataset)...)
 	violations = append(violations, CheckRotatingMachineQLimits(dataset)...)
@@ -143,28 +147,47 @@ func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // ValidateSSHNotSolvedMASProfile runs hand-written checks for
-// 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
+// 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL and
+// 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckLinearShuntCompensatorSectionsRange(dataset)...)
 	violations = append(violations, CheckNonlinearShuntCompensatorSectionsValid(dataset)...)
+	violations = append(violations, CheckShuntCompensatorSectionsInteger(dataset)...)
 	violations = append(violations, CheckRegulatingControlPowerFactorRequiredAttrs(dataset)...)
 	violations = append(violations, CheckTapChangerStepInteger(dataset)...)
 	violations = append(violations, CheckCsConverterTargetAlphaApplicability(dataset)...)
 	violations = append(violations, CheckCsConverterTargetGammaApplicability(dataset)...)
 	violations = append(violations, CheckControlAreaNetInterchangeCalculation(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulation(dataset)...)
+	violations = append(violations, CheckRotatingMachinePLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineQLimits(dataset)...)
+	violations = append(violations, CheckSynchronousMachineOperatingModeMatch(dataset)...)
+	violations = append(violations, CheckGeneratingUnitSingleActivePowerSlack(dataset)...)
+	violations = append(violations, CheckExternalNetworkInjectionLimits(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineCurveLimits(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValuePositive(dataset)...)
 	return violations
 }
 
-// ValidateDynamicsProfile runs hand-written checks for 61970-457_Dynamics-AP-Con-Complex-SHACL.
+// ValidateDynamicsProfile runs hand-written checks for
+// 61970-457_Dynamics-AP-Con-Complex-SHACL and
+// 61970-302_Dynamics-AP-Con-Complex-SHACL.
 func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
 	violations = append(violations, CheckSynchronousMachineTimeConstantReactanceModelType(dataset)...)
 	violations = append(violations, CheckTurbineGovernorMbaseEquation(dataset)...)
+	violations = append(violations, CheckExcitationSystemGains(dataset)...)
+	violations = append(violations, CheckPssInputSignals(dataset)...)
+	violations = append(violations, CheckGovHydro4GainPoints(dataset)...)
+	violations = append(violations, CheckLoadStaticModelAttributes(dataset)...)
+	violations = append(violations, CheckRotatingMachineSaturation(dataset)...)
+	violations = append(violations, CheckSynchronousMachineSimplifiedAttributes(dataset)...)
+	violations = append(violations, CheckDynamicsAssociations(dataset)...)
 	return violations
 }
-
 // ValidateShortCircuitProfile runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
 func ValidateShortCircuitProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -181,19 +204,33 @@ func ValidateShortCircuitNotSolvedMASProfile(dataset *cimgostructs.CIMElementLis
 	return CheckMutualCouplingTerminalsAssignment(dataset)
 }
 
-// ValidateStateVariablesProfile runs hand-written checks for 61970-301_StateVariables-AP-Con-Complex-SHACL.
+// ValidateStateVariablesProfile runs hand-written checks for
+// 61970-301_StateVariables-AP-Con-Complex-SHACL and
+// 61970-456_StateVariables-AP-Con-Complex-SHACL.
 func ValidateStateVariablesProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return CheckCsConverterStateValueRange(dataset)
+	var violations []Violation
+	violations = append(violations, CheckCsConverterStateValueRange(dataset)...)
+	violations = append(violations, CheckTopologicalIslandCount(dataset)...)
+	return violations
 }
 
 // ValidateStateVariablesSolvedMASProfile runs hand-written checks for
-// 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL.
+// 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL,
+// 61970-456_StateVariables-AP-Con-Complex-SolvedMAS-SHACL and
+// 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL.
 func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
+	violations = append(violations, CheckSvTapStepPositionInteger(dataset)...)
+	violations = append(violations, CheckSvTapStepPositionSync(dataset)...)
+	violations = append(violations, CheckSvShuntCompensatorSectionsInteger(dataset)...)
+	violations = append(violations, CheckSvShuntCompensatorSectionsSync(dataset)...)
 	violations = append(violations, CheckAngleReference(dataset)...)
 	violations = append(violations, CheckStateVariablesInstantiated(dataset)...)
+	violations = append(violations, CheckSvStateVariablesInstance(dataset)...)
 	violations = append(violations, CheckSvPowerFlowPLimits(dataset)...)
+	violations = append(violations, CheckSvPowerFlowQLimits(dataset)...)
+	violations = append(violations, CheckSvVoltageLimits(dataset)...)
 	violations = append(violations, CheckRegulatingControlContradictory(dataset)...)
 	violations = append(violations, CheckRegulatingControlSameIsland(dataset)...)
 	return violations

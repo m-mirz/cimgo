@@ -9,6 +9,8 @@ import (
 )
 
 // CheckMRIDUniqueness implements all600:All-GENC1
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: All IdentifiedObject-s shall have a persistent and globally unique identifier (Master Resource Identifier - mRID).
 func CheckMRIDUniqueness(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -79,6 +81,8 @@ var uuidRegex = regexp.MustCompile("(?i)^([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0
 var urnUuidRegex = regexp.MustCompile("(?i)^urn:uuid:[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$")
 
 // CheckIDUUID implements all600:All-GENC4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: IEC 61970-301 strongly recommends to use UUID, as specified in RFC 4122, for the .mRID. CGMES requires the usage of UUID.
 func CheckIDUUID(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -112,6 +116,8 @@ func CheckIDUUID(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // CheckIDDeprecated implements all600:All-GENC5
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: (deprecated) Transition rule for ID length and underscore prefix.
 func CheckIDDeprecated(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -141,6 +147,9 @@ func CheckIDDeprecated(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // CheckModelDateTimeUTC implements all600:Model.created-HGEN4 and Model.scenarioTime-HGEN4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: European exchanges shall refer to UTC (marked with Z suffix).
 func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
@@ -184,6 +193,9 @@ func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // CheckFloatSpecialValues implements all600:Float-specialValues
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Float attributes are restricted not to use INF and NaN values.
 func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
@@ -197,6 +209,25 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 
 		for i := 0; i < val.NumField(); i++ {
 			field := val.Field(i)
+            if field.Kind() == reflect.Struct {
+                // Check embedded struct fields (one level for Conductor in ACLineSegment)
+                for j := 0; j < field.NumField(); j++ {
+                    subField := field.Field(j)
+                    if subField.Kind() == reflect.Float64 || subField.Kind() == reflect.Float32 {
+                        f := subField.Float()
+                        if math.IsNaN(f) || math.IsInf(f, 0) {
+                            violations = append(violations, Violation{
+                                ObjectID: id,
+                                Class:    goTypeName(obj),
+                                Property: field.Type().Field(j).Name,
+                                Message:  "INF or NaN used in an attribute defined as float.",
+                                Severity: "sh.Violation",
+                            })
+                        }
+                    }
+                }
+                continue
+            }
 			if field.Kind() == reflect.Float64 || field.Kind() == reflect.Float32 {
 				f := field.Float()
 				if math.IsNaN(f) || math.IsInf(f, 0) {
@@ -215,6 +246,9 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // CheckModelingAuthoritySetNotEmpty implements all600:Model.modelingAuthoritySet-marp10-12
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: The modelingAuthoritySet property in the header must not be empty.
 func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
@@ -243,7 +277,10 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []V
 	return violations
 }
 
-// CheckIdentifiedObjectStringLengths implements various io:* constraints
+// CheckIdentifiedObjectStringLengths implements iosl.IdentifiedObject.shortName-stringLength, iosl.IdentifiedObject.energyIdentCodeEic-stringLength, iosl.IdentifiedObject.name-stringLength and iosl.IdentifiedObject.description-stringLength
+// Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: Validates maximum string lengths for various IdentifiedObject attributes.
 func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
@@ -293,6 +330,8 @@ func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []
 }
 
 // CheckFileHeaderExists implements all600:All-HGEN2
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
 // Description: Each type of instance file (full or difference) shall have a file header.
 func CheckFileHeaderExists(dataset *cimgostructs.CIMElementList) []Violation {
 	if len(dataset.FullModels) == 0 && len(dataset.DifferenceModels) == 0 {

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. SynchronousMachine earthing OK -->
+  <cim:SynchronousMachine rdf:ID="SM.OK">
+    <cim:SynchronousMachine.earthing>true</cim:SynchronousMachine.earthing>
+    <cim:SynchronousMachine.earthingStarPointR>1.0</cim:SynchronousMachine.earthingStarPointR>
+    <cim:SynchronousMachine.earthingStarPointX>2.0</cim:SynchronousMachine.earthingStarPointX>
+  </cim:SynchronousMachine>
+
+  <!-- 2. SynchronousMachine earthing BAD (missing R) -->
+  <cim:SynchronousMachine rdf:ID="SM.BAD">
+    <cim:SynchronousMachine.earthing>true</cim:SynchronousMachine.earthing>
+    <!-- Missing earthingStarPointR/X -->
+  </cim:SynchronousMachine>
+
+  <!-- 3. PowerTransformerEnd grounding OK -->
+  <cim:PowerTransformerEnd rdf:ID="PTE.OK">
+    <cim:TransformerEnd.grounded>true</cim:TransformerEnd.grounded>
+    <cim:TransformerEnd.rground>1.0</cim:TransformerEnd.rground>
+    <cim:TransformerEnd.xground>2.0</cim:TransformerEnd.xground>
+  </cim:PowerTransformerEnd>
+
+  <!-- 4. PowerTransformerEnd grounding BAD (missing X) -->
+  <cim:PowerTransformerEnd rdf:ID="PTE.BAD">
+    <cim:TransformerEnd.grounded>true</cim:TransformerEnd.grounded>
+    <!-- Missing rground/xground -->
+  </cim:PowerTransformerEnd>
+</rdf:RDF>

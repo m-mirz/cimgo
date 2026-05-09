@@ -7,6 +7,8 @@ import (
 )
 
 // CheckLinearShuntCompensatorSectionsRange implements sshcns.ShuntCompensator.sections-valueLinear
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: For LinearShuntCompensator the value shall be between zero and ShuntCompensator.maximumSections.
 func CheckLinearShuntCompensatorSectionsRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -31,6 +33,8 @@ func CheckLinearShuntCompensatorSectionsRange(dataset *cimgostructs.CIMElementLi
 }
 
 // CheckNonlinearShuntCompensatorSectionsValid implements sshcns.ShuntCompensator.sections-valueNonLinear
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: For NonlinearShuntCompensator-s, sections shall only be set to one of the
 // NonlinearShuntCompenstorPoint.sectionNumber.
 func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimgostructs.CIMElementList) []Violation {
@@ -70,6 +74,8 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimgostructs.CIMElemen
 }
 
 // CheckRegulatingControlPowerFactorRequiredAttrs implements sshcns.RegulatingControl-requiredAttributes
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: When mode=powerFactor, both minAllowedTargetValue and maxAllowedTargetValue must be present.
 func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -104,6 +110,8 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimgostructs.CIMEle
 }
 
 // CheckTapChangerStepInteger implements sshcns.TapChanger.step-valueType
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: For a discrete TapChangerControl the step value shall be integer.
 func CheckTapChangerStepInteger(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
@@ -156,6 +164,7 @@ func CheckTapChangerStepInteger(dataset *cimgostructs.CIMElementList) []Violatio
 
 // CheckCsConverterTargetAlphaApplicability implements sshn301.CsConverter.targetAlpha-applicability
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: targetAlpha must not be set for inverters; it is only valid for rectifiers
 // with continuous (non-discrete) tap changer control at the PCC terminal transformer.
 func CheckCsConverterTargetAlphaApplicability(dataset *cimgostructs.CIMElementList) []Violation {
@@ -164,6 +173,7 @@ func CheckCsConverterTargetAlphaApplicability(dataset *cimgostructs.CIMElementLi
 
 // CheckCsConverterTargetGammaApplicability implements sshn301.CsConverter.targetGamma-applicability
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: targetGamma must not be set for rectifiers; it is only valid for inverters
 // with continuous (non-discrete) tap changer control at the PCC terminal transformer.
 func CheckCsConverterTargetGammaApplicability(dataset *cimgostructs.CIMElementList) []Violation {
@@ -249,6 +259,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimgostructs.CIMElementLi
 
 // CheckControlAreaNetInterchangeCalculation implements sshn301.ControlArea-netInterchangeCalculation
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 // Description: For ControlArea of type Interchange, the netInterchange value must equal the
 // sum of EquivalentInjection.p values for EquivalentInjections connected to BoundaryPoint terminals.
 func CheckControlAreaNetInterchangeCalculation(dataset *cimgostructs.CIMElementList) []Violation {
@@ -313,6 +324,8 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimgostructs.CIMElementL
 }
 
 // CheckEquivalentInjectionRegulation implements sshn456:EquivalentInjection-regulation
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckEquivalentInjectionRegulation(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, ei := range dataset.EquivalentInjections {
@@ -342,6 +355,8 @@ func CheckEquivalentInjectionRegulation(dataset *cimgostructs.CIMElementList) []
 }
 
 // CheckRotatingMachinePLimits implements sshn456:RotatingMachine.p-limits
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckRotatingMachinePLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
@@ -384,6 +399,8 @@ func CheckRotatingMachinePLimits(dataset *cimgostructs.CIMElementList) []Violati
 }
 
 // CheckRotatingMachineQLimits implements sshn456:RotatingMachine.q-limits
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckRotatingMachineQLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
@@ -410,6 +427,8 @@ func CheckRotatingMachineQLimits(dataset *cimgostructs.CIMElementList) []Violati
 }
 
 // CheckSynchronousMachineOperatingModeMatch implements sshn456:SynchronousMachine.operatingMode-matchType
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckSynchronousMachineOperatingModeMatch(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
@@ -443,6 +462,8 @@ func CheckSynchronousMachineOperatingModeMatch(dataset *cimgostructs.CIMElementL
 }
 
 // CheckGeneratingUnitSingleActivePowerSlack implements sshn456:GeneratingUnit-singleActivePowerSlack
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	// Rule: one generator has GeneratingUnit.normalPF set to a highest value (non-zero) and all other generating units have a zero GeneratingUnit.normalPF.
@@ -476,6 +497,8 @@ func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimgostructs.CIMElementL
 }
 
 // CheckExternalNetworkInjectionLimits implements sshn456:ExternalNetworkInjection.p-limits and q-limits
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckExternalNetworkInjectionLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, eni := range dataset.ExternalNetworkInjections {
@@ -513,6 +536,8 @@ func CheckExternalNetworkInjectionLimits(dataset *cimgostructs.CIMElementList) [
 }
 
 // CheckEquivalentInjectionLimits implements sshn456:EquivalentInjection.p-limits and q-limits
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckEquivalentInjectionLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, ei := range dataset.EquivalentInjections {
@@ -550,6 +575,8 @@ func CheckEquivalentInjectionLimits(dataset *cimgostructs.CIMElementList) []Viol
 }
 
 // CheckRotatingMachineCurveLimits implements sshn456:RotatingMachine-pAndQcapabilityCurveP/Q
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckRotatingMachineCurveLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
@@ -627,6 +654,8 @@ func CheckRotatingMachineCurveLimits(dataset *cimgostructs.CIMElementList) []Vio
 }
 
 // CheckRegulatingControlTargetValuePositive implements sshn456:RegulatingControl.targetValue-value
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
 func CheckRegulatingControlTargetValuePositive(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, rc := range dataset.RegulatingControls {
@@ -642,5 +671,51 @@ func CheckRegulatingControlTargetValuePositive(dataset *cimgostructs.CIMElementL
 			}
 		}
 	}
+	return violations
+}
+
+// CheckShuntCompensatorSectionsInteger implements sshc456ns:ShuntCompensator.sections-value
+// Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, ShuntCompensator.sections shall be integer.
+func CheckShuntCompensatorSectionsInteger(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	for id, obj := range dataset.Elements {
+		var sections float64
+		var rcID string
+		var class string
+
+		if lsc, ok := obj.(*cimgostructs.LinearShuntCompensator); ok {
+			sections = lsc.Sections
+			class = "LinearShuntCompensator"
+			if lsc.RegulatingControl != nil {
+				rcID = strings.TrimPrefix(lsc.RegulatingControl.MRID, "#")
+			}
+		} else if nsc, ok := obj.(*cimgostructs.NonlinearShuntCompensator); ok {
+			sections = nsc.Sections
+			class = "NonlinearShuntCompensator"
+			if nsc.RegulatingControl != nil {
+				rcID = strings.TrimPrefix(nsc.RegulatingControl.MRID, "#")
+			}
+		} else {
+			continue
+		}
+
+		if rcID != "" {
+			if rc, ok := dataset.RegulatingControls[rcID]; ok && rc.Enabled && rc.Discrete {
+				if sections != float64(int(sections)) {
+					violations = append(violations, Violation{
+						ObjectID: id,
+						Class:    class,
+						Property: "ShuntCompensator.sections",
+						Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", sections),
+						Severity: "sh.Violation",
+					})
+				}
+			}
+		}
+	}
+
 	return violations
 }

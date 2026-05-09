@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.REF">
+    <cim:IdentifiedObject.name>TN REF</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalNode rdf:ID="TN.OTHER">
+    <cim:IdentifiedObject.name>TN OTHER</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.AngleRefTopologicalNode rdf:resource="#TN.REF" />
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.REF" />
+  </cim:TopologicalIsland>
+
+  <cim:TopologicalIsland rdf:ID="TI.2">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.OTHER" />
+  </cim:TopologicalIsland>
+
+  <!-- 1. OK: Priority 1 SM connected to TN.REF -->
+  <cim:SynchronousMachine rdf:ID="SM.OK">
+    <cim:SynchronousMachine.referencePriority>1</cim:SynchronousMachine.referencePriority>
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.OK">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.OK" />
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.REF" />
+  </cim:Terminal>
+  <cim:SvStatus rdf:ID="SVS.SM.OK">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#SM.OK" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <cim:SvVoltage rdf:ID="SVV.REF">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.REF" />
+    <cim:SvVoltage.v>1.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
+  <cim:SvPowerFlow rdf:ID="SVPF.SM.OK">
+    <cim:SvPowerFlow.Terminal rdf:resource="#Term.OK" />
+    <cim:SvPowerFlow.p>10.0</cim:SvPowerFlow.p>
+  </cim:SvPowerFlow>
+
+  <!-- 2. BAD: Priority 1 SM connected to different TN -->
+  <cim:SynchronousMachine rdf:ID="SM.BAD.NODE">
+    <cim:SynchronousMachine.referencePriority>1</cim:SynchronousMachine.referencePriority>
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.BAD.NODE">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.BAD.NODE" />
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.OTHER" />
+  </cim:Terminal>
+  <cim:SvStatus rdf:ID="SVS.SM.BAD">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#SM.BAD.NODE" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <cim:SvPowerFlow rdf:ID="SVPF.SM.BAD">
+    <cim:SvPowerFlow.Terminal rdf:resource="#Term.BAD.NODE" />
+    <cim:SvPowerFlow.p>10.0</cim:SvPowerFlow.p>
+  </cim:SvPowerFlow>
+
+  <!-- 3. Duplicate Priority 1 (reported as global error or on machine) -->
+  <!-- Note: My implementation currently reports on each machine if it is not at ref node, 
+       plus a global violation if more than one exists. -->
+</rdf:RDF>

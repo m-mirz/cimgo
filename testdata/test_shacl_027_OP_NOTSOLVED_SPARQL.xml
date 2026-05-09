@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:Substation rdf:ID="S1">
+    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
+  </cim:Substation>
+  <cim:Terminal rdf:ID="T1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#S1" />
+    <cim:ACDCTerminal.sequenceNumber>1</cim:ACDCTerminal.sequenceNumber>
+  </cim:Terminal>
+
+  <cim:Substation rdf:ID="S2">
+    <cim:IdentifiedObject.name>S2</cim:IdentifiedObject.name>
+  </cim:Substation>
+  <cim:Terminal rdf:ID="T2">
+    <cim:Terminal.ConductingEquipment rdf:resource="#S2" />
+    <cim:ACDCTerminal.sequenceNumber>1</cim:ACDCTerminal.sequenceNumber>
+  </cim:Terminal>
+
+  <!-- 1. Analog OK: terminal belongs to PSR -->
+  <cim:Analog rdf:ID="MEAS.OK">
+    <cim:Measurement.PowerSystemResource rdf:resource="#S1" />
+    <cim:Measurement.Terminal rdf:resource="#T1" />
+    <cim:Measurement.measurementType>Voltage</cim:Measurement.measurementType>
+  </cim:Analog>
+
+  <!-- 2. Analog BAD: terminal does NOT belong to PSR -->
+  <cim:Analog rdf:ID="MEAS.BAD.TERMINAL">
+    <cim:Measurement.PowerSystemResource rdf:resource="#S1" />
+    <cim:Measurement.Terminal rdf:resource="#T2" />
+    <cim:Measurement.measurementType>Voltage</cim:Measurement.measurementType>
+  </cim:Analog>
+
+  <!-- 3. TapPosition OK: terminal is absent -->
+  <cim:Discrete rdf:ID="MEAS.TAP.OK">
+    <cim:Measurement.PowerSystemResource rdf:resource="#S1" />
+    <cim:Measurement.measurementType>TapPosition</cim:Measurement.measurementType>
+  </cim:Discrete>
+
+  <!-- 4. TapPosition BAD: terminal is present -->
+  <cim:Discrete rdf:ID="MEAS.TAP.BAD">
+    <cim:Measurement.PowerSystemResource rdf:resource="#S1" />
+    <cim:Measurement.Terminal rdf:resource="#T1" />
+    <cim:Measurement.measurementType>TapPosition</cim:Measurement.measurementType>
+  </cim:Discrete>
+
+  <!-- 5. Voltage BAD: terminal is absent -->
+  <cim:Analog rdf:ID="MEAS.VOLT.BAD.ABSENT">
+    <cim:Measurement.PowerSystemResource rdf:resource="#S1" />
+    <cim:Measurement.measurementType>Voltage</cim:Measurement.measurementType>
+  </cim:Analog>
+</rdf:RDF>

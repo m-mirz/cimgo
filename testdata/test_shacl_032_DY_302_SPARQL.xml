@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. Excitation System Gains -->
+  <cim:ExcAC8B rdf:ID="EXC.AC8B.BAD">
+    <cim:ExcAC8B.kir>0.0</cim:ExcAC8B.kir>
+    <cim:ExcAC8B.kpr>0.0</cim:ExcAC8B.kpr>
+  </cim:ExcAC8B>
+  <cim:ExcBBC rdf:ID="EXC.BBC.BAD">
+    <cim:ExcBBC.k>0.0</cim:ExcBBC.k>
+  </cim:ExcBBC>
+  <cim:ExcIEEEDC4B rdf:ID="EXC.DC4B.BAD">
+    <cim:ExcIEEEDC4B.kd>1.0</cim:ExcIEEEDC4B.kd>
+    <cim:ExcIEEEDC4B.td>0.0</cim:ExcIEEEDC4B.td>
+  </cim:ExcIEEEDC4B>
+
+  <!-- 2. PSS Input Signals -->
+  <cim:Pss2ST rdf:ID="PSS.2ST.BAD">
+    <cim:Pss2ST.inputSignal1Type rdf:resource="http://iec.ch/TC57/CIM100#InputSignalKind.rotorSpeed" />
+    <cim:Pss2ST.inputSignal2Type rdf:resource="http://iec.ch/TC57/CIM100#InputSignalKind.rotorSpeed" />
+  </cim:Pss2ST>
+
+  <!-- 3. Hydro Governor Gain Points -->
+  <cim:GovHydro4 rdf:ID="GOV.H4.SIMPLE.BAD">
+    <cim:GovHydro4.model rdf:resource="http://iec.ch/TC57/CIM100#GovHydro4ModelKind.simple" />
+    <cim:GovHydro4.gv1>0.5</cim:GovHydro4.gv1> <!-- Should be 0 -->
+  </cim:GovHydro4>
+  <cim:GovHydro4 rdf:ID="GOV.H4.KAPLAN.BAD">
+    <cim:GovHydro4.model rdf:resource="http://iec.ch/TC57/CIM100#GovHydro4ModelKind.kaplan" />
+    <cim:GovHydro4.gv0>0.1</cim:GovHydro4.gv0>
+    <cim:GovHydro4.gv1>0.05</cim:GovHydro4.gv1> <!-- gv1 <= gv0 -->
+  </cim:GovHydro4>
+
+  <!-- 4. LoadStatic Model -->
+  <cim:LoadStatic rdf:ID="LOAD.STATIC.Z.BAD">
+    <cim:LoadStatic.staticLoadModelType rdf:resource="http://iec.ch/TC57/CIM100#StaticLoadModelKind.constantZ" />
+    <cim:LoadStatic.kp1>1.0</cim:LoadStatic.kp1> <!-- Should not have kp1 -->
+  </cim:LoadStatic>
+
+  <!-- 5. Rotating Machine Saturation -->
+  <cim:SynchronousMachineTimeConstantReactance rdf:ID="SM.SAT.BAD">
+    <cim:RotatingMachineDynamics.saturationFactor>1.2</cim:RotatingMachineDynamics.saturationFactor>
+    <cim:RotatingMachineDynamics.saturationFactor120>1.1</cim:RotatingMachineDynamics.saturationFactor120> <!-- S12 < S10 -->
+  </cim:SynchronousMachineTimeConstantReactance>
+
+  <!-- 6. Simplified Attributes -->
+  <cim:SynchronousMachineSimplified rdf:ID="SMS.BAD">
+    <cim:RotatingMachineDynamics.saturationFactor>1.0</cim:RotatingMachineDynamics.saturationFactor>
+  </cim:SynchronousMachineSimplified>
+
+  <!-- 7. Dynamics Associations -->
+  <cim:MechLoad1 rdf:ID="MECH.BAD">
+    <!-- Missing associations -->
+  </cim:MechLoad1>
+</rdf:RDF>

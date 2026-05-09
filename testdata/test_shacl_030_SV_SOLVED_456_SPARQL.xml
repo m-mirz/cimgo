@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. SvPowerFlow instance check -->
+  <cim:SynchronousMachine rdf:ID="SM.ENERGIZED">
+    <cim:IdentifiedObject.name>Energized SM</cim:IdentifiedObject.name>
+  </cim:SynchronousMachine>
+  <cim:SvStatus rdf:ID="SVS.SM.ENERGIZED">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#SM.ENERGIZED" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <cim:TopologicalNode rdf:ID="TN.1">
+    <cim:IdentifiedObject.name>TN 1</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.1" />
+  </cim:TopologicalIsland>
+  <cim:Terminal rdf:ID="Term.SM.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.ENERGIZED" />
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <!-- Missing SvPowerFlow for SM.ENERGIZED should fail -->
+
+  <!-- 2. SvSwitch instance check -->
+  <cim:Breaker rdf:ID="SW.1">
+    <cim:IdentifiedObject.name>Breaker 1</cim:IdentifiedObject.name>
+  </cim:Breaker>
+  <!-- Missing SvSwitch for SW.1 should fail -->
+
+  <!-- 3. Integer value checks -->
+  <cim:RegulatingControl rdf:ID="RC.DISCRETE">
+    <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+  </cim:RegulatingControl>
+
+  <cim:LinearShuntCompensator rdf:ID="LSC.1">
+    <cim:RegulatingCondEq.RegulatingControl rdf:resource="#RC.DISCRETE" />
+  </cim:LinearShuntCompensator>
+  <cim:SvShuntCompensatorSections rdf:ID="SVSC.BAD">
+    <cim:SvShuntCompensatorSections.ShuntCompensator rdf:resource="#LSC.1" />
+    <cim:SvShuntCompensatorSections.sections>1.5</cim:SvShuntCompensatorSections.sections> <!-- Non-integer -->
+  </cim:SvShuntCompensatorSections>
+
+  <cim:RatioTapChanger rdf:ID="RTC.1">
+    <cim:TapChanger.TapChangerControl rdf:resource="#RC.DISCRETE" />
+  </cim:RatioTapChanger>
+  <cim:SvTapStep rdf:ID="SVTS.BAD">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.1" />
+    <cim:SvTapStep.position>5.2</cim:SvTapStep.position> <!-- Non-integer -->
+  </cim:SvTapStep>
+
+  <!-- 4. SvVoltage limits -->
+  <cim:BaseVoltage rdf:ID="BV.110">
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+  <cim:TopologicalNode rdf:ID="TN.BAD.VOLT">
+    <cim:TopologicalNode.BaseVoltage rdf:resource="#BV.110" />
+  </cim:TopologicalNode>
+  <cim:SvVoltage rdf:ID="SVV.BAD">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.BAD.VOLT" />
+    <cim:SvVoltage.v>40.0</cim:SvVoltage.v> <!-- 40/110 = 0.36 pu (< 0.4) -->
+  </cim:SvVoltage>
+</rdf:RDF>

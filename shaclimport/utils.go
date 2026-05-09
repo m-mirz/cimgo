@@ -1,4 +1,4 @@
-package validation
+package shaclimport
 
 import (
 	"cimgo/rdf/shacl"

@@ -11,9 +11,9 @@ import (
 
 // {{.OrchestratorName}} runs all generated SHACL rules from
 // {{.FileName}}.
-func {{.OrchestratorName}}(dataset *cimgostructs.CIMElementList) []Violation {
+func {{.OrchestratorName}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 {{- if .Checks}}
-	var violations []Violation
+	var violations []shaclmodel.Violation
 {{- range .Checks}}
 	violations = append(violations, {{.Name}}(dataset)...)
 {{- end}}
@@ -32,11 +32,22 @@ func {{.OrchestratorName}}(dataset *cimgostructs.CIMElementList) []Violation {
 {{- if .Message}}
 // {{.Message}}
 {{- end}}
-func {{.Name}}(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
+func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+	var violations []shaclmodel.Violation
 {{- if .Prelude}}
 {{.Prelude}}
 {{- end}}
+{{- if .DatasetCheck}}
+	if {{.Condition}} {
+		violations = append(violations, shaclmodel.Violation{
+			ObjectID: "",
+			Class:    {{printf "%q" .Class}},
+			Property: {{printf "%q" .Property}},
+			Message:  {{printf "%q" .Message}},
+			Severity: {{printf "%q" .Severity}},
+		})
+	}
+{{- else}}
 	for id, obj := range dataset.Elements {
 {{- if .NoV}}
 		_, ok := obj.(*cimgostructs.{{.Class}})
@@ -50,7 +61,7 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []Violation {
 {{.Guard}}
 {{- end}}
 		if {{.Condition}} {
-			violations = append(violations, Violation{
+			violations = append(violations, shaclmodel.Violation{
 				ObjectID: id,
 				Class:    {{printf "%q" .Class}},
 				Property: {{printf "%q" .Property}},
@@ -59,6 +70,7 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []Violation {
 			})
 		}
 	}
+{{- end}}
 	return violations
 }
 {{end}}

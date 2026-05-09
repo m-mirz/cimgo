@@ -2,16 +2,16 @@ package validation
 
 import (
 	"cimgo/cimgostructs"
+	"cimgo/shaclgen"
+	"cimgo/shaclmodel"
 	"reflect"
 )
 
-type Violation struct {
-	ObjectID string
-	Class    string
-	Property string
-	Message  string
-	Severity string
-}
+// Violation is re-exported from shaclmodel so existing callers of
+// validation.Violation keep compiling. The actual type lives in shaclmodel
+// (a leaf package) so the generated shaclgen package can return it without
+// pulling in validation, which would be a cycle.
+type Violation = shaclmodel.Violation
 
 func goTypeName(obj interface{}) string {
 	t := reflect.TypeOf(obj)
@@ -136,11 +136,11 @@ func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList
 
 // ValidateAllProfiles runs every generated SHACL profile orchestrator plus
 // every hand-written profile-level check. The two are independent: the
-// generated set comes from ValidateAllGeneratedProfiles in generated_index.go;
-// the hand-written ones are the Validate<Profile>Profile functions above.
+// generated set comes from shaclgen.ValidateAllGeneratedProfiles; the
+// hand-written ones are the Validate<Profile>Profile functions above.
 func ValidateAllProfiles(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
-	violations = append(violations, ValidateAllGeneratedProfiles(dataset)...)
+	violations = append(violations, shaclgen.ValidateAllGeneratedProfiles(dataset)...)
 	violations = append(violations, ValidateEquipmentProfile(dataset)...)
 	violations = append(violations, ValidateEquipmentNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateSSHProfile(dataset)...)

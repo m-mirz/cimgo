@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- AsynchronousMachineTimeConstantReactance.tppo must be < tpo (sh:lessThan) -->
+  <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.OK">
+    <cim:IdentifiedObject.name>AMTCR-OK</cim:IdentifiedObject.name>
+    <cim:AsynchronousMachineTimeConstantReactance.tppo>0.01</cim:AsynchronousMachineTimeConstantReactance.tppo>
+    <cim:AsynchronousMachineTimeConstantReactance.tpo>0.1</cim:AsynchronousMachineTimeConstantReactance.tpo>
+  </cim:AsynchronousMachineTimeConstantReactance>
+  <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.BAD">
+    <cim:IdentifiedObject.name>AMTCR-BAD</cim:IdentifiedObject.name>
+    <cim:AsynchronousMachineTimeConstantReactance.tppo>0.1</cim:AsynchronousMachineTimeConstantReactance.tppo>
+    <cim:AsynchronousMachineTimeConstantReactance.tpo>0.05</cim:AsynchronousMachineTimeConstantReactance.tpo>
+  </cim:AsynchronousMachineTimeConstantReactance>
+</rdf:RDF>

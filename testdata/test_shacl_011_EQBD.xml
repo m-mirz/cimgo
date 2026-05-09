@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- BoundaryPoint.fromEndIsoCode must be a valid 2-letter European ISO country code (sh:in) -->
+  <cim:BoundaryPoint rdf:ID="BoundaryPoint.OK">
+    <cim:IdentifiedObject.name>BP-OK</cim:IdentifiedObject.name>
+    <cim:BoundaryPoint.fromEndIsoCode>DE</cim:BoundaryPoint.fromEndIsoCode>
+  </cim:BoundaryPoint>
+  <cim:BoundaryPoint rdf:ID="BoundaryPoint.BAD">
+    <cim:IdentifiedObject.name>BP-BAD</cim:IdentifiedObject.name>
+    <cim:BoundaryPoint.fromEndIsoCode>XX</cim:BoundaryPoint.fromEndIsoCode>
+  </cim:BoundaryPoint>
+</rdf:RDF>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- TopologicalNode.name is required (sh:required) -->
+  <cim:TopologicalNode rdf:ID="TopologicalNode.OK">
+    <cim:IdentifiedObject.name>TN-OK</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalNode rdf:ID="TopologicalNode.BAD">
+  </cim:TopologicalNode>
+</rdf:RDF>

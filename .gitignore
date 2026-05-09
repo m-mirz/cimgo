@@ -7,4 +7,4 @@ proto
 *_test.json
 *.zip
 docs
-validation/generated*
+shaclgen/generated*

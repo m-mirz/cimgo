@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- ACLineSegment.length must be >= 0 (sh:minInclusive 0) -->
+  <cim:ACLineSegment rdf:ID="ACLineSegment.OK">
+    <cim:IdentifiedObject.name>Line-OK</cim:IdentifiedObject.name>
+    <cim:Conductor.length>5.0</cim:Conductor.length>
+  </cim:ACLineSegment>
+  <cim:ACLineSegment rdf:ID="ACLineSegment.BAD">
+    <cim:IdentifiedObject.name>Line-BAD</cim:IdentifiedObject.name>
+    <cim:Conductor.length>-1.0</cim:Conductor.length>
+  </cim:ACLineSegment>
+  <!-- BaseVoltage.nominalVoltage must be > 0 (sh:minExclusive 0) -->
+  <cim:BaseVoltage rdf:ID="BaseVoltage.OK">
+    <cim:IdentifiedObject.name>BV-110kV</cim:IdentifiedObject.name>
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+  <cim:BaseVoltage rdf:ID="BaseVoltage.BAD">
+    <cim:IdentifiedObject.name>BV-NEG</cim:IdentifiedObject.name>
+    <cim:BaseVoltage.nominalVoltage>-1.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+</rdf:RDF>

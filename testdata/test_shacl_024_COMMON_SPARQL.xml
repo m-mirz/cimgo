@@ -34,6 +34,6 @@
   </cim:Substation>
 
   <cim:Substation rdf:ID="_4336d36e-d917-4e54-9469-8730b200b3d5">
-    <eu:IdentifiedObject.energyIdentCodeEic>EIC-NOT-16-CHARS</eu:IdentifiedObject.energyIdentCodeEic>
+    <eu:IdentifiedObject.energyIdentCodeEic>EIC-NOT-16-CHARS-1</eu:IdentifiedObject.energyIdentCodeEic>
   </cim:Substation>
 </rdf:RDF>

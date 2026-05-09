@@ -40,7 +40,7 @@ func renderShapes(sb *strings.Builder, shapes []*shaclimport.ShapeWrapper, level
 		return si.ID.String() < sj.ID.String()
 	})
 
-	for _, s := range shapes {
+	for i, s := range shapes {
 		id := s.ID.String()
 		if visited[id] {
 			renderShapeHeading(sb, s, level)
@@ -49,26 +49,44 @@ func renderShapes(sb *strings.Builder, shapes []*shaclimport.ShapeWrapper, level
 		}
 		visited[id] = true
 
-		renderShapeHeading(sb, s, level)
-		renderShapeBasicInfo(sb, s)
-		renderShapeTargets(sb, s)
-
-		var sparqlQueries []shaclimport.SparqlInfo
-		sparqlQueries = shaclimport.CollectSPARQLValues(sb, s, sparqlQueries)
-
-		filteredConstraints := shaclimport.FilterConstraints(s, filter)
-		if len(filteredConstraints) > 0 {
-			sparqlQueries = renderConstraintsList(sb, filteredConstraints, level, filter, allWrapped, visited, sparqlQueries)
+		if s.ID.IsBlank() && len(shapes) > 1 {
+			sb.WriteString(fmt.Sprintf("**Item %d:**\n\n", i+1))
+		} else {
+			renderShapeHeading(sb, s, level)
 		}
 
-		renderSPARQLQueries(sb, sparqlQueries)
-		renderNestedProperties(sb, s, level, filter, allWrapped, visited)
+		renderShapeContent(sb, s, level, filter, allWrapped, visited)
 
 		delete(visited, id)
 	}
 }
 
+func renderShapeContent(sb *strings.Builder, s *shaclimport.ShapeWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
+	renderShapeBasicInfo(sb, s)
+	renderShapeTargets(sb, s)
+
+	if s.Values != nil {
+		query := s.Values.Prefixes + s.Values.Select
+		if s.Values.Expr != "" {
+			query = s.Values.Prefixes + "SELECT (" + s.Values.Expr + " AS ?value) WHERE { $this ?p ?o }"
+		}
+		sb.WriteString("**SPARQL Values:**\n\n```sparql\n")
+		sb.WriteString(query)
+		sb.WriteString("\n```\n\n")
+	}
+
+	filteredConstraints := shaclimport.FilterConstraints(s, filter)
+	if len(filteredConstraints) > 0 {
+		renderConstraintsList(sb, filteredConstraints, level, filter, allWrapped, visited)
+	}
+
+	renderNestedProperties(sb, s, level, filter, allWrapped, visited)
+}
+
 func renderShapeHeading(sb *strings.Builder, s *shaclimport.ShapeWrapper, level int) {
+	if s.ID.IsBlank() {
+		return
+	}
 	title := shaclimport.SimplifyTerm(s.ID)
 	sb.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), title))
 }
@@ -110,9 +128,9 @@ func renderShapeTargets(sb *strings.Builder, s *shaclimport.ShapeWrapper) {
 	}
 }
 
-func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.ConstraintWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool, queries []shaclimport.SparqlInfo) []shaclimport.SparqlInfo {
+func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.ConstraintWrapper, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
 	sb.WriteString("**Constraints:**\n\n")
-	for i, c := range constraints {
+	for _, c := range constraints {
 		typeName := shaclimport.SimplifyIRI(c.Type)
 		sb.WriteString(fmt.Sprintf("- **%s**", typeName))
 
@@ -125,9 +143,10 @@ func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.Constr
 		sb.WriteString(severityOverride + "\n")
 
 		if sc, ok := displayData.(*shacl.SPARQLConstraint); ok {
-			id := fmt.Sprintf("SPARQL-%d", i+1)
-			queries = append(queries, shaclimport.SparqlInfo{Id: id, Query: sc.Prefixes + sc.Select})
-			sb.WriteString(fmt.Sprintf("  - Query: [See %s below](#%s)\n", id, strings.ToLower(id)))
+			query := sc.Prefixes + sc.Select
+			sb.WriteString("\n```sparql\n")
+			sb.WriteString(query)
+			sb.WriteString("\n```\n")
 			if len(sc.Messages) > 0 {
 				var msgs []string
 				for _, msg := range sc.Messages {
@@ -140,7 +159,6 @@ func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.Constr
 		}
 	}
 	sb.WriteString("\n")
-	return queries
 }
 
 func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int, filter func(shaclimport.ConstraintWrapper) bool, allWrapped map[string]*shaclimport.ShapeWrapper, visited map[string]bool) {
@@ -179,7 +197,26 @@ func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int,
 	}
 
 	if len(nestedShapes) > 0 {
-		renderShapes(sb, nestedShapes, level, filter, allWrapped, visited)
+		sb.WriteString("\n")
+		var sub strings.Builder
+		renderShapes(&sub, nestedShapes, level, filter, allWrapped, visited)
+
+		lines := strings.Split(strings.TrimSpace(sub.String()), "\n")
+		inCodeBlock := false
+		for _, line := range lines {
+			if strings.HasPrefix(line, "```") {
+				inCodeBlock = !inCodeBlock
+			}
+			if line != "" {
+				if inCodeBlock || strings.HasPrefix(line, "```") {
+					sb.WriteString(line + "\n")
+				} else {
+					sb.WriteString("  " + line + "\n")
+				}
+			} else {
+				sb.WriteString("\n")
+			}
+		}
 		return
 	}
 
@@ -195,15 +232,6 @@ func renderConstraintDetails(sb *strings.Builder, c shacl.Constraint, level int,
 	sort.Strings(details)
 	for _, d := range details {
 		sb.WriteString("  " + d + "\n")
-	}
-}
-
-func renderSPARQLQueries(sb *strings.Builder, queries []shaclimport.SparqlInfo) {
-	if len(queries) > 0 {
-		sb.WriteString("#### SPARQL Queries\n\n")
-		for _, sq := range queries {
-			sb.WriteString(fmt.Sprintf("##### %s\n```sparql\n%s\n```\n\n", sq.Id, sq.Query))
-		}
 	}
 }
 

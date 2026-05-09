@@ -44,7 +44,7 @@ func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation 
 	violations = append(violations, CheckPowerTransformerEndRValueRange(dataset)...)
 	violations = append(violations, CheckRegulatingControlTerminalConnectivityNode(dataset)...)
 	violations = append(violations, CheckTapChangerLtcFlagControl(dataset)...)
-	violations = append(violations, CheckLoadResponseCharacteristicSum(dataset)...)
+	violations = append(violations, CheckLoadResponseCharacteristicExponentModel(dataset)...)
 	violations = append(violations, CheckNonlinearShuntCompensatorPointCount(dataset)...)
 	violations = append(violations, CheckShuntCompensatorNomU(dataset)...)
 	violations = append(violations, CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset)...)
@@ -61,6 +61,36 @@ func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation 
 	violations = append(violations, CheckDCConverterUnitCsConverterPowerTransformer(dataset)...)
 	violations = append(violations, CheckLimitKindPATLNumberOfLimitType(dataset)...)
 	violations = append(violations, CheckLimitKindTCDuration(dataset)...)
+
+	// EQ 452 & 600 additions
+	violations = append(violations, CheckSynchronousMachineAggregate(dataset)...)
+	violations = append(violations, CheckAsynchronousMachineAggregate(dataset)...)
+	violations = append(violations, CheckSynchronousMachineControlMode(dataset)...)
+	violations = append(violations, CheckStaticVarCompensatorControlMode(dataset)...)
+	violations = append(violations, CheckPhaseTapChangerControlMode(dataset)...)
+	violations = append(violations, CheckRatioTapChangerControlMode(dataset)...)
+	violations = append(violations, CheckShuntCompensatorControlMode(dataset)...)
+	violations = append(violations, CheckSynchronousMachineReactiveLimits(dataset)...)
+	violations = append(violations, CheckSynchronousMachineTypeCondenser(dataset)...)
+	violations = append(violations, CheckVsCapabilityCurveCount(dataset)...)
+	violations = append(violations, CheckVsCapabilityCurveYValues(dataset)...)
+	violations = append(violations, CheckGeneratingUnitTypeDependency(dataset)...)
+	violations = append(violations, CheckCurveDataReactiveCapabilityLimits(dataset)...)
+	violations = append(violations, CheckCurveDataReactiveConsistency(dataset)...)
+	violations = append(violations, CheckSynchronousMachineCurveXValueConsistency(dataset)...)
+	violations = append(violations, CheckSwitchConnection(dataset)...)
+	violations = append(violations, CheckOperationalLimitSetTerminal(dataset)...)
+	violations = append(violations, CheckTapChangerControlRemoteQControl(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveXValueUnique(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndResistanceXValue(dataset)...)
+	violations = append(violations, CheckGeneratingUnitMaxOperatingPRatedS(dataset)...)
+	violations = append(violations, CheckHydroGeneratingUnitEnergyConversionCapability(dataset)...)
+	violations = append(violations, CheckTerminalConnectionSameNode(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveReactiveCountP(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveUnits(dataset)...)
+	violations = append(violations, CheckSubstationCount(dataset)...)
+	violations = append(violations, CheckTapChangerNeutralUValueRange(dataset)...)
+
 	return violations
 }
 
@@ -72,13 +102,23 @@ func ValidateDiagramLayoutProfile(dataset *cimgostructs.CIMElementList) []Violat
 // ValidateTopologyNotSolvedMASProfile runs hand-written checks for
 // 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateTopologyNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return CheckTerminalPhasesConsistencyTopologicalNode(dataset)
+	var violations []Violation
+	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
+	violations = append(violations, CheckSwitchSameTopologicalNode(dataset)...)
+	violations = append(violations, CheckTerminalExch8TopologicalNode(dataset)...)
+	return violations
 }
 
 // ValidateEquipmentNotSolvedMASProfile runs hand-written checks for
 // 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
 func ValidateEquipmentNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return CheckACLineSegmentBaseVoltage(dataset)
+	var violations []Violation
+	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValueTapChanger(dataset)...)
+	violations = append(violations, CheckACLineSegmentBaseVoltageDiff(dataset)...)
+	violations = append(violations, CheckBoundaryPointBppl(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset)...)
+	return violations
 }
 
 // ValidateSSHProfile runs hand-written checks for 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL.
@@ -90,6 +130,15 @@ func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	violations = append(violations, CheckCsConverterPPccControl(dataset)...)
 	violations = append(violations, CheckVsConverterPPccControl(dataset)...)
 	violations = append(violations, CheckVsConverterQPccControl(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulation(dataset)...)
+	violations = append(violations, CheckRotatingMachinePLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineQLimits(dataset)...)
+	violations = append(violations, CheckSynchronousMachineOperatingModeMatch(dataset)...)
+	violations = append(violations, CheckGeneratingUnitSingleActivePowerSlack(dataset)...)
+	violations = append(violations, CheckExternalNetworkInjectionLimits(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineCurveLimits(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValuePositive(dataset)...)
 	return violations
 }
 
@@ -101,6 +150,9 @@ func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Viol
 	violations = append(violations, CheckNonlinearShuntCompensatorSectionsValid(dataset)...)
 	violations = append(violations, CheckRegulatingControlPowerFactorRequiredAttrs(dataset)...)
 	violations = append(violations, CheckTapChangerStepInteger(dataset)...)
+	violations = append(violations, CheckCsConverterTargetAlphaApplicability(dataset)...)
+	violations = append(violations, CheckCsConverterTargetGammaApplicability(dataset)...)
+	violations = append(violations, CheckControlAreaNetInterchangeCalculation(dataset)...)
 	return violations
 }
 
@@ -109,12 +161,18 @@ func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
 	violations = append(violations, CheckSynchronousMachineTimeConstantReactanceModelType(dataset)...)
+	violations = append(violations, CheckTurbineGovernorMbaseEquation(dataset)...)
 	return violations
 }
 
 // ValidateShortCircuitProfile runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
 func ValidateShortCircuitProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return CheckSeriesCompensatorVaristorUsage(dataset)
+	var violations []Violation
+	violations = append(violations, CheckSeriesCompensatorVaristorUsage(dataset)...)
+	violations = append(violations, CheckTransformerEndGrounding(dataset)...)
+	violations = append(violations, CheckSynchronousMachineEarthing(dataset)...)
+	violations = append(violations, CheckSeriesCompensatorVaristorRequired(dataset)...)
+	return violations
 }
 
 // ValidateShortCircuitNotSolvedMASProfile runs hand-written checks for
@@ -131,7 +189,39 @@ func ValidateStateVariablesProfile(dataset *cimgostructs.CIMElementList) []Viola
 // ValidateStateVariablesSolvedMASProfile runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL.
 func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
-	return CheckSvTapStepPositionRange(dataset)
+	var violations []Violation
+	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
+	violations = append(violations, CheckAngleReference(dataset)...)
+	violations = append(violations, CheckStateVariablesInstantiated(dataset)...)
+	violations = append(violations, CheckSvPowerFlowPLimits(dataset)...)
+	violations = append(violations, CheckRegulatingControlContradictory(dataset)...)
+	violations = append(violations, CheckRegulatingControlSameIsland(dataset)...)
+	return violations
+}
+
+// ValidateCommonRules runs hand-written checks for common rules (all600, io).
+func ValidateCommonRules(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckFileHeaderExists(dataset)...)
+	violations = append(violations, CheckMRIDUniqueness(dataset)...)
+	violations = append(violations, CheckIDUUID(dataset)...)
+	violations = append(violations, CheckIDDeprecated(dataset)...)
+	violations = append(violations, CheckModelDateTimeUTC(dataset)...)
+	violations = append(violations, CheckFloatSpecialValues(dataset)...)
+	violations = append(violations, CheckModelingAuthoritySetNotEmpty(dataset)...)
+	violations = append(violations, CheckIdentifiedObjectStringLengths(dataset)...)
+	violations = append(violations, CheckDanglingReferences(dataset)...)
+	return violations
+}
+
+// ValidateEquipmentBoundaryProfile runs hand-written checks for 61970-301_EquipmentBoundary.
+func ValidateEquipmentBoundaryProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	return CheckBoundaryPointTieFlow(dataset)
+}
+
+// ValidateOperationProfile runs hand-written checks for 61970-301_Operation.
+func ValidateOperationProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	return CheckMeasurementTerminalRequiredCases(dataset)
 }
 
 // ValidateAllProfiles runs every generated SHACL profile orchestrator plus
@@ -141,6 +231,7 @@ func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList
 func ValidateAllProfiles(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, shaclgen.ValidateAllGeneratedProfiles(dataset)...)
+	violations = append(violations, ValidateCommonRules(dataset)...)
 	violations = append(violations, ValidateEquipmentProfile(dataset)...)
 	violations = append(violations, ValidateEquipmentNotSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateSSHProfile(dataset)...)
@@ -152,5 +243,7 @@ func ValidateAllProfiles(dataset *cimgostructs.CIMElementList) []Violation {
 	violations = append(violations, ValidateStateVariablesSolvedMASProfile(dataset)...)
 	violations = append(violations, ValidateDiagramLayoutProfile(dataset)...)
 	violations = append(violations, ValidateTopologyNotSolvedMASProfile(dataset)...)
+	violations = append(violations, ValidateEquipmentBoundaryProfile(dataset)...)
+	violations = append(violations, ValidateOperationProfile(dataset)...)
 	return violations
 }

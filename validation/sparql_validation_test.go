@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestValidateDiagramObjectIdentifiedObjectSPARQL(t *testing.T) {
+func TestValidateDiagramLayoutProfileSPARQL(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must NOT point to:
 	// Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
 	dataset := loadDataset(t, "../testdata/test_shacl_012_DL_SPARQL.xml")
@@ -25,7 +25,7 @@ func TestValidateDiagramObjectIdentifiedObjectSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateBoundaryPointTieFlowSPARQL(t *testing.T) {
+func TestValidateEquipmentBoundaryProfileSPARQL(t *testing.T) {
 	// If isExcludedFromAreaInterchange is false (default), a TieFlow is required.
 	// If true, no TieFlow should be modeled.
 	dataset := loadDataset(t, "../testdata/test_shacl_013_EQBD_SPARQL.xml")
@@ -47,7 +47,7 @@ func TestValidateBoundaryPointTieFlowSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateMutualCouplingSPARQL(t *testing.T) {
+func TestValidateShortCircuitNotSolvedMASProfileSPARQL(t *testing.T) {
 	// MutualCoupling.First_Terminal and Second_Terminal must point to different ACLineSegments.
 	dataset := loadDataset(t, "../testdata/test_shacl_014_SC_SPARQL.xml")
 
@@ -65,28 +65,63 @@ func TestValidateMutualCouplingSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateSeriesCompensatorVaristorSPARQL(t *testing.T) {
-	// varistorRatedCurrent/VoltageThreshold only exchanged if varistorPresent is true.
-	dataset := loadDataset(t, "../testdata/test_shacl_015_SC_VARISTOR_SPARQL.xml")
+func TestValidateShortCircuitProfileSPARQL(t *testing.T) {
+	t.Run("SeriesCompensatorVaristor", func(t *testing.T) {
+		// varistorRatedCurrent/VoltageThreshold only exchanged if varistorPresent is true.
+		dataset := loadDataset(t, "../testdata/test_shacl_015_SC_VARISTOR_SPARQL.xml")
+		byID := indexByID(ValidateShortCircuitProfile(dataset))
+		if got := len(byID["SC.OK.1"]); got != 0 {
+			t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
+		}
+		if got := len(byID["SC.OK.2"]); got != 0 {
+			t.Errorf("SC.OK.2: expected 0 violations, got %d: %v", got, byID["SC.OK.2"])
+		}
+		if got := len(byID["SC.BAD.1"]); got != 1 {
+			t.Errorf("SC.BAD.1: expected 1 violation, got %d: %v", got, byID["SC.BAD.1"])
+		}
+		if got := len(byID["SC.BAD.2"]); got != 1 {
+			t.Errorf("SC.BAD.2: expected 1 violation, got %d: %v", got, byID["SC.BAD.2"])
+		}
+		logViolations(t, byID)
+	})
 
-	byID := indexByID(ValidateShortCircuitProfile(dataset))
+	t.Run("452", func(t *testing.T) {
+		// Various complex SC 452 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_028_SC_452_SPARQL.xml")
+		byID := indexByID(ValidateShortCircuitProfile(dataset))
+		if got := len(byID["SM.OK"]); got != 0 {
+			t.Errorf("SM.OK: expected 0 violations, got %d: %v", got, byID["SM.OK"])
+		}
+		if got := len(byID["SM.BAD"]); got != 1 {
+			t.Errorf("SM.BAD: expected 1 violation, got %d: %v", got, byID["SM.BAD"])
+		}
+		if got := len(byID["PTE.OK"]); got != 0 {
+			t.Errorf("PTE.OK: expected 0 violations, got %d: %v", got, byID["PTE.OK"])
+		}
+		if got := len(byID["PTE.BAD"]); got != 1 {
+			t.Errorf("PTE.BAD: expected 1 violation, got %d: %v", got, byID["PTE.BAD"])
+		}
+		logViolations(t, byID)
+	})
 
-	if got := len(byID["SC.OK.1"]); got != 0 {
-		t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
-	}
-	if got := len(byID["SC.OK.2"]); got != 0 {
-		t.Errorf("SC.OK.2: expected 0 violations, got %d: %v", got, byID["SC.OK.2"])
-	}
-	if got := len(byID["SC.BAD.1"]); got != 1 {
-		t.Errorf("SC.BAD.1: expected 1 violation, got %d: %v", got, byID["SC.BAD.1"])
-	}
-	if got := len(byID["SC.BAD.2"]); got != 1 {
-		t.Errorf("SC.BAD.2: expected 1 violation, got %d: %v", got, byID["SC.BAD.2"])
-	}
-	logViolations(t, byID)
+	t.Run("6002", func(t *testing.T) {
+		// varistorRatedCurrent and varistorVoltageThreshold are required if SeriesCompensator.varistorPresent is true.
+		dataset := loadDataset(t, "../testdata/test_shacl_036_SC_600_2_SPARQL.xml")
+		byID := indexByID(ValidateShortCircuitProfile(dataset))
+		if got := len(byID["SC.OK.1"]); got != 0 {
+			t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
+		}
+		if got := len(byID["SC.OK.2"]); got != 0 {
+			t.Errorf("SC.OK.2: expected 0 violations, got %d: %v", got, byID["SC.OK.2"])
+		}
+		if got := len(byID["SC.BAD.REQUIRED"]); got != 2 {
+			t.Errorf("SC.BAD.REQUIRED: expected 2 violations (both missing), got %d: %v", got, byID["SC.BAD.REQUIRED"])
+		}
+		logViolations(t, byID)
+	})
 }
 
-func TestValidateCsConverterStateValueRangeSPARQL(t *testing.T) {
+func TestValidateStateVariablesProfileSPARQL(t *testing.T) {
 	// alpha [10, 18] for rectifier, gamma [17, 20] for inverter.
 	dataset := loadDataset(t, "../testdata/test_shacl_016_SV_SPARQL.xml")
 
@@ -107,25 +142,102 @@ func TestValidateCsConverterStateValueRangeSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateSvTapStepPositionRangeSPARQL(t *testing.T) {
-	// position must be within [lowStep, highStep] of the associated TapChanger.
-	dataset := loadDataset(t, "../testdata/test_shacl_017_SV_SOLVED_SPARQL.xml")
+func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
+	t.Run("SvTapStepPositionRange", func(t *testing.T) {
+		// position must be within [lowStep, highStep] of the associated TapChanger.
+		dataset := loadDataset(t, "../testdata/test_shacl_017_SV_SOLVED_SPARQL.xml")
+		byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
+		if got := len(byID["SV.OK.1"]); got != 0 {
+			t.Errorf("SV.OK.1: expected 0 violations, got %d: %v", got, byID["SV.OK.1"])
+		}
+		if got := len(byID["SV.BAD.LOW"]); got != 1 {
+			t.Errorf("SV.BAD.LOW: expected 1 violation, got %d: %v", got, byID["SV.BAD.LOW"])
+		}
+		if got := len(byID["SV.BAD.HIGH"]); got != 1 {
+			t.Errorf("SV.BAD.HIGH: expected 1 violation, got %d: %v", got, byID["SV.BAD.HIGH"])
+		}
+		logViolations(t, byID)
+	})
 
-	byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
+	t.Run("AngleReference", func(t *testing.T) {
+		// Priority 1 SM must be at the AngleRefTopologicalNode.
+		dataset := loadDataset(t, "../testdata/test_shacl_029_SOLVED_SPARQL.xml")
+		violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
+		byID := indexByID(violations)
+		if got := len(byID["SM.OK"]); got != 0 {
+			t.Errorf("SM.OK: expected 0 violations, got %d: %v", got, byID["SM.OK"])
+		}
+		if got := len(byID["SM.BAD.NODE"]); got == 0 {
+			t.Errorf("SM.BAD.NODE: expected violation, got none")
+		}
+		foundGlobal := false
+		for _, v := range byID["global"] {
+			if strings.Contains(v.Message, "Multiple machines") {
+				foundGlobal = true
+				break
+			}
+		}
+		if !foundGlobal {
+			t.Errorf("global: expected violation for duplicate priority 1 machines, got %v", byID["global"])
+		}
+		if got := len(byID["TN.OTHER"]); got == 0 {
+			t.Errorf("TN.OTHER: expected violation for missing SvVoltage, got none")
+		}
+		logViolations(t, byID)
+	})
 
-	if got := len(byID["SV.OK.1"]); got != 0 {
-		t.Errorf("SV.OK.1: expected 0 violations, got %d: %v", got, byID["SV.OK.1"])
-	}
-	if got := len(byID["SV.BAD.LOW"]); got != 1 {
-		t.Errorf("SV.BAD.LOW: expected 1 violation, got %d: %v", got, byID["SV.BAD.LOW"])
-	}
-	if got := len(byID["SV.BAD.HIGH"]); got != 1 {
-		t.Errorf("SV.BAD.HIGH: expected 1 violation, got %d: %v", got, byID["SV.BAD.HIGH"])
-	}
-	logViolations(t, byID)
+	t.Run("456", func(t *testing.T) {
+		// Various complex SV SolvedMAS 456 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_030_SV_SOLVED_456_SPARQL.xml")
+		byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
+		for _, id := range []string{
+			"SM.ENERGIZED", // Missing SvPowerFlow
+			"SW.1",         // Missing SvSwitch
+			"SVSC.BAD",     // Non-integer sections
+			"SVTS.BAD",     // Non-integer position
+			"SVV.BAD",      // < 0.4 pu
+		} {
+			if got := len(byID[id]); got == 0 {
+				t.Errorf("%s: expected violation, got none", id)
+			}
+		}
+		logViolations(t, byID)
+	})
+
+	t.Run("600-1", func(t *testing.T) {
+		// Various complex SV SolvedMAS 600-1 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_033_SV_600_SOLVED_SPARQL.xml")
+		byID := indexByID(ValidateAllProfiles(dataset))
+		for _, id := range []string{
+			"S1",                     // Dangling reference
+			"LSC.SYNC.BAD",           // Sync mismatch
+			"RTC.SYNC.BAD",           // Sync mismatch
+			"SM.ENERGIZED.NO_STATUS", // Missing SvStatus
+			"LSC.ENERGIZED.NO_SVSC",  // Missing SvShuntCompensatorSections
+		} {
+			if got := len(byID[id]); got == 0 {
+				t.Errorf("%s: expected violation, got none", id)
+			}
+		}
+		logViolations(t, byID)
+	})
+
+	t.Run("RegulatingControl-600-2", func(t *testing.T) {
+		// Various complex RC SolvedMAS 600-2 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_034_SOLVED_600_2_SPARQL.xml")
+		violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
+		byID := indexByID(violations)
+		if got := len(byID["RC.V.2"]); got != 1 {
+			t.Errorf("RC.V.2: expected 1 violation for contradictory target, got %d: %v", got, byID["RC.V.2"])
+		}
+		if got := len(byID["RC.V.1"]); got == 0 {
+			t.Errorf("RC.V.1: expected violation for machine/tap island mismatch, got none")
+		}
+		logViolations(t, byID)
+	})
 }
 
-func TestValidateSSHSPARQL(t *testing.T) {
+func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 	// Various complex SSH NotSolvedMAS rules.
 	dataset := loadDataset(t, "../testdata/test_shacl_018_SSH_SPARQL.xml")
 
@@ -149,7 +261,7 @@ func TestValidateSSHSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateSSHComplexSPARQL(t *testing.T) {
+func TestValidateSSHProfileSPARQL(t *testing.T) {
 	// Various complex SSH SPARQL rules.
 	dataset := loadDataset(t, "../testdata/test_shacl_019_SSH_COMPLEX_SPARQL.xml")
 
@@ -170,64 +282,99 @@ func TestValidateSSHComplexSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateTopologyNotSolvedMASSPARQL(t *testing.T) {
-	// Terminals at the same TopologicalNode must have consistent phase codes.
-	dataset := loadDataset(t, "../testdata/test_shacl_020_TP_SPARQL.xml")
+func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
+	t.Run("PhaseCodeConsistency", func(t *testing.T) {
+		// Terminals at the same TopologicalNode must have consistent phase codes.
+		dataset := loadDataset(t, "../testdata/test_shacl_020_TP_SPARQL.xml")
+		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
+		if got := len(byID["TN.OK"]); got != 0 {
+			t.Errorf("TN.OK: expected 0 violations, got %d: %v", got, byID["TN.OK"])
+		}
+		if got := len(byID["TN.BAD"]); got != 1 {
+			t.Errorf("TN.BAD: expected 1 violation, got %d: %v", got, byID["TN.BAD"])
+		}
+		logViolations(t, byID)
+	})
 
-	byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
+	t.Run("EXCH8TopologicalNode", func(t *testing.T) {
+		// Terminal.TopologicalNode is required if a RegulatingControl is associated.
+		dataset := loadDataset(t, "../testdata/test_shacl_023_TP_600_SPARQL.xml")
+		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
+		if got := len(byID["Term.OK"]); got != 0 {
+			t.Errorf("Term.OK: expected 0 violations, got %d: %v", got, byID["Term.OK"])
+		}
+		if got := len(byID["Term.BAD"]); got != 1 {
+			t.Errorf("Term.BAD: expected 1 violation, got %d: %v", got, byID["Term.BAD"])
+		}
+		logViolations(t, byID)
+	})
 
-	if got := len(byID["TN.OK"]); got != 0 {
-		t.Errorf("TN.OK: expected 0 violations, got %d: %v", got, byID["TN.OK"])
-	}
-	if got := len(byID["TN.BAD"]); got != 1 {
-		t.Errorf("TN.BAD: expected 1 violation, got %d: %v", got, byID["TN.BAD"])
-	}
-	logViolations(t, byID)
+	t.Run("SameTopologicalNode", func(t *testing.T) {
+		// Terminals of a retained Switch shall not be connected to the same TopologicalNode.
+		dataset := loadDataset(t, "../testdata/test_shacl_031_TP_456_SPARQL.xml")
+		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
+		if got := len(byID["SW.OK"]); got != 0 {
+			t.Errorf("SW.OK: expected 0 violations, got %d: %v", got, byID["SW.OK"])
+		}
+		if got := len(byID["SW.BAD"]); got != 1 {
+			t.Errorf("SW.BAD: expected 1 violation, got %d: %v", got, byID["SW.BAD"])
+		}
+		if got := len(byID["SW.NOT_RETAINED.OK"]); got != 0 {
+			t.Errorf("SW.NOT_RETAINED.OK: expected 0 violations, got %d: %v", got, byID["SW.NOT_RETAINED.OK"])
+		}
+		logViolations(t, byID)
+	})
 }
 
-func TestValidateDynamicsMbaseEquationSPARQL(t *testing.T) {
-	// mwbase must equal RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS.
-	dataset := loadDataset(t, "../testdata/test_shacl_021_DY_SPARQL.xml")
+func TestValidateDynamicsProfileSPARQL(t *testing.T) {
+	t.Run("MbaseEquation", func(t *testing.T) {
+		// mwbase must equal RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS.
+		dataset := loadDataset(t, "../testdata/test_shacl_021_DY_SPARQL.xml")
+		byID := indexByID(ValidateDynamicsProfile(dataset))
+		if got := len(byID["GOV.OK"]); got != 0 {
+			t.Errorf("GOV.OK: expected 0 violations, got %d: %v", got, byID["GOV.OK"])
+		}
+		if got := len(byID["GOV.BAD"]); got != 1 {
+			t.Errorf("GOV.BAD: expected 1 violation, got %d: %v", got, byID["GOV.BAD"])
+		}
+		logViolations(t, byID)
+	})
 
-	byID := indexByID(ValidateDynamicsProfile(dataset))
+	t.Run("ExcitationSystemDynamics", func(t *testing.T) {
+		// ExcitationSystemDynamics.SynchronousMachineDynamics shall not point to a SynchronousMachineSimplified.
+		dataset := loadDataset(t, "../testdata/test_shacl_022_DY_EXC_SPARQL.xml")
+		byID := indexByID(ValidateDynamicsProfile(dataset))
+		if got := len(byID["EXC.OK"]); got != 0 {
+			t.Errorf("EXC.OK: expected 0 violations, got %d: %v", got, byID["EXC.OK"])
+		}
+		if got := len(byID["EXC.BAD"]); got != 1 {
+			t.Errorf("EXC.BAD: expected 1 violation, got %d: %v", got, byID["EXC.BAD"])
+		}
+		logViolations(t, byID)
+	})
 
-	if got := len(byID["GOV.OK"]); got != 0 {
-		t.Errorf("GOV.OK: expected 0 violations, got %d: %v", got, byID["GOV.OK"])
-	}
-	if got := len(byID["GOV.BAD"]); got != 1 {
-		t.Errorf("GOV.BAD: expected 1 violation, got %d: %v", got, byID["GOV.BAD"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateExcitationSystemDynamicsSPARQL(t *testing.T) {
-	// ExcitationSystemDynamics.SynchronousMachineDynamics shall not point to a SynchronousMachineSimplified.
-	dataset := loadDataset(t, "../testdata/test_shacl_022_DY_EXC_SPARQL.xml")
-
-	byID := indexByID(ValidateDynamicsProfile(dataset))
-
-	if got := len(byID["EXC.OK"]); got != 0 {
-		t.Errorf("EXC.OK: expected 0 violations, got %d: %v", got, byID["EXC.OK"])
-	}
-	if got := len(byID["EXC.BAD"]); got != 1 {
-		t.Errorf("EXC.BAD: expected 1 violation, got %d: %v", got, byID["EXC.BAD"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateTopologyEXCH8TopologicalNodeSPARQL(t *testing.T) {
-	// Terminal.TopologicalNode is required if a RegulatingControl is associated.
-	dataset := loadDataset(t, "../testdata/test_shacl_023_TP_600_SPARQL.xml")
-
-	byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
-
-	if got := len(byID["Term.OK"]); got != 0 {
-		t.Errorf("Term.OK: expected 0 violations, got %d: %v", got, byID["Term.OK"])
-	}
-	if got := len(byID["Term.BAD"]); got != 1 {
-		t.Errorf("Term.BAD: expected 1 violation, got %d: %v", got, byID["Term.BAD"])
-	}
-	logViolations(t, byID)
+	t.Run("302", func(t *testing.T) {
+		// Various complex Dynamics 302 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_032_DY_302_SPARQL.xml")
+		byID := indexByID(ValidateDynamicsProfile(dataset))
+		for _, id := range []string{
+			"EXC.AC8B.BAD",
+			"EXC.BBC.BAD",
+			"EXC.DC4B.BAD",
+			"PSS.2ST.BAD",
+			"GOV.H4.SIMPLE.BAD",
+			"GOV.H4.KAPLAN.BAD",
+			"LOAD.STATIC.Z.BAD",
+			"SM.SAT.BAD",
+			"SMS.BAD",
+			"MECH.BAD",
+		} {
+			if got := len(byID[id]); got == 0 {
+				t.Errorf("%s: expected violation, got none", id)
+			}
+		}
+		logViolations(t, byID)
+	})
 }
 
 func TestValidateCommonSPARQL(t *testing.T) {
@@ -257,7 +404,7 @@ func TestValidateCommonSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateRegulatingControlTargetValueTapChangerSPARQL(t *testing.T) {
+func TestValidateEquipmentNotSolvedMASProfileSPARQL(t *testing.T) {
 	// RegulatingControl.targetValue must be within TapChanger capability limits.
 	dataset := loadDataset(t, "../testdata/test_shacl_025_EQ_NOTSOLVED_SPARQL.xml")
 
@@ -272,22 +419,38 @@ func TestValidateRegulatingControlTargetValueTapChangerSPARQL(t *testing.T) {
 	logViolations(t, byID)
 }
 
-func TestValidateEQ452SPARQL(t *testing.T) {
-	// Various complex EQ 452 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_026_EQ_452_SPARQL.xml")
+func TestValidateEquipmentProfileSPARQL(t *testing.T) {
+	t.Run("452", func(t *testing.T) {
+		// Various complex EQ 452 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_026_EQ_452_SPARQL.xml")
+		byID := indexByID(ValidateEquipmentProfile(dataset))
+		if got := len(byID["SW.OK.SAME_VL"]); got != 0 {
+			t.Errorf("SW.OK.SAME_VL: expected 0 violations, got %d: %v", got, byID["SW.OK.SAME_VL"])
+		}
+		if got := len(byID["SW.BAD.DIFF_BV"]); got != 1 {
+			t.Errorf("SW.BAD.DIFF_BV: expected 1 violation, got %d: %v", got, byID["SW.BAD.DIFF_BV"])
+		}
+		if got := len(byID["Line.BAD.SAME_CN"]); got != 1 {
+			t.Errorf("Line.BAD.SAME_CN: expected 1 violation, got %d: %v", got, byID["Line.BAD.SAME_CN"])
+		}
+		logViolations(t, byID)
+	})
 
-	byID := indexByID(ValidateEquipmentProfile(dataset))
-
-	if got := len(byID["SW.OK.SAME_VL"]); got != 0 {
-		t.Errorf("SW.OK.SAME_VL: expected 0 violations, got %d: %v", got, byID["SW.OK.SAME_VL"])
-	}
-	if got := len(byID["SW.BAD.DIFF_BV"]); got != 1 {
-		t.Errorf("SW.BAD.DIFF_BV: expected 1 violation, got %d: %v", got, byID["SW.BAD.DIFF_BV"])
-	}
-	if got := len(byID["Line.BAD.SAME_CN"]); got != 1 {
-		t.Errorf("Line.BAD.SAME_CN: expected 1 violation, got %d: %v", got, byID["Line.BAD.SAME_CN"])
-	}
-	logViolations(t, byID)
+	t.Run("6002", func(t *testing.T) {
+		// Various complex EQ 600-2 SPARQL rules.
+		dataset := loadDataset(t, "../testdata/test_shacl_035_EQ_600_2_SPARQL.xml")
+		byID := indexByID(ValidateEquipmentProfile(dataset))
+		if got := len(byID["global"]); got == 0 {
+			t.Errorf("global: expected violation for substation count, got none")
+		}
+		if got := len(byID["RCC1"]); got != 1 {
+			t.Errorf("RCC1: expected 1 violation for units, got %d: %v", got, byID["RCC1"])
+		}
+		if got := len(byID["RTC1"]); got != 1 {
+			t.Errorf("RTC1: expected 1 violation for neutralU sync, got %d: %v", got, byID["RTC1"])
+		}
+		logViolations(t, byID)
+	})
 }
 
 func TestValidateOperationNotSolvedMASSPARQL(t *testing.T) {
@@ -311,196 +474,6 @@ func TestValidateOperationNotSolvedMASSPARQL(t *testing.T) {
 	}
 	if got := len(byID["MEAS.VOLT.BAD.ABSENT"]); got != 1 {
 		t.Errorf("MEAS.VOLT.BAD.ABSENT: expected 1 violation, got %d: %v", got, byID["MEAS.VOLT.BAD.ABSENT"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateSC452SPARQL(t *testing.T) {
-	// Various complex SC 452 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_028_SC_452_SPARQL.xml")
-
-	byID := indexByID(ValidateShortCircuitProfile(dataset))
-
-	if got := len(byID["SM.OK"]); got != 0 {
-		t.Errorf("SM.OK: expected 0 violations, got %d: %v", got, byID["SM.OK"])
-	}
-	if got := len(byID["SM.BAD"]); got != 1 {
-		t.Errorf("SM.BAD: expected 1 violation, got %d: %v", got, byID["SM.BAD"])
-	}
-	if got := len(byID["PTE.OK"]); got != 0 {
-		t.Errorf("PTE.OK: expected 0 violations, got %d: %v", got, byID["PTE.OK"])
-	}
-	if got := len(byID["PTE.BAD"]); got != 1 {
-		t.Errorf("PTE.BAD: expected 1 violation, got %d: %v", got, byID["PTE.BAD"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateAngleReferenceSPARQL(t *testing.T) {
-	// Priority 1 SM must be at the AngleRefTopologicalNode.
-	dataset := loadDataset(t, "../testdata/test_shacl_029_SOLVED_SPARQL.xml")
-
-	violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
-	byID := indexByID(violations)
-
-	if got := len(byID["SM.OK"]); got != 0 {
-		t.Errorf("SM.OK: expected 0 violations, got %d: %v", got, byID["SM.OK"])
-	}
-	if got := len(byID["SM.BAD.NODE"]); got == 0 {
-		t.Errorf("SM.BAD.NODE: expected violation, got none")
-	}
-	// Check for global violation due to duplicate priority 1 machines
-	foundGlobal := false
-	for _, v := range byID["global"] {
-		if strings.Contains(v.Message, "Multiple machines") {
-			foundGlobal = true
-			break
-		}
-	}
-	if !foundGlobal {
-		t.Errorf("global: expected violation for duplicate priority 1 machines, got %v", byID["global"])
-	}
-	// We expect TN.OTHER to have a violation for missing SvVoltage
-	if got := len(byID["TN.OTHER"]); got == 0 {
-		t.Errorf("TN.OTHER: expected violation for missing SvVoltage, got none")
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateSvStateVariablesSolvedMASSPARQL(t *testing.T) {
-	// Various complex SV SolvedMAS 456 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_030_SV_SOLVED_456_SPARQL.xml")
-
-	byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
-
-	badIDs := []string{
-		"SM.ENERGIZED", // Missing SvPowerFlow
-		"SW.1",         // Missing SvSwitch
-		"SVSC.BAD",     // Non-integer sections
-		"SVTS.BAD",     // Non-integer position
-		"SVV.BAD",      // < 0.4 pu
-	}
-	for _, id := range badIDs {
-		if got := len(byID[id]); got == 0 {
-			t.Errorf("%s: expected violation, got none", id)
-		}
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateTopologySameTopologicalNodeSPARQL(t *testing.T) {
-	// Terminals of a retained Switch shall not be connected to the same TopologicalNode.
-	dataset := loadDataset(t, "../testdata/test_shacl_031_TP_456_SPARQL.xml")
-
-	byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
-
-	if got := len(byID["SW.OK"]); got != 0 {
-		t.Errorf("SW.OK: expected 0 violations, got %d: %v", got, byID["SW.OK"])
-	}
-	if got := len(byID["SW.BAD"]); got != 1 {
-		t.Errorf("SW.BAD: expected 1 violation, got %d: %v", got, byID["SW.BAD"])
-	}
-	if got := len(byID["SW.NOT_RETAINED.OK"]); got != 0 {
-		t.Errorf("SW.NOT_RETAINED.OK: expected 0 violations, got %d: %v", got, byID["SW.NOT_RETAINED.OK"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateDynamics302SPARQL(t *testing.T) {
-	// Various complex Dynamics 302 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_032_DY_302_SPARQL.xml")
-
-	byID := indexByID(ValidateDynamicsProfile(dataset))
-
-	badIDs := []string{
-		"EXC.AC8B.BAD",
-		"EXC.BBC.BAD",
-		"EXC.DC4B.BAD",
-		"PSS.2ST.BAD",
-		"GOV.H4.SIMPLE.BAD",
-		"GOV.H4.KAPLAN.BAD",
-		"LOAD.STATIC.Z.BAD",
-		"SM.SAT.BAD",
-		"SMS.BAD",
-		"MECH.BAD",
-	}
-	for _, id := range badIDs {
-		if got := len(byID[id]); got == 0 {
-			t.Errorf("%s: expected violation, got none", id)
-		}
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateSv600SolvedMASSPARQL(t *testing.T) {
-	// Various complex SV SolvedMAS 600-1 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_033_SV_600_SOLVED_SPARQL.xml")
-
-	byID := indexByID(ValidateAllProfiles(dataset))
-
-	badIDs := []string{
-		"S1",                     // Dangling reference
-		"LSC.SYNC.BAD",           // Sync mismatch
-		"RTC.SYNC.BAD",           // Sync mismatch
-		"SM.ENERGIZED.NO_STATUS", // Missing SvStatus
-		"LSC.ENERGIZED.NO_SVSC",  // Missing SvShuntCompensatorSections
-	}
-	for _, id := range badIDs {
-		if got := len(byID[id]); got == 0 {
-			t.Errorf("%s: expected violation, got none", id)
-		}
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateRegulatingControl6002SPARQL(t *testing.T) {
-	// Various complex RC SolvedMAS 600-2 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_034_SOLVED_600_2_SPARQL.xml")
-
-	violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
-	byID := indexByID(violations)
-
-	if got := len(byID["RC.V.2"]); got != 1 {
-		t.Errorf("RC.V.2: expected 1 violation for contradictory target, got %d: %v", got, byID["RC.V.2"])
-	}
-	if got := len(byID["RC.V.1"]); got == 0 {
-		t.Errorf("RC.V.1: expected violation for machine/tap island mismatch, got none")
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateEQ6002SPARQL(t *testing.T) {
-	// Various complex EQ 600-2 SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_035_EQ_600_2_SPARQL.xml")
-
-	byID := indexByID(ValidateEquipmentProfile(dataset))
-
-	if got := len(byID["global"]); got == 0 {
-		t.Errorf("global: expected violation for substation count, got none")
-	}
-	if got := len(byID["RCC1"]); got != 1 {
-		t.Errorf("RCC1: expected 1 violation for units, got %d: %v", got, byID["RCC1"])
-	}
-	if got := len(byID["RTC1"]); got != 1 {
-		t.Errorf("RTC1: expected 1 violation for neutralU sync, got %d: %v", got, byID["RTC1"])
-	}
-	logViolations(t, byID)
-}
-
-func TestValidateSC6002SPARQL(t *testing.T) {
-	// varistorRatedCurrent and varistorVoltageThreshold are required if SeriesCompensator.varistorPresent is true.
-	dataset := loadDataset(t, "../testdata/test_shacl_036_SC_600_2_SPARQL.xml")
-
-	byID := indexByID(ValidateShortCircuitProfile(dataset))
-
-	if got := len(byID["SC.OK.1"]); got != 0 {
-		t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
-	}
-	if got := len(byID["SC.OK.2"]); got != 0 {
-		t.Errorf("SC.OK.2: expected 0 violations, got %d: %v", got, byID["SC.OK.2"])
-	}
-	if got := len(byID["SC.BAD.REQUIRED"]); got != 2 {
-		t.Errorf("SC.BAD.REQUIRED: expected 2 violations (both missing), got %d: %v", got, byID["SC.BAD.REQUIRED"])
 	}
 	logViolations(t, byID)
 }

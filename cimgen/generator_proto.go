@@ -71,7 +71,7 @@ func (cimSpec *CIMSpecification) setLangTypesProto() {
 
 func MapDataTypeProto(s string, cimSpec *CIMSpecification) string {
 	switch s {
-	case DataTypeString, DataTypeDateTime, DataTypeDate, DataTypeMonthDay:
+	case DataTypeString, DataTypeDateTime, DataTypeDate, DataTypeMonthDay, "URI":
 		return "string"
 	case DataTypeBoolean:
 		return "bool"

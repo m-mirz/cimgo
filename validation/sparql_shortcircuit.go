@@ -2,6 +2,16 @@ package validation
 
 import "cimgo/cimgostructs"
 
+// ValidateShortCircuitProfile runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
+func ValidateShortCircuitProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckSeriesCompensatorVaristorUsage(dataset)...)
+	violations = append(violations, CheckTransformerEndGrounding(dataset)...)
+	violations = append(violations, CheckSynchronousMachineEarthing(dataset)...)
+	violations = append(violations, CheckSeriesCompensatorVaristorRequired(dataset)...)
+	return violations
+}
+
 // CheckSeriesCompensatorVaristorUsage implements scc.SeriesCompensator.varistorRatedCurrent-usage and scc.SeriesCompensator.varistorVoltageThreshold-usage
 // Profile: 61970-301_ShortCircuit-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.

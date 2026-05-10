@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// ValidateEquipmentBoundaryProfile runs hand-written checks for 61970-301_EquipmentBoundary.
+func ValidateEquipmentBoundaryProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	return CheckBoundaryPointTieFlow(dataset)
+}
+
 // CheckBoundaryPointTieFlow implements eqbdn301:BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow
 // Profile: 61970-301_EquipmentBoundary-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.

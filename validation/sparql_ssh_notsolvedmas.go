@@ -6,6 +6,31 @@ import (
 	"strings"
 )
 
+// ValidateSSHNotSolvedMASProfile runs hand-written checks for
+// 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL and
+// 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
+func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckLinearShuntCompensatorSectionsRange(dataset)...)
+	violations = append(violations, CheckNonlinearShuntCompensatorSectionsValid(dataset)...)
+	violations = append(violations, CheckShuntCompensatorSectionsInteger(dataset)...)
+	violations = append(violations, CheckRegulatingControlPowerFactorRequiredAttrs(dataset)...)
+	violations = append(violations, CheckTapChangerStepInteger(dataset)...)
+	violations = append(violations, CheckCsConverterTargetAlphaApplicability(dataset)...)
+	violations = append(violations, CheckCsConverterTargetGammaApplicability(dataset)...)
+	violations = append(violations, CheckControlAreaNetInterchangeCalculation(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulation(dataset)...)
+	violations = append(violations, CheckRotatingMachinePLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineQLimits(dataset)...)
+	violations = append(violations, CheckSynchronousMachineOperatingModeMatch(dataset)...)
+	violations = append(violations, CheckGeneratingUnitSingleActivePowerSlack(dataset)...)
+	violations = append(violations, CheckExternalNetworkInjectionLimits(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineCurveLimits(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValuePositive(dataset)...)
+	return violations
+}
+
 // CheckLinearShuntCompensatorSectionsRange implements sshcns.ShuntCompensator.sections-valueLinear
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
@@ -361,7 +386,9 @@ func CheckRotatingMachinePLimits(dataset *cimgostructs.CIMElementList) []Violati
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		var p float64
-		var guRef *struct{ MRID string `xml:"resource,attr"` }
+		var guRef *struct {
+			MRID string `xml:"resource,attr"`
+		}
 
 		if sm, ok := obj.(*cimgostructs.SynchronousMachine); ok {
 			p, guRef = sm.P, sm.GeneratingUnit
@@ -468,13 +495,15 @@ func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimgostructs.CIMElementL
 	var violations []Violation
 	// Rule: one generator has GeneratingUnit.normalPF set to a highest value (non-zero) and all other generating units have a zero GeneratingUnit.normalPF.
 	// Actually, this is per ControlArea.
-	
+
 	caSlacks := make(map[string][]string) // ControlArea ID -> []GeneratingUnit ID
 	for _, cagu := range dataset.ControlAreaGeneratingUnits {
-		if cagu.ControlArea == nil || cagu.GeneratingUnit == nil { continue }
+		if cagu.ControlArea == nil || cagu.GeneratingUnit == nil {
+			continue
+		}
 		caID := strings.TrimPrefix(cagu.ControlArea.MRID, "#")
 		guID := strings.TrimPrefix(cagu.GeneratingUnit.MRID, "#")
-		
+
 		gu, ok := dataset.GeneratingUnits[guID]
 		if ok && gu.NormalPF > 0 {
 			caSlacks[caID] = append(caSlacks[caID], guID)

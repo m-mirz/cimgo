@@ -7,6 +7,25 @@ import (
 	"strings"
 )
 
+// ValidateCommonRulesSolvedMASProfile runs hand-written checks for common rules that require solved MAS, i.e. 61970-301-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL.
+func ValidateCommonRulesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	// Profile: 61970-456_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
+	violations = append(violations, CheckAngleReference(dataset)...)
+	// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
+	violations = append(violations, CheckDanglingReferences(dataset)...)
+	violations = append(violations, CheckSvTapStepPositionSync(dataset)...)
+	violations = append(violations, CheckSvShuntCompensatorSectionsSync(dataset)...)
+	violations = append(violations, CheckStateVariablesInstantiated(dataset)...)
+	// and some rules that apply also to StateVariables SolvedMAS profile
+	// TODO refactor to avoid duplication with ValidateStateVariablesProfile
+	violations = append(violations, CheckSvStateVariablesInstance(dataset)...)
+	// Profile: 61970-600-2_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
+	violations = append(violations, CheckRegulatingControlContradictory(dataset)...)
+	violations = append(violations, CheckRegulatingControlSameIsland(dataset)...)
+	return violations
+}
+
 // CheckAngleReference implements sm456:Model-angleReference
 // Profile: 61970-456_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
@@ -81,7 +100,7 @@ func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // CheckDanglingReferences implements sm600:All-DanglingReferences
-// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SHACL
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
 // Origin: Derived from a SPARQL constraint.
 // Description: All references in the instance files pointing to other instance files should be satisfied.
 func CheckDanglingReferences(dataset *cimgostructs.CIMElementList) []Violation {
@@ -142,13 +161,14 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 		found := false
 		for _, svv := range dataset.SvVoltages {
 			if svv.TopologicalNode != nil && strings.TrimPrefix(svv.TopologicalNode.MRID, "#") == tnID {
-				found = true; break
+				found = true
+				break
 			}
 		}
 		if !found {
 			violations = append(violations, Violation{
 				ObjectID: tnID, Class: "TopologicalNode", Property: "rdf:type",
-				Message: fmt.Sprintf("SvVoltage is not instantiated for energized TopologicalNode part of island %s.", islandID),
+				Message:  fmt.Sprintf("SvVoltage is not instantiated for energized TopologicalNode part of island %s.", islandID),
 				Severity: "sh.Violation",
 			})
 		}
@@ -156,184 +176,74 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 
 	// 2. Check SvSwitch for all energized retained switches
 	for id, sw := range dataset.Switchs {
-		if !sw.Retained || !sw.InService { continue }
+		if !sw.Retained || !sw.InService {
+			continue
+		}
 		// Check if it's energized (at least one terminal connected to an island)
 		energized := false
 		for _, term := range dataset.Terminals {
 			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
 				if term.TopologicalNode != nil {
 					tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
-					if _, ok := tnToIsland[tnID]; ok { energized = true; break }
+					if _, ok := tnToIsland[tnID]; ok {
+						energized = true
+						break
+					}
 				}
 			}
 		}
-		if !energized { continue }
+		if !energized {
+			continue
+		}
 
 		found := false
 		for _, svsw := range dataset.SvSwitchs {
 			if svsw.Switch != nil && strings.TrimPrefix(svsw.Switch.MRID, "#") == id {
-				found = true; break
+				found = true
+				break
 			}
 		}
 		if !found {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: "Switch", Property: "rdf:type",
-				Message: "SvSwitch not instantiated for energized retained Switch.",
+				Message:  "SvSwitch not instantiated for energized retained Switch.",
 				Severity: "sh.Violation",
 			})
 		}
 	}
 
-	// 3. Check SvStatus for all energized elements
-	// ... similar logic ...
-
-	return violations
-}
-
-// CheckSvPowerFlowPLimits implements svs456:SvPowerFlow.p-synchronousMachine
-// Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
-// Origin: Derived from a SPARQL constraint.
-// Description: SvPowerFlow.p should be within the min/max operating power limits of the associated machine.
-func CheckSvPowerFlowPLimits(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-
-	for id, svpf := range dataset.SvPowerFlows {
-		if svpf.Terminal == nil {
-			continue
-		}
-		termID := strings.TrimPrefix(svpf.Terminal.MRID, "#")
-		term, ok := dataset.Terminals[termID]
-		if !ok || term.ConductingEquipment == nil {
-			continue
-		}
-
-		eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-		sm, ok := dataset.SynchronousMachines[eqID]
-		if !ok || sm.GeneratingUnit == nil {
-			continue
-		}
-
-		guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
-		gu, ok := dataset.GeneratingUnits[guID]
-		if !ok {
-			continue
-		}
-
-		// Simplified check against min/max operating P
-		if svpf.P < gu.MinOperatingP || svpf.P > gu.MaxOperatingP {
-			violations = append(violations, Violation{
-				ObjectID: id,
-				Class:    "SvPowerFlow",
-				Property: "SvPowerFlow.p",
-				Message:  fmt.Sprintf("Active power (%v) is outside of the range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.P, gu.MinOperatingP, gu.MaxOperatingP, sm.Id),
-				Severity: "sh.Warning",
-			})
-		}
-	}
-	return violations
-}
-
-// CheckSvPowerFlowQLimits implements svs456:SvPowerFlow.q-synchronousMachine
-// Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
-// Origin: Derived from a SPARQL constraint.
-// Description: SvPowerFlow.q should be within the reactive capability limits of the associated machine.
-func CheckSvPowerFlowQLimits(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-
-	for id, svpf := range dataset.SvPowerFlows {
-		if svpf.Terminal == nil {
-			continue
-		}
-		termID := strings.TrimPrefix(svpf.Terminal.MRID, "#")
-		term, ok := dataset.Terminals[termID]
-		if !ok || term.ConductingEquipment == nil {
-			continue
-		}
-
-		eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-		sm, ok := dataset.SynchronousMachines[eqID]
-		if !ok {
-			continue
-		}
-
-		minQ := sm.MinQ
-		maxQ := sm.MaxQ
-
-		// If curve is present, we should ideally check against it, but simplified check uses minQ/maxQ for now.
-		if sm.InitialReactiveCapabilityCurve != nil {
-			// Find all CurveData for this curve
-			rccID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
-			var y1vals, y2vals []float64
-			for _, cdObj := range dataset.Elements {
-				if cd, ok := cdObj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
-					if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
-						y1vals = append(y1vals, cd.Y1value)
-						y2vals = append(y2vals, cd.Y2value)
+	// 3. Check SvStatus for all energized ConductingEquipment
+	for id, obj := range dataset.Elements {
+		energized := false
+		for _, term := range dataset.Terminals {
+			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
+				if term.TopologicalNode != nil {
+					tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
+					if _, ok := tnToIsland[tnID]; ok {
+						energized = true
+						break
 					}
 				}
 			}
-			if len(y1vals) > 0 {
-				minQ = y1vals[0]
-				for _, v := range y1vals { if v < minQ { minQ = v } }
-				maxQ = y2vals[0]
-				for _, v := range y2vals { if v > maxQ { maxQ = v } }
+		}
+		if !energized {
+			continue
+		}
+
+		found := false
+		for _, svs := range dataset.SvStatuss {
+			if svs.ConductingEquipment != nil && strings.TrimPrefix(svs.ConductingEquipment.MRID, "#") == id {
+				found = true
+				break
 			}
 		}
-
-		if svpf.Q < minQ || svpf.Q > maxQ {
+		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id,
-				Class:    "SvPowerFlow",
-				Property: "SvPowerFlow.q",
-				Message:  fmt.Sprintf("Reactive power (%v) is outside of the capability range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.Q, minQ, maxQ, sm.Id),
-				Severity: "sh.Warning",
-			})
-		}
-	}
-	return violations
-}
-
-// CheckSvVoltageLimits implements svs456:SvVoltage.v-limits and SvVoltage.v-absoluteLimit
-// Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
-// Origin: Derived from a SPARQL constraint.
-// Description: Validates SvVoltage.v against defined voltage limits and absolute 0.4 pu limit.
-func CheckSvVoltageLimits(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
-
-	for id, svv := range dataset.SvVoltages {
-		if svv.TopologicalNode == nil {
-			continue
-		}
-		tnID := strings.TrimPrefix(svv.TopologicalNode.MRID, "#")
-		tn, ok := dataset.TopologicalNodes[tnID]
-		if !ok || tn.BaseVoltage == nil {
-			continue
-		}
-		bvID := strings.TrimPrefix(tn.BaseVoltage.MRID, "#")
-		bv, ok := dataset.BaseVoltages[bvID]
-		if !ok {
-			continue
-		}
-
-		v := svv.V
-		nomV := bv.NominalVoltage
-
-		// 1. Absolute Limit 0.4 pu
-		if v/nomV <= 0.4 {
-			// But only if no other limits are defined (simplified check)
-			violations = append(violations, Violation{
-				ObjectID: id,
-				Class:    "SvVoltage",
-				Property: "SvVoltage.v",
-				Message:  fmt.Sprintf("The value (%v) is <=0.4 pu of nominal voltage (%v).", v, nomV),
+				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				Message:  "SvStatus is not instantiated for energized ConductingEquipment.",
 				Severity: "sh.Violation",
 			})
 		}
-
-		// 2. Defined limits (high/low Voltage)
-		// Find terminals connected to this TN, and then their limit sets
-		// This is complex to implement exactly as SPARQL in Go without deep indexing.
-		// For now, we omit the detailed limit check unless we find limit sets.
 	}
 
 	return violations
@@ -367,7 +277,7 @@ func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) [
 		if len(ids) < 2 {
 			continue
 		}
-		
+
 		val0 := dataset.RegulatingControls[ids[0]].TargetValue
 		for i := 1; i < len(ids); i++ {
 			if dataset.RegulatingControls[ids[i]].TargetValue != val0 {
@@ -376,6 +286,128 @@ func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) [
 					Class:    "RegulatingControl",
 					Property: "RegulatingControl.targetValue",
 					Message:  fmt.Sprintf("Enabled RegulatingControl-s of the same type associated with the same TopologicalNode have different target values. RegulatingControl ID: %s.", ids[i]),
+					Severity: "sh.Violation",
+				})
+			}
+		}
+	}
+
+	return violations
+}
+
+// CheckSvShuntCompensatorSectionsSync implements mas600:SvShuntCompensatorSections.sections-SV__4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvShuntCompensatorSections.sections shall be the same as ShuntCompensator.sections for non-regulating shunt compensators.
+func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	for _, svsc := range dataset.SvShuntCompensatorSectionss {
+		if svsc.ShuntCompensator == nil {
+			continue
+		}
+		scID := strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#")
+		scObj, ok := dataset.Elements[scID]
+		if !ok {
+			continue
+		}
+
+		var controlEnabled bool
+		rcEnabled := true
+		var sections float64
+
+		switch v := scObj.(type) {
+		case *cimgostructs.LinearShuntCompensator:
+			controlEnabled = v.ControlEnabled
+			sections = v.Sections
+			if v.RegulatingControl != nil {
+				rcID := strings.TrimPrefix(v.RegulatingControl.MRID, "#")
+				if rc, ok := dataset.RegulatingControls[rcID]; ok {
+					rcEnabled = rc.Enabled
+				}
+			}
+		case *cimgostructs.NonlinearShuntCompensator:
+			controlEnabled = v.ControlEnabled
+			sections = v.Sections
+			if v.RegulatingControl != nil {
+				rcID := strings.TrimPrefix(v.RegulatingControl.MRID, "#")
+				if rc, ok := dataset.RegulatingControls[rcID]; ok {
+					rcEnabled = rc.Enabled
+				}
+			}
+		default:
+			continue
+		}
+
+		inService := false
+		for _, svs := range dataset.SvStatuss {
+			if svs.ConductingEquipment != nil && strings.TrimPrefix(svs.ConductingEquipment.MRID, "#") == scID {
+				inService = svs.InService
+				break
+			}
+		}
+		if !inService {
+			continue
+		}
+
+		if !controlEnabled || !rcEnabled {
+			if svsc.Sections != sections {
+				violations = append(violations, Violation{
+					ObjectID: scID, Class: goTypeName(scObj), Property: "ShuntCompensator.sections",
+					Message:  fmt.Sprintf("SvShuntCompensatorSections.sections (%v) is not the same as ShuntCompensator.sections (%v) for non-regulating ShuntCompensator.", svsc.Sections, sections),
+					Severity: "sh.Violation",
+				})
+			}
+		}
+	}
+
+	return violations
+}
+
+// CheckSvTapStepPositionSync implements mas600:SvTapStep.position-SV__4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvTapStep.position shall be the same as TapChanger.step for non-regulating tap changers.
+func CheckSvTapStepPositionSync(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	for _, svts := range dataset.SvTapSteps {
+		if svts.TapChanger == nil {
+			continue
+		}
+		tcID := strings.TrimPrefix(svts.TapChanger.MRID, "#")
+		tcObj, ok := dataset.Elements[tcID]
+		if !ok {
+			continue
+		}
+
+		var controlEnabled bool
+		rcEnabled := true
+		var step float64
+
+		val := reflect.ValueOf(tcObj)
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+
+		if f := val.FieldByName("ControlEnabled"); f.IsValid() {
+			controlEnabled = f.Bool()
+		}
+		if f := val.FieldByName("Step"); f.IsValid() {
+			step = f.Float()
+		}
+		if f := val.FieldByName("TapChangerControl"); f.IsValid() && !f.IsNil() {
+			tccID := strings.TrimPrefix(f.Elem().FieldByName("MRID").String(), "#")
+			if tcc, ok := dataset.TapChangerControls[tccID]; ok {
+				rcEnabled = tcc.Enabled
+			}
+		}
+
+		if !controlEnabled || !rcEnabled {
+			if svts.Position != step {
+				violations = append(violations, Violation{
+					ObjectID: tcID, Class: goTypeName(tcObj), Property: "TapChanger.step",
+					Message:  fmt.Sprintf("SvTapStep.position (%v) is not the same as TapChanger.step (%v) for non-regulating TapChanger.", svts.Position, step),
 					Severity: "sh.Violation",
 				})
 			}
@@ -438,27 +470,40 @@ func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Vi
 
 		// 2. TapChangers
 		for tcID, obj := range dataset.Elements {
-			var tcc *struct{ MRID string "xml:\"resource,attr\"" }
+			var tcc *struct {
+				MRID string "xml:\"resource,attr\""
+			}
 			var teID string
 			class := ""
 
 			switch v := obj.(type) {
 			case *cimgostructs.RatioTapChanger:
 				tcc, class = v.TapChangerControl, "RatioTapChanger"
-				if v.TransformerEnd != nil { teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#") }
+				if v.TransformerEnd != nil {
+					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
+				}
 			case *cimgostructs.PhaseTapChangerLinear:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerLinear"
-				if v.TransformerEnd != nil { teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#") }
+				if v.TransformerEnd != nil {
+					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
+				}
 			case *cimgostructs.PhaseTapChangerSymmetrical:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerSymmetrical"
-				if v.TransformerEnd != nil { teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#") }
+				if v.TransformerEnd != nil {
+					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
+				}
 			case *cimgostructs.PhaseTapChangerAsymmetrical:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerAsymmetrical"
-				if v.TransformerEnd != nil { teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#") }
+				if v.TransformerEnd != nil {
+					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
+				}
 			case *cimgostructs.PhaseTapChangerTabular:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerTabular"
-				if v.TransformerEnd != nil { teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#") }
-			default: continue
+				if v.TransformerEnd != nil {
+					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
+				}
+			default:
+				continue
 			}
 
 			if tcc != nil && strings.TrimPrefix(tcc.MRID, "#") == id {

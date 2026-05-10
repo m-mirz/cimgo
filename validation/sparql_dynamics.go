@@ -8,6 +8,24 @@ import (
 	"strings"
 )
 
+// ValidateDynamicsProfile runs hand-written checks for
+// 61970-457_Dynamics-AP-Con-Complex-SHACL and
+// 61970-302_Dynamics-AP-Con-Complex-SHACL.
+func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
+	violations = append(violations, CheckSynchronousMachineTimeConstantReactanceModelType(dataset)...)
+	violations = append(violations, CheckTurbineGovernorMbaseEquation(dataset)...)
+	violations = append(violations, CheckExcitationSystemGains(dataset)...)
+	violations = append(violations, CheckPssInputSignals(dataset)...)
+	violations = append(violations, CheckGovHydro4GainPoints(dataset)...)
+	violations = append(violations, CheckLoadStaticModelAttributes(dataset)...)
+	violations = append(violations, CheckRotatingMachineSaturation(dataset)...)
+	violations = append(violations, CheckSynchronousMachineSimplifiedAttributes(dataset)...)
+	violations = append(violations, CheckDynamicsAssociations(dataset)...)
+	return violations
+}
+
 // CheckExcitationSystemDynamicsSynchronousMachineDynamics implements dy457:ExcitationSystemDynamics.SynchronousMachineDynamicsSynchronousMachineSimplified-valueType
 // Profile: 61970-457_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
@@ -15,7 +33,7 @@ import (
 func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {		// Using reflect to check if it's a subtype of ExcitationSystemDynamics
+	for id, obj := range dataset.Elements { // Using reflect to check if it's a subtype of ExcitationSystemDynamics
 		typeName := goTypeName(obj)
 		if !strings.HasPrefix(typeName, "Exc") {
 			continue
@@ -475,7 +493,7 @@ func CheckDynamicsAssociations(dataset *cimgostructs.CIMElementList) []Violation
 
 		smdField := val.FieldByName("SynchronousMachineDynamics")
 		amdField := val.FieldByName("AsynchronousMachineDynamics")
-		
+
 		// If both fields exist but both are nil, then it is a violation
 		if smdField.IsValid() && amdField.IsValid() {
 			if smdField.IsNil() && amdField.IsNil() {

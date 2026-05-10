@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+// ValidateEquipmentNotSolvedMASProfile runs hand-written checks for
+// 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
+func ValidateEquipmentNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValueTapChanger(dataset)...)
+	violations = append(violations, CheckACLineSegmentBaseVoltageDiff(dataset)...)
+	violations = append(violations, CheckBoundaryPointBppl(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset)...)
+	return violations
+}
+
 // CheckACLineSegmentBaseVoltage implements eqcns.ACLineSegment-baseVoltage
 // Profile: 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
@@ -212,7 +224,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimgostructs.CIMElementList) []V
 		if !ok1v || !ok2v {
 			continue
 		}
-		
+
 		diff := 0.0
 		if v1 < v2 {
 			diff = (v2 - v1) / v1
@@ -256,7 +268,9 @@ func CheckBoundaryPointBppl(dataset *cimgostructs.CIMElementList) []Violation {
 
 		for _, tObj := range dataset.Elements {
 			if t, ok := tObj.(*cimgostructs.Terminal); ok && t.ConnectivityNode != nil && strings.TrimPrefix(t.ConnectivityNode.MRID, "#") == cnID {
-				if t.ConductingEquipment == nil { continue }
+				if t.ConductingEquipment == nil {
+					continue
+				}
 				eqID := strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
 				eq, ok := dataset.Elements[eqID]
 				if !ok {
@@ -266,10 +280,18 @@ func CheckBoundaryPointBppl(dataset *cimgostructs.CIMElementList) []Violation {
 					hasEqInjection = true
 				}
 				// Check if it's two-terminal
-				if _, ok := eq.(*cimgostructs.ACLineSegment); ok { hasTwoTerminalEq = true }
-				if _, ok := eq.(*cimgostructs.PowerTransformer); ok { hasTwoTerminalEq = true }
-				if _, ok := eq.(*cimgostructs.Breaker); ok { hasTwoTerminalEq = true }
-				if _, ok := eq.(*cimgostructs.Disconnector); ok { hasTwoTerminalEq = true }
+				if _, ok := eq.(*cimgostructs.ACLineSegment); ok {
+					hasTwoTerminalEq = true
+				}
+				if _, ok := eq.(*cimgostructs.PowerTransformer); ok {
+					hasTwoTerminalEq = true
+				}
+				if _, ok := eq.(*cimgostructs.Breaker); ok {
+					hasTwoTerminalEq = true
+				}
+				if _, ok := eq.(*cimgostructs.Disconnector); ok {
+					hasTwoTerminalEq = true
+				}
 			}
 		}
 
@@ -318,7 +340,8 @@ func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimgostructs.C
 					for _, bpObj := range dataset.Elements {
 						if bp, ok := bpObj.(*cimgostructs.BoundaryPoint); ok && bp.ConnectivityNode != nil && strings.TrimPrefix(bp.ConnectivityNode.MRID, "#") == cnID {
 							if !bp.IsDirectCurrent {
-								isNonHVDCBP = true; break
+								isNonHVDCBP = true
+								break
 							}
 						}
 					}

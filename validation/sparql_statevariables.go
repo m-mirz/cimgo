@@ -2,6 +2,16 @@ package validation
 
 import "cimgo/cimgostructs"
 
+// ValidateStateVariablesProfile runs hand-written checks for
+// 61970-301_StateVariables-AP-Con-Complex-SHACL and
+// 61970-456_StateVariables-AP-Con-Complex-SHACL.
+func ValidateStateVariablesProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckCsConverterStateValueRange(dataset)...)
+	violations = append(violations, CheckTopologicalIslandCount(dataset)...)
+	return violations
+}
+
 // CheckCsConverterStateValueRange implements svc.CsConverter.alpha/gamma-valueRangeTypical
 // Profile: 61970-301_StateVariables-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.

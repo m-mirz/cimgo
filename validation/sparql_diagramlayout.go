@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// ValidateDiagramLayoutProfile runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
+func ValidateDiagramLayoutProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	return CheckDiagramObjectIdentifiedObjectType(dataset)
+}
+
 // CheckDiagramObjectIdentifiedObjectType implements dlc.DiagramObject.IdentifiedObject-DLvalueType
 // Profile: 61970-301_DiagramLayout-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.

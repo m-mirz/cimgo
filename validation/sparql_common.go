@@ -8,6 +8,23 @@ import (
 	"strings"
 )
 
+// ValidateCommonRules runs hand-written checks for common rules (all600, io).
+func ValidateCommonRules(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	// Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
+	violations = append(violations, CheckIdentifiedObjectStringLengths(dataset)...)
+	// Profile: 61970-600-1_AllProfiles-AP-Con-Complex
+	violations = append(violations, CheckFloatSpecialValues(dataset)...)
+	violations = append(violations, CheckModelDateTimeUTC(dataset)...)
+	violations = append(violations, CheckMRIDUniqueness(dataset)...)
+	violations = append(violations, CheckIDUUID(dataset)...)
+	violations = append(violations, CheckIDDeprecated(dataset)...)
+	violations = append(violations, CheckModelingAuthoritySetNotEmpty(dataset)...)
+	// Complex SHACL rules that don't fit into a single attribute constraint
+	violations = append(violations, CheckFileHeaderExists(dataset)...)
+	return violations
+}
+
 // CheckMRIDUniqueness implements all600:All-GENC1
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
@@ -209,25 +226,25 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 
 		for i := 0; i < val.NumField(); i++ {
 			field := val.Field(i)
-            if field.Kind() == reflect.Struct {
-                // Check embedded struct fields (one level for Conductor in ACLineSegment)
-                for j := 0; j < field.NumField(); j++ {
-                    subField := field.Field(j)
-                    if subField.Kind() == reflect.Float64 || subField.Kind() == reflect.Float32 {
-                        f := subField.Float()
-                        if math.IsNaN(f) || math.IsInf(f, 0) {
-                            violations = append(violations, Violation{
-                                ObjectID: id,
-                                Class:    goTypeName(obj),
-                                Property: field.Type().Field(j).Name,
-                                Message:  "INF or NaN used in an attribute defined as float.",
-                                Severity: "sh.Violation",
-                            })
-                        }
-                    }
-                }
-                continue
-            }
+			if field.Kind() == reflect.Struct {
+				// Check embedded struct fields (one level for Conductor in ACLineSegment)
+				for j := 0; j < field.NumField(); j++ {
+					subField := field.Field(j)
+					if subField.Kind() == reflect.Float64 || subField.Kind() == reflect.Float32 {
+						f := subField.Float()
+						if math.IsNaN(f) || math.IsInf(f, 0) {
+							violations = append(violations, Violation{
+								ObjectID: id,
+								Class:    goTypeName(obj),
+								Property: field.Type().Field(j).Name,
+								Message:  "INF or NaN used in an attribute defined as float.",
+								Severity: "sh.Violation",
+							})
+						}
+					}
+				}
+				continue
+			}
 			if field.Kind() == reflect.Float64 || field.Kind() == reflect.Float32 {
 				f := field.Float()
 				if math.IsNaN(f) || math.IsInf(f, 0) {
@@ -331,7 +348,7 @@ func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []
 
 // CheckFileHeaderExists implements all600:All-HGEN2
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
-// Origin: Derived from a SPARQL constraint.
+// Origin: Derived from a complex SHACL constraint.
 // Description: Each type of instance file (full or difference) shall have a file header.
 func CheckFileHeaderExists(dataset *cimgostructs.CIMElementList) []Violation {
 	if len(dataset.FullModels) == 0 && len(dataset.DifferenceModels) == 0 {

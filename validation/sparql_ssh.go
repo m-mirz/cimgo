@@ -2,6 +2,27 @@ package validation
 
 import "cimgo/cimgostructs"
 
+// ValidateSSHProfile runs hand-written checks for
+// 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL and
+// 61970-456_SteadyStateHypothesis-AP-Con-Complex-SHACL.
+func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckEnergySourceActivePowerConsumer(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetDeadbandApplicability(dataset)...)
+	violations = append(violations, CheckCsConverterValueRange(dataset)...)
+	violations = append(violations, CheckCsConverterPPccControl(dataset)...)
+	violations = append(violations, CheckVsConverterPPccControl(dataset)...)
+	violations = append(violations, CheckVsConverterQPccControl(dataset)...)
+	violations = append(violations, CheckEnergySourcePQ(dataset)...)
+	violations = append(violations, CheckSynchronousMachineOperatingModeMatch(dataset)...)
+	violations = append(violations, CheckGeneratingUnitSingleActivePowerSlack(dataset)...)
+	violations = append(violations, CheckExternalNetworkInjectionLimits(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionLimits(dataset)...)
+	violations = append(violations, CheckRotatingMachineCurveLimits(dataset)...)
+	violations = append(violations, CheckRegulatingControlTargetValuePositive(dataset)...)
+	return violations
+}
+
 // CheckEnergySourceActivePowerConsumer implements sshc.EnergySource.activePower-consumer
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.

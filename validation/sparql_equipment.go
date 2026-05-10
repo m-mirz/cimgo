@@ -7,6 +7,73 @@ import (
 	"strings"
 )
 
+// ValidateEquipmentProfile runs hand-written checks for 61970-301_Equipment-AP-Con-Complex-SHACL.
+func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+	violations = append(violations, CheckACDCTerminalSequenceNumbering(dataset)...)
+	violations = append(violations, CheckTerminalPhasesConsistencyEquipment(dataset)...)
+	violations = append(violations, CheckConductingEquipmentBaseVoltageUsage(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndNumberUnique(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndTerminalConsistency(dataset)...)
+	violations = append(violations, CheckOperationalLimitTypeDuration(dataset)...)
+	violations = append(violations, CheckPowerTransformerTwoWindingEndValues(dataset)...)
+	violations = append(violations, CheckPhaseTapChangerLinearXMinConsistency(dataset)...)
+	violations = append(violations, CheckPhaseTapChangerNonLinearXMinConsistency(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndRatedS2Winding(dataset)...)
+	violations = append(violations, CheckPowerTransformerBaseVoltageAssociation(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndRValueRange(dataset)...)
+	violations = append(violations, CheckRegulatingControlTerminalConnectivityNode(dataset)...)
+	violations = append(violations, CheckTapChangerLtcFlagControl(dataset)...)
+	violations = append(violations, CheckLoadResponseCharacteristicExponentModel(dataset)...)
+	violations = append(violations, CheckNonlinearShuntCompensatorPointCount(dataset)...)
+	violations = append(violations, CheckShuntCompensatorNomU(dataset)...)
+	violations = append(violations, CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndRatedUValueRange(dataset)...)
+	violations = append(violations, CheckVoltageLimitPATL(dataset)...)
+	violations = append(violations, CheckDCConverterUnitTapChangerControl(dataset)...)
+	violations = append(violations, CheckConnectivityNodeTerminalPhasesConsistency(dataset)...)
+	violations = append(violations, CheckEquipmentAggregateNotUsed(dataset)...)
+	violations = append(violations, CheckEquivalentBranchR21Usage(dataset)...)
+	violations = append(violations, CheckEquivalentBranchX21Usage(dataset)...)
+	violations = append(violations, CheckEquivalentInjectionRegulationCapability(dataset)...)
+	violations = append(violations, CheckGeneratingUnitNominalP(dataset)...)
+	violations = append(violations, CheckControlAreaGeneratingUnitInstance(dataset)...)
+	violations = append(violations, CheckDCConverterUnitCsConverterPowerTransformer(dataset)...)
+	violations = append(violations, CheckLimitKindPATLNumberOfLimitType(dataset)...)
+	violations = append(violations, CheckLimitKindTCDuration(dataset)...)
+
+	// EQ 452 & 600 additions
+	violations = append(violations, CheckSynchronousMachineAggregate(dataset)...)
+	violations = append(violations, CheckAsynchronousMachineAggregate(dataset)...)
+	violations = append(violations, CheckSynchronousMachineControlMode(dataset)...)
+	violations = append(violations, CheckStaticVarCompensatorControlMode(dataset)...)
+	violations = append(violations, CheckPhaseTapChangerControlMode(dataset)...)
+	violations = append(violations, CheckRatioTapChangerControlMode(dataset)...)
+	violations = append(violations, CheckShuntCompensatorControlMode(dataset)...)
+	violations = append(violations, CheckSynchronousMachineReactiveLimits(dataset)...)
+	violations = append(violations, CheckSynchronousMachineTypeCondenser(dataset)...)
+	violations = append(violations, CheckVsCapabilityCurveCount(dataset)...)
+	violations = append(violations, CheckVsCapabilityCurveYValues(dataset)...)
+	violations = append(violations, CheckGeneratingUnitTypeDependency(dataset)...)
+	violations = append(violations, CheckCurveDataReactiveCapabilityLimits(dataset)...)
+	violations = append(violations, CheckCurveDataReactiveConsistency(dataset)...)
+	violations = append(violations, CheckSynchronousMachineCurveXValueConsistency(dataset)...)
+	violations = append(violations, CheckSwitchConnection(dataset)...)
+	violations = append(violations, CheckOperationalLimitSetTerminal(dataset)...)
+	violations = append(violations, CheckTapChangerControlRemoteQControl(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveXValueUnique(dataset)...)
+	violations = append(violations, CheckPowerTransformerEndResistanceXValue(dataset)...)
+	violations = append(violations, CheckGeneratingUnitMaxOperatingPRatedS(dataset)...)
+	violations = append(violations, CheckHydroGeneratingUnitEnergyConversionCapability(dataset)...)
+	violations = append(violations, CheckTerminalConnectionSameNode(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveReactiveCountP(dataset)...)
+	violations = append(violations, CheckReactiveCapabilityCurveUnits(dataset)...)
+	violations = append(violations, CheckSubstationCount(dataset)...)
+	violations = append(violations, CheckTapChangerNeutralUValueRange(dataset)...)
+
+	return violations
+}
+
 // CheckACDCTerminalSequenceNumbering implements eqc.ACDCTerminal.sequenceNumber-numbering
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
@@ -2219,7 +2286,8 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 		for _, auxObj := range dataset.Elements {
 			if aux, ok := auxObj.(*cimgostructs.CurrentTransformer); ok && aux.Terminal != nil {
 				if strings.TrimPrefix(aux.Terminal.MRID, "#") == tID {
-					isAux = true; break
+					isAux = true
+					break
 				}
 			}
 			// ... other aux eq
@@ -2242,7 +2310,8 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 			for _, tObj := range dataset.Elements {
 				if t, ok := tObj.(*cimgostructs.Terminal); ok && t.ConductingEquipment != nil {
 					if strings.TrimPrefix(t.ConductingEquipment.MRID, "#") == eqID && t.Id == tID {
-						found = true; break
+						found = true
+						break
 					}
 				}
 			}
@@ -2456,7 +2525,9 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimgostructs.CI
 		for _, smObj := range dataset.Elements {
 			if sm, ok := smObj.(*cimgostructs.SynchronousMachine); ok && sm.GeneratingUnit != nil {
 				if strings.TrimPrefix(sm.GeneratingUnit.MRID, "#") == id {
-					if sm.Type == nil { continue }
+					if sm.Type == nil {
+						continue
+					}
 					uriSM := sm.Type.URI
 					if strings.HasSuffix(uriHGU, "generator") {
 						if !strings.HasSuffix(uriSM, "generator") && !strings.HasSuffix(uriSM, "generatorOrCondenser") {
@@ -2541,7 +2612,8 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 		for _, smObj := range dataset.Elements {
 			if s, ok := smObj.(*cimgostructs.SynchronousMachine); ok && s.InitialReactiveCapabilityCurve != nil {
 				if strings.TrimPrefix(s.InitialReactiveCapabilityCurve.MRID, "#") == id {
-					sm = s; break
+					sm = s
+					break
 				}
 			}
 		}
@@ -2623,7 +2695,8 @@ func CheckReactiveCapabilityCurveUnits(dataset *cimgostructs.CIMElementList) []V
 		for _, smObj := range dataset.Elements {
 			if sm, ok := smObj.(*cimgostructs.SynchronousMachine); ok && sm.InitialReactiveCapabilityCurve != nil {
 				if strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#") == id {
-					isSM = true; break
+					isSM = true
+					break
 				}
 			}
 		}

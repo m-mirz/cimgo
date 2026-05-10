@@ -22,6 +22,8 @@ func ValidateCommonRulesSPARQL(dataset *cimgostructs.CIMElementList) []Violation
 	violations = append(violations, CheckModelingAuthoritySetNotEmpty(dataset)...)
 	// Complex SHACL rules that don't fit into a single attribute constraint
 	violations = append(violations, CheckFileHeaderExists(dataset)...)
+	// Profile: 61970-600-1_Prof10-Header-AP-Con-Complex-SHACL
+	violations = append(violations, ValidateProf10HeaderRules(dataset)...)
 	return violations
 }
 
@@ -278,17 +280,14 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []V
 		}
 
 		maField := val.FieldByName("ModelingAuthoritySet")
-		if maField.IsValid() && !maField.IsNil() {
-			mridField := maField.Elem().FieldByName("MRID")
-			if mridField.IsValid() && mridField.String() == "" {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					Class:    goTypeName(obj),
-					Property: "Model.modelingAuthoritySet",
-					Message:  "The modelingAuthoritySet property is defined as empty.",
-					Severity: "sh.Violation",
-				})
-			}
+		if maField.IsValid() && maField.Kind() == reflect.String && strings.TrimSpace(maField.String()) == "" {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    goTypeName(obj),
+				Property: "Model.modelingAuthoritySet",
+				Message:  "The modelingAuthoritySet property is defined as empty.",
+				Severity: "sh.Violation",
+			})
 		}
 	}
 	return violations

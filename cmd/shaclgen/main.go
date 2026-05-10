@@ -908,10 +908,17 @@ func requiredCondition(field reflect.StructField) (string, error) {
 		return fmt.Sprintf("len(v.%s) == 0", field.Name), nil
 	case reflect.String:
 		return fmt.Sprintf("v.%s == \"\"", field.Name), nil
-	case reflect.Int, reflect.Int32, reflect.Int64,
-		reflect.Float32, reflect.Float64:
+	case reflect.Int, reflect.Int32, reflect.Int64:
 		// omitempty caveat: zero is indistinguishable from absent for scalars.
 		return fmt.Sprintf("v.%s == 0", field.Name), nil
+	case reflect.Float32, reflect.Float64:
+		// Zero float is indistinguishable from absent after XML decode because
+		// scalar fields use value types with omitempty. Emitting v.Field == 0
+		// produces false positives for legitimately zero physical quantities
+		// (e.g. bch=0, r=0, b=0). Range constraints (minExclusive/minInclusive)
+		// cover the must-be-positive subset; fields that may be zero cannot be
+		// validated for presence here.
+		return "", fmt.Errorf("float Required is unreliable: zero is indistinguishable from absent")
 	case reflect.Bool:
 		// Bool fields are xml:",omitempty" — false is indistinguishable from
 		// absent after decode. Required is structurally satisfied: the field
@@ -983,7 +990,14 @@ func hasValueCondition(field reflect.StructField, payload any) (string, string, 
 			return "", "", err
 		}
 		guard := fmt.Sprintf("\t\tif v.%s == nil {\n\t\t\tcontinue\n\t\t}", field.Name)
-		cond := fmt.Sprintf("v.%s.URI != cimgostructs.%s", field.Name, constIdent)
+		var cond string
+		rest, _ := stripCIMPrefix(want)
+		fullURI := cimNamespaceFromPrefix(want) + rest
+		if strings.HasPrefix(fullURI, "http://iec.ch/TC57/CIM100-European#") {
+			cond = fmt.Sprintf("v.%s.URI != %q", field.Name, fullURI)
+		} else {
+			cond = fmt.Sprintf("v.%s.URI != cimgostructs.%s", field.Name, constIdent)
+		}
 		return guard, cond, nil
 	}
 	switch field.Type.Kind() {
@@ -1028,22 +1042,29 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 	}
 	if len(values) > 0 {
 		if _, isEnum, _ := enumURIFieldConst(field, values[0]); isEnum {
-			consts := make([]string, 0, len(values))
+			type enumEntry struct{ constIdent, fullURI string }
+			entries := make([]enumEntry, 0, len(values))
 			for _, want := range values {
 				constIdent, _, err := enumURIFieldConst(field, want)
 				if err != nil {
 					return "", "", err
 				}
-				consts = append(consts, constIdent)
+				rest, _ := stripCIMPrefix(want)
+				fullURI := cimNamespaceFromPrefix(want) + rest
+				entries = append(entries, enumEntry{constIdent, fullURI})
 			}
 			var b strings.Builder
 			fmt.Fprintf(&b, "\t\tif v.%s == nil {\n\t\t\tcontinue\n\t\t}\n", field.Name)
 			b.WriteString("\t\tallowed := map[string]bool{")
-			for i, c := range consts {
+			for i, e := range entries {
 				if i > 0 {
 					b.WriteString(", ")
 				}
-				fmt.Fprintf(&b, "cimgostructs.%s: true", c)
+				if strings.HasPrefix(e.fullURI, "http://iec.ch/TC57/CIM100-European#") {
+					fmt.Fprintf(&b, "%q: true", e.fullURI)
+				} else {
+					fmt.Fprintf(&b, "cimgostructs.%s: true", e.constIdent)
+				}
 			}
 			b.WriteString("}")
 			cond := fmt.Sprintf("!allowed[v.%s.URI]", field.Name)
@@ -1997,6 +2018,16 @@ func stripCIMPrefix(s string) (string, bool) {
 		return "", false
 	}
 	return rest[1:], true
+}
+
+// cimNamespaceFromPrefix maps a simplified IRI prefix to the full namespace URI.
+// "cim.X.Y" → "http://iec.ch/TC57/CIM100#"
+// "cim100.X.Y" → "http://iec.ch/TC57/CIM100-European#"
+func cimNamespaceFromPrefix(simplified string) string {
+	if strings.HasPrefix(simplified, "cim100.") {
+		return "http://iec.ch/TC57/CIM100-European#"
+	}
+	return "http://iec.ch/TC57/CIM100#"
 }
 
 // xmlTagExistsOnAnyStruct returns true if any concrete struct in StructMap has

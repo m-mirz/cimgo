@@ -2737,7 +2737,8 @@ func CheckSubstationCount(dataset *cimgostructs.CIMElementList) []Violation {
 			ObjectID: "global",
 			Class:    "Substation",
 			Property: "rdf:type",
-			Message:  fmt.Sprintf("Substation design warning: %v substations for %v voltage levels.", substations, voltageLevels),
+			//{?substations}. {?voltagelevels}.
+			Message:  fmt.Sprintf("The model has either one Substation or a Substation per VoltageLevel. Number of Substation-s: %v. Number of VoltageLevel-s: %v.", substations, voltageLevels),
 			Severity: "sh.Warning",
 		})
 	}

@@ -5,6 +5,8 @@ import (
 	"cimgo/cimgostructs"
 	"cimgo/cimprofiles"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -26,7 +28,29 @@ func loadDataset(t *testing.T, path string) *cimgostructs.CIMElementList {
 		t.Fatalf("Failed to read %s: %v", path, err)
 	}
 	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-	t.Logf("Loaded %d elements", len(dataset.Elements))
+	t.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
+	return dataset
+}
+
+func loadDirectory(t *testing.T, path string) *cimgostructs.CIMElementList {
+	t.Helper()
+	dataset := cimgostructs.NewCIMElementList()
+	files, err := os.ReadDir(path)
+	if err != nil {
+		t.Fatalf("Failed to read directory %s: %v", path, err)
+	}
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".xml") {
+			fullPath := filepath.Join(path, f.Name())
+			b, err := os.ReadFile(fullPath)
+			if err != nil {
+				t.Fatalf("Failed to read %s: %v", fullPath, err)
+			}
+			cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+			t.Logf("Loaded %s", f.Name())
+		}
+	}
+	t.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
 

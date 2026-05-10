@@ -40,7 +40,7 @@ func logViolations(t *testing.T, byID map[string][]Violation) {
 }
 
 func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
-	dataset := loadDataset(t, "../testdata/test_shacl_001_GL.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_GL_001.xml")
 
 	byID := indexByID(shaclgen.ValidateGeneratedGeographicallocation6196813ComplexProfile(dataset))
 
@@ -58,7 +58,7 @@ func TestValidateCoordinateSystemCrsUrn(t *testing.T) {
 func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must be an IRI and must NOT
 	// point to a cim.GeneratingUnit (it should reference SynchronousMachine).
-	dataset := loadDataset(t, "../testdata/test_shacl_002_DL.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_DL_001.xml")
 
 	byID := indexByID(shaclgen.ValidateGeneratedDiagramlayout61970301ComplexNotsolvedmasProfile(dataset))
 
@@ -77,7 +77,7 @@ func TestValidateDiagramObjectIdentifiedObject(t *testing.T) {
 
 func TestValidateDiagramObjectPointSequenceNumber(t *testing.T) {
 	// The rule says DiagramObjectPoint.sequenceNumber must be > 0 (sh:minExclusive 0.0).
-	dataset := loadDataset(t, "../testdata/test_shacl_003_DL.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_DL_002.xml")
 
 	byID := indexByID(shaclgen.ValidateGeneratedDiagramlayout61970301ComplexProfile(dataset))
 
@@ -94,7 +94,7 @@ func TestValidateDiagramObjectPointSequenceNumber(t *testing.T) {
 
 func TestEquipmentACLineSegmentLength(t *testing.T) {
 	// ACLineSegment.length must be >= 0 (sh:minInclusive 0).
-	dataset := loadDataset(t, "../testdata/test_shacl_004_EQ.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_EQ_001.xml")
 	byID := indexByID(shaclgen.CheckEquipment61970301ComplexACLineSegmentLengthMinInclusive(dataset))
 	if got := len(byID["ACLineSegment.OK"]); got != 0 {
 		t.Errorf("ACLineSegment.OK (length=5): expected 0 violations, got %d: %v", got, byID["ACLineSegment.OK"])
@@ -107,7 +107,7 @@ func TestEquipmentACLineSegmentLength(t *testing.T) {
 
 func TestEquipmentBaseVoltageNominalVoltage(t *testing.T) {
 	// BaseVoltage.nominalVoltage must be > 0 (sh:minExclusive 0).
-	dataset := loadDataset(t, "../testdata/test_shacl_004_EQ.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_EQ_001.xml")
 	byID := indexByID(shaclgen.CheckEquipment61970301ComplexBaseVoltageNominalVoltageMinExclusive(dataset))
 	if got := len(byID["BaseVoltage.OK"]); got != 0 {
 		t.Errorf("BaseVoltage.OK (nominalVoltage=110): expected 0 violations, got %d: %v", got, byID["BaseVoltage.OK"])
@@ -120,7 +120,7 @@ func TestEquipmentBaseVoltageNominalVoltage(t *testing.T) {
 
 func TestSSHBatteryUnitStoredELessThanRatedE(t *testing.T) {
 	// BatteryUnit.storedE must be < ratedE (sh:lessThan).
-	dataset := loadDataset(t, "../testdata/test_shacl_005_SSH.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_SSH_001.xml")
 	byID := indexByID(shaclgen.CheckSteadystatehypothesis61970301ComplexNotsolvedmasBatteryUnitStoredELessThan(dataset))
 	if got := len(byID["BatteryUnit.OK"]); got != 0 {
 		t.Errorf("BatteryUnit.OK (storedE=50 < ratedE=100): expected 0 violations, got %d: %v", got, byID["BatteryUnit.OK"])
@@ -133,7 +133,7 @@ func TestSSHBatteryUnitStoredELessThanRatedE(t *testing.T) {
 
 func TestSCPowerTransformerEndPhaseAngleClock(t *testing.T) {
 	// PowerTransformerEnd.phaseAngleClock must be in [0, 11] (sh:maxInclusive 11).
-	dataset := loadDataset(t, "../testdata/test_shacl_006_SC.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_SC_001.xml")
 	byID := indexByID(shaclgen.CheckShortcircuit61970301ComplexPowerTransformerEndPhaseAngleClockMaxInclusive(dataset))
 	if got := len(byID["PowerTransformerEnd.OK"]); got != 0 {
 		t.Errorf("PowerTransformerEnd.OK (phaseAngleClock=5): expected 0 violations, got %d: %v", got, byID["PowerTransformerEnd.OK"])
@@ -146,7 +146,7 @@ func TestSCPowerTransformerEndPhaseAngleClock(t *testing.T) {
 
 func TestSVSvVoltage(t *testing.T) {
 	// SvVoltage.v must be > 0 (sh:minExclusive 0).
-	dataset := loadDataset(t, "../testdata/test_shacl_007_SV.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_SV_001.xml")
 	byID := indexByID(shaclgen.CheckStatevariables61970301ComplexSvVoltageVMinExclusive(dataset))
 	if got := len(byID["SvVoltage.OK"]); got != 0 {
 		t.Errorf("SvVoltage.OK (v=110): expected 0 violations, got %d: %v", got, byID["SvVoltage.OK"])
@@ -159,7 +159,7 @@ func TestSVSvVoltage(t *testing.T) {
 
 func TestDYAsynchronousMachineTppoLessThanTpo(t *testing.T) {
 	// AsynchronousMachineTimeConstantReactance.tppo must be < tpo (sh:lessThan).
-	dataset := loadDataset(t, "../testdata/test_shacl_008_DY.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_DY_001.xml")
 	byID := indexByID(shaclgen.CheckDynamics61970302ComplexAsynchronousMachineTimeConstantReactanceTppoLessThan(dataset))
 	if got := len(byID["AsynchronousMachineTimeConstantReactance.OK"]); got != 0 {
 		t.Errorf("AMTCR.OK (tppo=0.01 < tpo=0.1): expected 0 violations, got %d: %v", got, byID["AsynchronousMachineTimeConstantReactance.OK"])
@@ -172,7 +172,7 @@ func TestDYAsynchronousMachineTppoLessThanTpo(t *testing.T) {
 
 func TestOPAccumulatorLimitValue(t *testing.T) {
 	// AccumulatorLimit.value must be > 0 (sh:minExclusive 0).
-	dataset := loadDataset(t, "../testdata/test_shacl_009_OP.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_OP_001.xml")
 	byID := indexByID(shaclgen.CheckOperation61970301ComplexAccumulatorLimitValueMinExclusive(dataset))
 	if got := len(byID["AccumulatorLimit.OK"]); got != 0 {
 		t.Errorf("AccumulatorLimit.OK (value=5): expected 0 violations, got %d: %v", got, byID["AccumulatorLimit.OK"])
@@ -185,7 +185,7 @@ func TestOPAccumulatorLimitValue(t *testing.T) {
 
 func TestTPTopologicalNodeNameRequired(t *testing.T) {
 	// TopologicalNode.name is required (sh:required).
-	dataset := loadDataset(t, "../testdata/test_shacl_010_TP.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_TP_001.xml")
 	byID := indexByID(shaclgen.CheckTopology61970456ComplexTopologicalNodeNameRequired(dataset))
 	if got := len(byID["TopologicalNode.OK"]); got != 0 {
 		t.Errorf("TopologicalNode.OK (name present): expected 0 violations, got %d: %v", got, byID["TopologicalNode.OK"])
@@ -198,7 +198,7 @@ func TestTPTopologicalNodeNameRequired(t *testing.T) {
 
 func TestEQBDBoundaryPointFromEndIsoCode(t *testing.T) {
 	// BoundaryPoint.fromEndIsoCode must be a valid European ISO-3166-1-alpha-2 code (sh:in).
-	dataset := loadDataset(t, "../testdata/test_shacl_011_EQBD.xml")
+	dataset := loadDataset(t, "../testdata/test_shacl_EQBD_001.xml")
 	byID := indexByID(shaclgen.CheckEquipmentboundary61970301ComplexBoundaryPointFromEndIsoCodeIn(dataset))
 	if got := len(byID["BoundaryPoint.OK"]); got != 0 {
 		t.Errorf("BoundaryPoint.OK (fromEndIsoCode=DE): expected 0 violations, got %d: %v", got, byID["BoundaryPoint.OK"])

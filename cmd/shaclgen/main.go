@@ -2032,7 +2032,7 @@ func stripCIMPrefix(s string) (string, bool) {
 // "cim:X.Y" → "http://iec.ch/TC57/CIM100#"
 // "cim100.X.Y" → "http://iec.ch/TC57/CIM100-European#"
 func cimNamespaceFromPrefix(simplified string) string {
-	if strings.HasPrefix(simplified, "cim100.") {
+	if strings.HasPrefix(simplified, "cim100.") || strings.HasPrefix(simplified, "cim100:") {
 		return "http://iec.ch/TC57/CIM100-European#"
 	}
 	return "http://iec.ch/TC57/CIM100#"

@@ -111,10 +111,11 @@ func ValidateOPProfile(dataset *cimgostructs.CIMElementList) []shaclmodel.Violat
 }
 
 type Config struct {
-	Profiles  []string
-	Solved    bool
-	NotSolved bool
-	Common    bool
+	Profiles      []string
+	Solved        bool
+	NotSolved     bool
+	Common        bool
+	SilencedRules []string
 }
 
 func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmodel.Violation {
@@ -180,6 +181,20 @@ func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmode
 	}
 	if profileSelected("OP") {
 		violations = append(violations, ValidateOPProfile(dataset)...)
+	}
+
+	if len(cfg.SilencedRules) > 0 {
+		filtered := make([]shaclmodel.Violation, 0, len(violations))
+		silenced := make(map[string]bool)
+		for _, r := range cfg.SilencedRules {
+			silenced[r] = true
+		}
+		for _, v := range violations {
+			if !silenced[v.RuleID] {
+				filtered = append(filtered, v)
+			}
+		}
+		violations = filtered
 	}
 
 	return violations

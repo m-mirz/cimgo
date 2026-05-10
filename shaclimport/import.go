@@ -13,11 +13,13 @@ import (
 // SHACL representation produced by ProcessFileToResults + SimplifyFileResults
 // and consumed by cmd/shaclgen.
 type ConstraintInfo struct {
-	Path      []string       `json:"path"`
-	Severity  string         `json:"severity,omitempty"`
-	Message   string         `json:"message,omitempty"`
-	Component string         `json:"component"`
-	Payload   map[string]any `json:"payload"`
+	Path        []string       `json:"path"`
+	Severity    string         `json:"severity,omitempty"`
+	Message     string         `json:"message,omitempty"`
+	Name        string         `json:"name,omitempty"`
+	Description string         `json:"description,omitempty"`
+	Component   string         `json:"component"`
+	Payload     map[string]any `json:"payload"`
 }
 
 func (c ConstraintInfo) IsSPARQL() bool {
@@ -43,6 +45,7 @@ type ShapeInfo struct {
 	ID          string            `json:"id"`
 	Targets     []TargetInfo      `json:"targets,omitempty"`
 	Path        []string          `json:"path,omitempty"`
+	Name        string            `json:"name,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Constraints []ConstraintInfo  `json:"constraints,omitempty"`
 	Properties  []ShapeInfo       `json:"properties,omitempty"`
@@ -373,6 +376,11 @@ func ConvertToShapeInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, g
 		descriptions = append(descriptions, d.Value())
 	}
 
+	var names []string
+	for _, n := range sw.Name {
+		names = append(names, n.Value())
+	}
+
 	var messages []string
 	for _, m := range sw.Messages {
 		messages = append(messages, SimplifyTerm(m))
@@ -392,6 +400,7 @@ func ConvertToShapeInfo(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, g
 		ID:          SimplifyTerm(sw.ID),
 		Targets:     targets,
 		Path:        FormatPath(sw.Path),
+		Name:        strings.Join(names, "; "),
 		Description: strings.Join(descriptions, "\n"),
 		Constraints: ExtractConstraints(sw, allWrapped, visited),
 		Properties:  []ShapeInfo{},
@@ -421,6 +430,18 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 	}
 	defaultMessage := strings.Join(messages, "; ")
 
+	var descriptions []string
+	for _, d := range sw.Description {
+		descriptions = append(descriptions, d.Value())
+	}
+	defaultDescription := strings.Join(descriptions, "\n")
+
+	var names []string
+	for _, n := range sw.Name {
+		names = append(names, n.Value())
+	}
+	defaultName := strings.Join(names, "; ")
+
 	path := FormatPath(sw.Path)
 
 	for _, cw := range sw.Constraints {
@@ -446,11 +467,13 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 		}
 
 		constraints = append(constraints, ConstraintInfo{
-			Path:      path,
-			Severity:  severity,
-			Message:   defaultMessage,
-			Component: SimplifyIRI(cw.Type),
-			Payload:   payload,
+			Path:        path,
+			Severity:    severity,
+			Message:     defaultMessage,
+			Name:        defaultName,
+			Description: defaultDescription,
+			Component:   SimplifyIRI(cw.Type),
+			Payload:     payload,
 		})
 	}
 

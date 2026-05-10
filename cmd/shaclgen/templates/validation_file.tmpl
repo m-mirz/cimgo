@@ -41,12 +41,14 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 {{- if .DatasetCheck}}
 	if {{.Condition}} {
 		violations = append(violations, shaclmodel.Violation{
-			ObjectID: "",
-			RuleID:   {{printf "%q" .RuleID}},
-			Class:    {{printf "%q" .Class}},
-			Property: {{printf "%q" .Property}},
-			Message:  {{printf "%q" .Message}},
-			Severity: {{printf "%q" .Severity}},
+			ObjectID:    "",
+			RuleID:      {{printf "%q" .RuleID}},
+			Class:       {{printf "%q" .Class}},
+			Property:    {{printf "%q" .Property}},
+			Message:     {{printf "%q" .Message}},
+			Severity:    {{printf "%q" .Severity}},
+			Name:        {{printf "%q" .RuleName}},
+			Description: {{printf "%q" .Description}},
 		})
 	}
 {{- else}}
@@ -64,12 +66,14 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 {{- end}}
 		if {{.Condition}} {
 			violations = append(violations, shaclmodel.Violation{
-				ObjectID: id,
-				RuleID:   {{printf "%q" .RuleID}},
-				Class:    {{printf "%q" .Class}},
-				Property: {{printf "%q" .Property}},
-				Message:  {{printf "%q" .Message}},
-				Severity: {{printf "%q" .Severity}},
+				ObjectID:    id,
+				RuleID:      {{printf "%q" .RuleID}},
+				Class:       {{printf "%q" .Class}},
+				Property:    {{printf "%q" .Property}},
+				Message:     {{printf "%q" .Message}},
+				Severity:    {{printf "%q" .Severity}},
+				Name:        {{printf "%q" .RuleName}},
+				Description: {{printf "%q" .Description}},
 			})
 		}
 	}

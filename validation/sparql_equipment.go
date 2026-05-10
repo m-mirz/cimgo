@@ -2734,12 +2734,14 @@ func CheckSubstationCount(dataset *cimgostructs.CIMElementList) []Violation {
 
 	if substations == 1 || (substations > 0 && substations == voltageLevels) {
 		violations = append(violations, Violation{
-			ObjectID: "global",
-			Class:    "Substation",
-			Property: "rdf:type",
-			//{?substations}. {?voltagelevels}.
-			Message:  fmt.Sprintf("The model has either one Substation or a Substation per VoltageLevel. Number of Substation-s: %v. Number of VoltageLevel-s: %v.", substations, voltageLevels),
-			Severity: "sh:Warning",
+			ObjectID:    "global",
+			Class:       "Substation",
+			Property:    "rdf:type",
+			Message:     fmt.Sprintf("The model has either one Substation or a Substation per VoltageLevel. Number of Substation-s: %v. Number of VoltageLevel-s: %v.", substations, voltageLevels),
+			Severity:    "sh:Warning",
+			RuleID:      "eq600:Substation-count",
+			Name:        "Substation-count",
+			Description: "The number of Substation-s shall reflect the design of the power system. Cases of a single Substation in a power system model or having a Substation per VoltageLevel are reported as warnings.",
 		})
 	}
 

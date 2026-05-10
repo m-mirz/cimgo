@@ -46,11 +46,14 @@ func dependentOnProfile(m *cimgostructs.Model, dataset *cimgostructs.CIMElementL
 
 func prof10violation(id, msg, severity string) Violation {
 	return Violation{
-		ObjectID: id,
-		Class:    "FullModel",
-		Property: "Model.DependentOn",
-		Message:  msg,
-		Severity: severity,
+		ObjectID:    id,
+		Class:       "FullModel",
+		Property:    "Model.DependentOn",
+		Message:     msg,
+		Severity:    severity,
+		RuleID:      "prof10:PROF10",
+		Name:        "PROF10",
+		Description: "CGMES instance file (distribution) dependency shall be declared by md:Model.DependentOn in the header according to Figure 1 and the associated rules.",
 	}
 }
 

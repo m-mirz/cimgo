@@ -209,6 +209,8 @@ type checkSpec struct {
 	Name         string
 	ShapeID      string // Original SHACL Shape ID (e.g. eqc:ACLineSegment.length-length)
 	RuleID       string // Extracted Rule ID (e.g. eq600:ACLineSegment.length-length)
+	RuleName     string
+	Description  string
 	Class        string
 	Tag          string
 	Component    string
@@ -454,15 +456,17 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	ruleID := shapeID
 
 	cs := checkSpec{
-		Name:      name,
-		ShapeID:   shapeID,
-		RuleID:    ruleID,
-		Class:     structName,
-		Tag:       tag,
-		Component: c.Component,
-		Property:  tag,
-		Message:   strings.Trim(c.Message, "\""),
-		Severity:  severity,
+		Name:        name,
+		ShapeID:     shapeID,
+		RuleID:      ruleID,
+		RuleName:    c.Name,
+		Description: c.Description,
+		Class:       structName,
+		Tag:         tag,
+		Component:   c.Component,
+		Property:    tag,
+		Message:     strings.Trim(c.Message, "\""),
+		Severity:    severity,
 	}
 
 	var imports []string
@@ -1432,6 +1436,8 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 		Name:         name,
 		ShapeID:      shapeID,
 		RuleID:       ruleID,
+		RuleName:     c.Name,
+		Description:  c.Description,
 		Class:        structName,
 		Tag:          "^rdf:type",
 		Component:    c.Component,

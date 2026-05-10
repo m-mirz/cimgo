@@ -20,10 +20,10 @@ func TestValidatePSTType1EQ(t *testing.T) {
 	}
 	violations := RunValidation(dataset, cfg)
 
-	t.Logf("Focus node,Rule,Path,Constraint Component,Message,Severity")
+	t.Logf("Focus node\tRule\tPath\tConstraint Component\tMessage\tSeverity")
 	var errCount, infoEQBDCount int
 	for _, v := range violations {
-		t.Logf("%s,%s,%s,%s,%s,%s", v.ObjectID, v.RuleID, v.Property, v.Class, v.Message, v.Severity)
+		t.Logf("%s\t%s\t%s\t%s\t%s\t%s", v.ObjectID, v.RuleID, v.Property, v.Class, v.Message, v.Severity)
 		if v.Severity == "sh:Violation" {
 			errCount++
 		}

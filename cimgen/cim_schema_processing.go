@@ -149,7 +149,8 @@ func isPrimitiveType(typeStr string) bool {
 	switch typeStr {
 	case DataTypeString, DataTypeInteger, DataTypeBoolean,
 		DataTypeFloat, DataTypeDate,
-		DataTypeDateTime, DataTypeMonthDay:
+		DataTypeDateTime, DataTypeMonthDay,
+		"URI": // URI (CIM100-European) is a string-valued anyURI primitive
 		return true
 	default:
 		return false

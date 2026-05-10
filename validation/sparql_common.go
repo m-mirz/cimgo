@@ -43,10 +43,11 @@ func CheckMRIDUniqueness(dataset *cimgostructs.CIMElementList) []Violation {
 		if firstID, seen := seenMRIDs[io.MRID]; seen && firstID != id {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "all600:All-GENC1",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.mRID",
 				Message:  "Not a unique identifier.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		seenMRIDs[io.MRID] = id
@@ -124,10 +125,11 @@ func CheckIDUUID(dataset *cimgostructs.CIMElementList) []Violation {
 		if !uuidRegex.MatchString(cleanID) && !urnUuidRegex.MatchString(rawID) {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "all600:All-GENC4",
 				Class:    goTypeName(obj),
 				Property: "rdf:ID",
 				Message:  "Invalid syntax of ID (rdf:ID or rdf:about). UUID expected.",
-				Severity: "sh.Info",
+				Severity: "sh:Info",
 			})
 		}
 	}
@@ -155,10 +157,11 @@ func CheckIDDeprecated(dataset *cimgostructs.CIMElementList) []Violation {
 		if len(secondPart) > 59 || secondPart == "" {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "all600:All-GENC5",
 				Class:    goTypeName(obj),
 				Property: "rdf:ID",
 				Message:  "The ID string is more than 60 characters or the string does not begin with underscore.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -186,10 +189,11 @@ func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
 			if v != "" && !strings.HasSuffix(v, "Z") {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "all600:Model.created-HGEN4",
 					Class:    goTypeName(obj),
 					Property: "Model.created",
 					Message:  "File header Model.created is not a valid UTC date time (missing 'Z').",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -200,10 +204,11 @@ func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
 			if v != "" && !strings.HasSuffix(v, "Z") {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "all600:Model.scenarioTime-HGEN4",
 					Class:    goTypeName(obj),
 					Property: "Model.scenarioTime",
 					Message:  "File header Model.scenarioTime is not a valid UTC date time (missing 'Z').",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -237,10 +242,11 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 						if math.IsNaN(f) || math.IsInf(f, 0) {
 							violations = append(violations, Violation{
 								ObjectID: id,
+								RuleID:   "all600:Float-specialValues",
 								Class:    goTypeName(obj),
 								Property: field.Type().Field(j).Name,
 								Message:  "INF or NaN used in an attribute defined as float.",
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					}
@@ -252,10 +258,11 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 				if math.IsNaN(f) || math.IsInf(f, 0) {
 					violations = append(violations, Violation{
 						ObjectID: id,
+						RuleID:   "all600:Float-specialValues",
 						Class:    goTypeName(obj),
 						Property: val.Type().Field(i).Name,
 						Message:  "INF or NaN used in an attribute defined as float.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -283,10 +290,11 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []V
 		if maField.IsValid() && maField.Kind() == reflect.String && strings.TrimSpace(maField.String()) == "" {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "all600:Model.modelingAuthoritySet-marp10-12",
 				Class:    goTypeName(obj),
 				Property: "Model.modelingAuthoritySet",
 				Message:  "The modelingAuthoritySet property is defined as empty.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -308,37 +316,41 @@ func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []
 		if len(io.ShortName) > 12 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "iosl:IdentifiedObject.shortName-stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.shortName",
 				Message:  "String length is greater than 12 characters.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if io.EnergyIdentCodeEic != "" && len(io.EnergyIdentCodeEic) != 16 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "iosl:IdentifiedObject.energyIdentCodeEic-stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.energyIdentCodeEic",
 				Message:  "String length is not 16 characters.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if len(io.Name) > 128 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "iosl:IdentifiedObject.name-stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.name",
 				Message:  "String length is greater than 128 characters.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if len(io.Description) > 256 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "iosl:IdentifiedObject.description-stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.description",
 				Message:  "String length is greater than 256 characters.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -353,10 +365,11 @@ func CheckFileHeaderExists(dataset *cimgostructs.CIMElementList) []Violation {
 	if len(dataset.FullModels) == 0 && len(dataset.DifferenceModels) == 0 {
 		return []Violation{{
 			ObjectID: "global",
+			RuleID:   "all600:All-HGEN2",
 			Class:    "FullModel",
 			Property: "rdf:type",
 			Message:  "File header is missing.",
-			Severity: "sh.Violation",
+			Severity: "sh:Violation",
 		}}
 	}
 	return nil

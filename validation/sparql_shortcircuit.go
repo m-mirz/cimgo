@@ -32,7 +32,7 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) [
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorRatedCurrent",
 					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			if sc.VaristorVoltageThreshold != 0 {
@@ -41,7 +41,7 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) [
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorVoltageThreshold",
 					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -64,7 +64,7 @@ func CheckTransformerEndGrounding(dataset *cimgostructs.CIMElementList) []Violat
 					Class:    "PowerTransformerEnd",
 					Property: "grounded",
 					Message:  "Missing required properties .rground or .xground when grounded=true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -86,7 +86,7 @@ func CheckSynchronousMachineEarthing(dataset *cimgostructs.CIMElementList) []Vio
 					Class:    "SynchronousMachine",
 					Property: "earthing",
 					Message:  "Missing required properties .earthingStarPointR or .earthingStarPointX when earthing=true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -108,7 +108,7 @@ func CheckSeriesCompensatorVaristorRequired(dataset *cimgostructs.CIMElementList
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorRatedCurrent",
 					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			if sc.VaristorVoltageThreshold == 0 {
@@ -117,7 +117,7 @@ func CheckSeriesCompensatorVaristorRequired(dataset *cimgostructs.CIMElementList
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorVoltageThreshold",
 					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}

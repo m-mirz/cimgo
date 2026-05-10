@@ -21,7 +21,7 @@ type ConstraintInfo struct {
 }
 
 func (c ConstraintInfo) IsSPARQL() bool {
-	return c.Component == "sh.SPARQLConstraintComponent"
+	return c.Component == "sh:SPARQLConstraintComponent"
 }
 
 func (c ConstraintInfo) IsSHACL() bool {
@@ -83,16 +83,16 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 	hasMaxCount1 := false
 	for _, c := range constraints {
 		switch c.Component {
-		case "sh.DatatypeConstraintComponent":
+		case "sh:DatatypeConstraintComponent":
 			hasAnyDatatype = true
-		case "sh.MinCountConstraintComponent":
+		case "sh:MinCountConstraintComponent":
 			switch anyToFloat(c.Payload["MinCount"]) {
 			case 0:
 				hasMinCount0 = true
 			case 1:
 				hasMinCount1 = true
 			}
-		case "sh.MaxCountConstraintComponent":
+		case "sh:MaxCountConstraintComponent":
 			if anyToFloat(c.Payload["MaxCount"]) == 1 {
 				hasMaxCount1 = true
 			}
@@ -106,8 +106,8 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 	optionalAdded := false
 	for _, c := range constraints {
 		// Rule 1: any sh:datatype implies sh:Literal — drop redundant NodeKind=Literal
-		if hasAnyDatatype && c.Component == "sh.NodeKindConstraintComponent" {
-			if nk, ok := c.Payload["NodeKind"].(string); ok && nk == "sh.Literal" {
+		if hasAnyDatatype && c.Component == "sh:NodeKindConstraintComponent" {
+			if nk, ok := c.Payload["NodeKind"].(string); ok && nk == "sh:Literal" {
 				continue
 			}
 		}
@@ -116,16 +116,16 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		// schema is generated as a Go reference field (*struct{ MRID string }), so
 		// the type system already enforces the IRI shape and the runtime check
 		// can never fail on well-formed Go data.
-		if c.Component == "sh.NodeKindConstraintComponent" {
+		if c.Component == "sh:NodeKindConstraintComponent" {
 			if nk, ok := c.Payload["NodeKind"].(string); ok {
-				nk = strings.TrimPrefix(nk, "sh.")
+				nk = strings.TrimPrefix(nk, "sh:")
 				if nk == "BlankNodeOrIRI" || nk == "IRI" {
 					continue
 				}
 			}
 		}
 		// Rule 3: minCount=0 is vacuously true — drop it
-		if c.Component == "sh.MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 0 {
+		if c.Component == "sh:MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 0 {
 			continue
 		}
 		// Drop sh:datatype for xsd types that map to native Go scalars: the
@@ -133,9 +133,9 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		// so the XML decoder rejects malformed values before validation runs.
 		// Non-native types (dateTime, gMonthDay, anyURI map to Go string and
 		// have no format enforcement) are left in for future format checking.
-		if c.Component == "sh.DatatypeConstraintComponent" {
+		if c.Component == "sh:DatatypeConstraintComponent" {
 			if dt, ok := c.Payload["Datatype"].(string); ok {
-				switch strings.TrimPrefix(dt, "xsd.") {
+				switch strings.TrimPrefix(dt, "xsd:") {
 				case "integer", "int", "long", "short", "byte",
 					"nonNegativeInteger", "positiveInteger",
 					"nonPositiveInteger", "negativeInteger",
@@ -148,13 +148,13 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 			}
 		}
 		// sh:in with a single value is equivalent to sh:hasValue.
-		if c.Component == "sh.InConstraintComponent" {
+		if c.Component == "sh:InConstraintComponent" {
 			if vals, ok := c.Payload["Values"].([]any); ok && len(vals) == 1 {
 				result = append(result, ConstraintInfo{
 					Path:      c.Path,
 					Severity:  c.Severity,
 					Message:   c.Message,
-					Component: "sh.HasValueConstraintComponent",
+					Component: "sh:HasValueConstraintComponent",
 					Payload:   map[string]any{"Value": vals[0]},
 				})
 				continue
@@ -162,13 +162,13 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		}
 		// Rule 4: minCount=0 + maxCount=1 → Optional (maxCount=1 entry is replaced;
 		// the minCount=0 entry is already dropped by Rule 3 above)
-		if mergeOptional && c.Component == "sh.MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
+		if mergeOptional && c.Component == "sh:MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
 			if !optionalAdded {
 				result = append(result, ConstraintInfo{
 					Path:      c.Path,
 					Severity:  c.Severity,
 					Message:   c.Message,
-					Component: "sh.OptionalConstraintComponent",
+					Component: "sh:OptionalConstraintComponent",
 				})
 				optionalAdded = true
 			}
@@ -176,26 +176,26 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 		}
 		// Existing rule: minCount=1 + maxCount=1 → Required
 		if mergeRequired {
-			if c.Component == "sh.MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 1 {
+			if c.Component == "sh:MinCountConstraintComponent" && anyToFloat(c.Payload["MinCount"]) == 1 {
 				if !requiredAdded {
 					result = append(result, ConstraintInfo{
 						Path:      c.Path,
 						Severity:  c.Severity,
 						Message:   c.Message,
-						Component: "sh.RequiredConstraintComponent",
+						Component: "sh:RequiredConstraintComponent",
 					})
 					requiredAdded = true
 				}
 				continue
 			}
-			if c.Component == "sh.MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
+			if c.Component == "sh:MaxCountConstraintComponent" && anyToFloat(c.Payload["MaxCount"]) == 1 {
 				continue
 			}
 		}
 		result = append(result, c)
 	}
 	for i := range result {
-		if result[i].Severity == "sh.Violation" {
+		if result[i].Severity == "sh:Violation" {
 			result[i].Severity = ""
 		}
 		for k, v := range result[i].Payload {
@@ -205,13 +205,13 @@ func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
 	return result
 }
 
-// stripSHPrefix recursively walks a payload value and removes the leading "sh."
-// prefix from string values (e.g. "sh.IRI" → "IRI"). Severity fields on any
-// nested ConstraintInfo are also normalized to drop the default "sh.Violation".
+// stripSHPrefix recursively walks a payload value and removes the leading "sh:"
+// prefix from string values (e.g. "sh:IRI" → "IRI"). Severity fields on any
+// nested ConstraintInfo are also normalized to drop the default "sh:Violation".
 func stripSHPrefix(v any) any {
 	switch val := v.(type) {
 	case string:
-		return strings.TrimPrefix(val, "sh.")
+		return strings.TrimPrefix(val, "sh:")
 	case []any:
 		for i := range val {
 			val[i] = stripSHPrefix(val[i])
@@ -224,7 +224,7 @@ func stripSHPrefix(v any) any {
 		return val
 	case []ConstraintInfo:
 		for i := range val {
-			if val[i].Severity == "sh.Violation" {
+			if val[i].Severity == "sh:Violation" {
 				val[i].Severity = ""
 			}
 			for k, vv := range val[i].Payload {
@@ -412,7 +412,7 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 
 	defaultSeverity := SimplifyTerm(sw.Severity)
 	if defaultSeverity == "" {
-		defaultSeverity = "sh.Violation"
+		defaultSeverity = "sh:Violation"
 	}
 
 	var messages []string

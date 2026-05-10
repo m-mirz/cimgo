@@ -63,7 +63,7 @@ func CheckSvTapStepPositionRange(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    "SvTapStep",
 				Property: "SvTapStep.position",
 				Message:  fmt.Sprintf("The value (%v) is out of range [%d,%d].", sv.Position, low, high),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -109,7 +109,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimgostructs.CIMElementList
 					Class:    "SvShuntCompensatorSections",
 					Property: "SvShuntCompensatorSections.sections",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svsc.Sections),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -156,7 +156,7 @@ func CheckSvTapStepPositionInteger(dataset *cimgostructs.CIMElementList) []Viola
 					Class:    "SvTapStep",
 					Property: "SvTapStep.position",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svts.Position),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -193,7 +193,7 @@ func CheckSvSwitchInstance(dataset *cimgostructs.CIMElementList) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvSwitch not instantiated.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -264,7 +264,7 @@ func CheckSvPowerFlowInstance(dataset *cimgostructs.CIMElementList) []Violation 
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvPowerFlow is not instantiated for energized equipment.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -308,7 +308,7 @@ func CheckSvPowerFlowPLimits(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.p",
 				Message:  fmt.Sprintf("Active power (%v) is outside of the range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.P, gu.MinOperatingP, gu.MaxOperatingP, sm.Id),
-				Severity: "sh.Warning",
+				Severity: "sh:Warning",
 			})
 		}
 	}
@@ -376,7 +376,7 @@ func CheckSvPowerFlowQLimits(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.q",
 				Message:  fmt.Sprintf("Reactive power (%v) is outside of the capability range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.Q, minQ, maxQ, sm.Id),
-				Severity: "sh.Warning",
+				Severity: "sh:Warning",
 			})
 		}
 	}
@@ -416,7 +416,7 @@ func CheckSvVoltageLimits(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "SvVoltage",
 				Property: "SvVoltage.v",
 				Message:  fmt.Sprintf("The value (%v) is <=0.4 pu of nominal voltage (%v).", v, nomV),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 

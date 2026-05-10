@@ -141,7 +141,7 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimgostructs.CIMElementList) []
 				Class:    "ConductingEquipment",
 				Property: "ACDCTerminal.sequenceNumber",
 				Message:  "There is no terminal with sequenceNumber=1 or the numbering is not unique.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -209,7 +209,7 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimgostructs.CIMElementLis
 				Class:    "ConductingEquipment",
 				Property: "Terminal.phases",
 				Message:  fmt.Sprintf("The phase codes for terminals of 2-terminal equipment are not consistent. Terminal 1 code:%s Terminal 2 code: %s.", val1, val2),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -257,7 +257,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimgostructs.CIMElementLi
 						Class:    typeName,
 						Property: "Equipment.EquipmentContainer",
 						Message:  "The association ConductingEquipment.BaseVoltage is defined for a ConductingEquipment contained in a VoltageLevel.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -308,7 +308,7 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimgostructs.CIMElementList) 
 				Class:    "PowerTransformer",
 				Property: "TransformerEnd.endNumber",
 				Message:  "The PowerTransformer has TransformerEnd.endNumber which is not unique.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		} else if maxRatedUEnd != nil && maxRatedUEnd.EndNumber != 1 {
 			// Check if there are other ends with the same maxRatedU that have endNumber 1
@@ -325,7 +325,7 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimgostructs.CIMElementList) 
 					Class:    "PowerTransformer",
 					Property: "TransformerEnd.endNumber",
 					Message:  "The PowerTransformerEnd with endNumber 1 is not the highest voltage winding.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -367,7 +367,7 @@ func CheckPowerTransformerEndTerminalConsistency(dataset *cimgostructs.CIMElemen
 				Class:    "PowerTransformerEnd",
 				Property: "TransformerEnd.Terminal",
 				Message:  "The Terminal referenced by TransformerEnd.Terminal points to a PowerTransformer which is different than the referenced element via PowerTransformerEnd.PowerTransformer.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -396,7 +396,7 @@ func CheckOperationalLimitTypeDuration(dataset *cimgostructs.CIMElementList) []V
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute acceptableDuration is present and isInfiniteDuration is set to true.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 
@@ -408,7 +408,7 @@ func CheckOperationalLimitTypeDuration(dataset *cimgostructs.CIMElementList) []V
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute acceptableDuration is not present when isInfiniteDuration is set to false.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -446,7 +446,7 @@ func CheckPowerTransformerTwoWindingEndValues(dataset *cimgostructs.CIMElementLi
 						Class:    "PowerTransformer",
 						Property: "PowerTransformerEnd-secondWindingValues",
 						Message:  fmt.Sprintf("Non-zero values for the PowerTransformerEnd with TransformerEnd.endNumber=2 (R=%v, R0=%v, X=%v, X0=%v) for a two Terminal PowerTransformer.", end.R, end.R0, end.X, end.X0),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -478,7 +478,7 @@ func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimgostructs.CIMElementL
 						Class:    "PhaseTapChangerLinear",
 						Property: "PhaseTapChangerLinear.xMin",
 						Message:  fmt.Sprintf("Inconsistency between PowerTransformerEnd.x (%v) and PhaseTapChangerLinear.xMin (%v).", end.X, ptcl.XMin),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -510,7 +510,7 @@ func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimgostructs.CIMEleme
 						Class:    "PhaseTapChangerNonLinear",
 						Property: "PhaseTapChangerNonLinear.xMin",
 						Message:  fmt.Sprintf("Inconsistency between PowerTransformerEnd.x (%v) and PhaseTapChangerNonLinear.xMin (%v).", end.X, ptcnl.XMin),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -548,7 +548,7 @@ func CheckPowerTransformerEndRatedS2Winding(dataset *cimgostructs.CIMElementList
 				Class:    "PowerTransformer",
 				Property: "PowerTransformerEnd.ratedS",
 				Message:  fmt.Sprintf("The RatedS value is different for a two-winding transformer. End 1: %v, End 2: %v.", ends[0].RatedS, ends[1].RatedS),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -575,7 +575,7 @@ func CheckPowerTransformerBaseVoltageAssociation(dataset *cimgostructs.CIMElemen
 				Class:    "PowerTransformer",
 				Property: "ConductingEquipment.BaseVoltage",
 				Message:  "The inherited association ConductingEquipment.BaseVoltage is used.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -605,7 +605,7 @@ func CheckPowerTransformerEndRValueRange(dataset *cimgostructs.CIMElementList) [
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.r",
 						Message:  "The value is negative for a non-equivalent transformer.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -637,7 +637,7 @@ func CheckRegulatingControlTerminalConnectivityNode(dataset *cimgostructs.CIMEle
 						Class:    "RegulatingControl",
 						Property: "RegulatingControl.Terminal",
 						Message:  "The Terminal referenced by the RegulatingControl is not associated with a ConnectivityNode.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -666,7 +666,7 @@ func CheckTapChangerLtcFlagControl(dataset *cimgostructs.CIMElementList) []Viola
 				Class:    "TapChanger",
 				Property: "TapChanger.ltcFlag",
 				Message:  "An artificial tap changer is used to simulate control behaviour in power flow (ltcFlag is false but TapChangerControl is present).",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -710,7 +710,7 @@ func CheckLoadResponseCharacteristicExponentModel(dataset *cimgostructs.CIMEleme
 					Class:    "LoadResponseCharacteristic",
 					Property: "LoadResponseCharacteristic.exponentModel",
 					Message:  "Mixture of exponential and coefficient model attributes when exponentModel is true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else {
@@ -726,7 +726,7 @@ func CheckLoadResponseCharacteristicExponentModel(dataset *cimgostructs.CIMEleme
 					Class:    "LoadResponseCharacteristic",
 					Property: "LoadResponseCharacteristic.exponentModel",
 					Message:  fmt.Sprintf("The sum of coefficients does not equal 1 (P sum: %v, Q sum: %v).", pSum, qSum),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -761,7 +761,7 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimgostructs.CIMElementLi
 						Class:    "NonlinearShuntCompensator",
 						Property: "ShuntCompensator.maximumSections",
 						Message:  fmt.Sprintf("The number of NonlinearShuntCompenstorPoint instances (%d) does not equal to maximumSections (%d).", count, nsc.MaximumSections),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -797,7 +797,7 @@ func CheckShuntCompensatorNomU(dataset *cimgostructs.CIMElementList) []Violation
 								Class:    "ShuntCompensator",
 								Property: "ShuntCompensator.nomU",
 								Message:  fmt.Sprintf("The value nomU (%v) differs with more than 10%% of the nominal voltage (%v).", sc.NomU, nomV),
-								Severity: "sh.Warning",
+								Severity: "sh:Warning",
 							})
 						}
 					}
@@ -832,7 +832,7 @@ func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimgostruct
 				Class:    "PhaseTapChangerAsymmetrical",
 				Property: "PhaseTapChangerAsymmetrical.windingConnectionAngle",
 				Message:  "The value is not a multiple of 30 degrees in the range of -150 to 150 degrees (excluding 0).",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -868,7 +868,7 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimgostructs.CIMElementLi
 					Class:    "PowerTransformer",
 					Property: "PowerTransformerEnd.ratedU",
 					Message:  fmt.Sprintf("The PowerTransformerEnd %s has a non-positive ratedU (%v).", end.MRID, end.RatedU),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			if end.EndNumber == 1 {
@@ -885,7 +885,7 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimgostructs.CIMElementLi
 				Class:    "PowerTransformer",
 				Property: "PowerTransformerEnd.ratedU",
 				Message:  "The high voltage side (endNumber=1) does not have the highest ratedU.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -916,7 +916,7 @@ func CheckVoltageLimitPATL(dataset *cimgostructs.CIMElementList) []Violation {
 						Class:    "VoltageLimit",
 						Property: "OperationalLimit.OperationalLimitType",
 						Message:  "PATL type is provided for VoltageLimit.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -968,7 +968,7 @@ func CheckDCConverterUnitTapChangerControl(dataset *cimgostructs.CIMElementList)
 									Class:    "TapChanger",
 									Property: "TapChanger.TapChangerControl",
 									Message:  "TapChangerControl is associated to a transformer contained in DCConverterUnit.",
-									Severity: "sh.Violation",
+									Severity: "sh:Violation",
 								})
 							}
 						}
@@ -1035,7 +1035,7 @@ func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimgostructs.CIMEle
 						Class:    "ConnectivityNode",
 						Property: "Terminal.phases",
 						Message:  fmt.Sprintf("The phase codes for the connected terminals are not consistent. Terminal %s code: %s, Terminal %s code: %s.", terms[i].MRID, val1, terms[j].MRID, val2),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 					goto NextNode
 				}
@@ -1073,7 +1073,7 @@ func CheckEquipmentAggregateNotUsed(dataset *cimgostructs.CIMElementList) []Viol
 				Class:    class,
 				Property: "Equipment.aggregate",
 				Message:  "Not allowed property (attribute).",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1099,7 +1099,7 @@ func CheckEquivalentBranchR21Usage(dataset *cimgostructs.CIMElementList) []Viola
 				Class:    "EquivalentBranch",
 				Property: "EquivalentBranch.r21",
 				Message:  "Asymmetrical EquivalentBranch is modelled as EquivalentBranch.r is different from EquivalentBranch.r21.",
-				Severity: "sh.Info",
+				Severity: "sh:Info",
 			})
 		}
 	}
@@ -1125,7 +1125,7 @@ func CheckEquivalentBranchX21Usage(dataset *cimgostructs.CIMElementList) []Viola
 				Class:    "EquivalentBranch",
 				Property: "EquivalentBranch.x21",
 				Message:  "Asymmetrical EquivalentBranch is modelled as EquivalentBranch.x is different from EquivalentBranch.x21.",
-				Severity: "sh.Info",
+				Severity: "sh:Info",
 			})
 		}
 	}
@@ -1151,7 +1151,7 @@ func CheckEquivalentInjectionRegulationCapability(dataset *cimgostructs.CIMEleme
 				Class:    "EquivalentInjection",
 				Property: "EquivalentInjection.regulationCapability",
 				Message:  "The value does not allow a ReactiveCapabilityCurve to be associated.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1223,7 +1223,7 @@ func CheckGeneratingUnitNominalP(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    typeName,
 				Property: "GeneratingUnit.nominalP",
 				Message:  fmt.Sprintf("The value (%v) is either negative, zero or greater than RotatingMachine.ratedS (%v).", np, ratedS),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1263,7 +1263,7 @@ func CheckControlAreaGeneratingUnitInstance(dataset *cimgostructs.CIMElementList
 			Class:    "GeneratingUnit",
 			Property: "ControlAreaGeneratingUnit.GeneratingUnit",
 			Message:  "The GeneratingUnit is assigned to more than once in a ControlArea.",
-			Severity: "sh.Violation",
+			Severity: "sh:Violation",
 		})
 	}
 
@@ -1309,7 +1309,7 @@ func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimgostructs.CIMEl
 			Class:    "DCConverterUnit",
 			Property: "Equipment.EquipmentContainer",
 			Message:  "A DCConverterUnit that contains CsConverter does not contain a PowerTransformer.",
-			Severity: "sh.Violation",
+			Severity: "sh:Violation",
 		})
 	}
 
@@ -1392,7 +1392,7 @@ func CheckLimitKindPATLNumberOfLimitType(dataset *cimgostructs.CIMElementList) [
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.kind",
 				Message:  fmt.Sprintf("Either there is more than one PATL defined for a given OperationalLimitSet or OperationalLimitType.isInfiniteDuration is not set to true for PATL type. The OperationalLimitType.isInfiniteDuration is: %v.", infDurByOLT[oltID]),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1462,7 +1462,7 @@ func CheckLimitKindTCDuration(dataset *cimgostructs.CIMElementList) []Violation 
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.kind",
 				Message:  fmt.Sprintf("Either OperationalLimitType.acceptableDuration is present and different than 0 or there is more than one limit with TC type. The OperationalLimitType.acceptableDuration is: %v.", dur),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1487,7 +1487,7 @@ func CheckOperationalLimitTypeInfiniteDuration(dataset *cimgostructs.CIMElementL
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute is not present when .isInfiniteDuration is set to false.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1530,7 +1530,7 @@ func CheckSynchronousMachineAggregate(dataset *cimgostructs.CIMElementList) []Vi
 				Class:    "SynchronousMachine",
 				Property: "Equipment.aggregate",
 				Message:  fmt.Sprintf("SynchronousMachine aggregate flag (%v) is not consistent with associated GeneratingUnit (%v).", sm.Aggregate, gu.Aggregate),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1573,7 +1573,7 @@ func CheckAsynchronousMachineAggregate(dataset *cimgostructs.CIMElementList) []V
 				Class:    "AsynchronousMachine",
 				Property: "Equipment.aggregate",
 				Message:  fmt.Sprintf("AsynchronousMachine aggregate flag (%v) is not consistent with associated GeneratingUnit (%v).", am.Aggregate, gu.Aggregate),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1607,7 +1607,7 @@ func CheckSynchronousMachineControlMode(dataset *cimgostructs.CIMElementList) []
 				Class:    "SynchronousMachine",
 				Property: "RegulatingCondEq.RegulatingControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a SynchronousMachine.", uri),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1640,7 +1640,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimgostructs.CIMElementList) 
 						Class:    "StaticVarCompensator",
 						Property: "RegulatingCondEq.RegulatingControl",
 						Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a StaticVarCompensator.", uri),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -1653,7 +1653,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimgostructs.CIMElementList) 
 				Class:    "StaticVarCompensator",
 				Property: "StaticVarCompensator.sVCControlMode",
 				Message:  "StaticVarCompensator.sVCControlMode attribute is not allowed.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if svc.VoltageSetPoint != 0 {
@@ -1662,7 +1662,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimgostructs.CIMElementList) 
 				Class:    "StaticVarCompensator",
 				Property: "StaticVarCompensator.voltageSetPoint",
 				Message:  "StaticVarCompensator.voltageSetPoint attribute is not allowed.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1710,7 +1710,7 @@ func CheckPhaseTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Vio
 				Class:    class,
 				Property: "TapChanger.TapChangerControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a PhaseTapChanger.", uri),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1744,7 +1744,7 @@ func CheckRatioTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Vio
 				Class:    "RatioTapChanger",
 				Property: "TapChanger.TapChangerControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a RatioTapChanger.", uri),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1786,7 +1786,7 @@ func CheckShuntCompensatorControlMode(dataset *cimgostructs.CIMElementList) []Vi
 				Class:    class,
 				Property: "RegulatingCondEq.RegulatingControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a ShuntCompensator.", uri),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -1843,7 +1843,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimgostructs.CIMElementList)
 						Class:    "SynchronousMachine",
 						Property: "SynchronousMachine.minQ",
 						Message:  fmt.Sprintf("SynchronousMachine.minQ (%v) is not equal to min of CurveData.y1value-s (%v).", sm.MinQ, minY1),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 				if sm.MaxQ != 0 && (sm.MaxQ < maxY2-epsilon || sm.MaxQ > maxY2+epsilon) {
@@ -1852,7 +1852,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimgostructs.CIMElementList)
 						Class:    "SynchronousMachine",
 						Property: "SynchronousMachine.maxQ",
 						Message:  fmt.Sprintf("SynchronousMachine.maxQ (%v) is not equal to max of CurveData.y2value-s (%v).", sm.MaxQ, maxY2),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -1881,7 +1881,7 @@ func CheckSynchronousMachineTypeCondenser(dataset *cimgostructs.CIMElementList) 
 				Class:    "SynchronousMachine",
 				Property: "SynchronousMachine.type",
 				Message:  "SynchronousMachine of type condenser with associated GeneratingUnit.",
-				Severity: "sh.Info",
+				Severity: "sh:Info",
 			})
 		}
 	}
@@ -1912,7 +1912,7 @@ func CheckVsCapabilityCurveCount(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Less than two instances of CurveData are associated (%v found).", count),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -1938,7 +1938,7 @@ func CheckVsCapabilityCurveYValues(dataset *cimgostructs.CIMElementList) []Viola
 						Class:    "CurveData",
 						Property: "CurveData.y2value",
 						Message:  fmt.Sprintf("CurveData.y2value (%v) is not greater than CurveData.y1value (%v) for VsCapabilityCurve.", cd.Y2value, cd.Y1value),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -1978,7 +1978,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []V
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For condenser type, min/max operating P must be 0 (found min: %v, max: %v).", minP, maxP),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "generator") || strings.HasSuffix(uri, "generatorOrCondenser") {
@@ -1988,7 +1988,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []V
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP >= 0 and maxP > 0 (found min: %v, max: %v).", uri, minP, maxP),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "motor") || strings.HasSuffix(uri, "motorOrCondenser") {
@@ -1998,7 +1998,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []V
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP < 0 and maxP <= 0 (found min: %v, max: %v).", uri, minP, maxP),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "generatorOrMotor") || strings.HasSuffix(uri, "generatorOrCondenserOrMotor") {
@@ -2008,7 +2008,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []V
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP < 0 and maxP > 0 (found min: %v, max: %v).", uri, minP, maxP),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2062,7 +2062,7 @@ func CheckCurveDataReactiveCapabilityLimits(dataset *cimgostructs.CIMElementList
 				Class:    "CurveData",
 				Property: "CurveData.y1value",
 				Message:  fmt.Sprintf("x^2 + y1^2 (%v) > ratedS^2 (%v).", x2+(cd.Y1value*cd.Y1value), s2),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if x2+(cd.Y2value*cd.Y2value) > s2+epsilon {
@@ -2071,7 +2071,7 @@ func CheckCurveDataReactiveCapabilityLimits(dataset *cimgostructs.CIMElementList
 				Class:    "CurveData",
 				Property: "CurveData.y2value",
 				Message:  fmt.Sprintf("x^2 + y2^2 (%v) > ratedS^2 (%v).", x2+(cd.Y2value*cd.Y2value), s2),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -2106,7 +2106,7 @@ func CheckCurveDataReactiveConsistency(dataset *cimgostructs.CIMElementList) []V
 					Class:    "CurveData",
 					Property: "CurveData.y2value",
 					Message:  fmt.Sprintf("CurveData.y2value (%v) is less than y1value (%v).", cd.Y2value, cd.Y1value),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			if cd.Y2value != cd.Y1value {
@@ -2119,7 +2119,7 @@ func CheckCurveDataReactiveConsistency(dataset *cimgostructs.CIMElementList) []V
 				Class:    "ReactiveCapabilityCurve",
 				Property: "rdf:type",
 				Message:  "All CurveData.y2value values are equal to CurveData.y1value values.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -2175,7 +2175,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimgostructs.CIMElem
 					Class:    "SynchronousMachine",
 					Property: "GeneratingUnit.minOperatingP",
 					Message:  fmt.Sprintf("GeneratingUnit.minOperatingP (%v) is not consistent with min CurveData.xvalue (%v).", gu.MinOperatingP, minX),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			if gu.MaxOperatingP < maxX-epsilon || gu.MaxOperatingP > maxX+epsilon {
@@ -2184,7 +2184,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimgostructs.CIMElem
 					Class:    "SynchronousMachine",
 					Property: "GeneratingUnit.maxOperatingP",
 					Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is not consistent with max CurveData.xvalue (%v).", gu.MaxOperatingP, maxX),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2258,7 +2258,7 @@ func CheckSwitchConnection(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "Switch",
 				Property: "rdf:type",
 				Message:  "Switch (or its subclasses) connects ConnectivityNode-s that are not contained in either the same VoltageLevel or in different VoltageLevel-s which have the same BaseVoltage.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -2299,7 +2299,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 				Class:    "OperationalLimitSet",
 				Property: "OperationalLimitSet.Equipment",
 				Message:  "OperationalLimitSet.Equipment is not provided for a Terminal associated with AuxiliaryEquipment.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 
@@ -2321,7 +2321,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 					Class:    "OperationalLimitSet",
 					Property: "OperationalLimitSet.Terminal",
 					Message:  fmt.Sprintf("Terminal %s is not a terminal of ConductingEquipment %s.", tID, eqID),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2371,7 +2371,7 @@ func CheckTapChangerControlRemoteQControl(dataset *cimgostructs.CIMElementList) 
 							Class:    "TapChangerControl",
 							Property: "RegulatingControl.Terminal",
 							Message:  "TapChangerControl in reactivePower mode controls a Terminal not associated with its PowerTransformerEnd.",
-							Severity: "sh.Violation",
+							Severity: "sh:Violation",
 						})
 					}
 				}
@@ -2404,7 +2404,7 @@ func CheckReactiveCapabilityCurveXValueUnique(dataset *cimgostructs.CIMElementLi
 							Class:    "ReactiveCapabilityCurve",
 							Property: "rdf:type",
 							Message:  fmt.Sprintf("CurveData.xvalue (%v) for ReactiveCapabilityCurve is not unique.", cd.Xvalue),
-							Severity: "sh.Violation",
+							Severity: "sh:Violation",
 						})
 						break // Only report once per curve
 					}
@@ -2445,7 +2445,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimgostructs.CIMElementLi
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.x",
 						Message:  fmt.Sprintf("PowerTransformerEnd.x (%v) for winding 1 of a two-winding transformer must be positive.", te.X),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -2458,7 +2458,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimgostructs.CIMElementLi
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.x",
 						Message:  "PowerTransformerEnd.x cannot be zero for a three-winding transformer.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}
@@ -2498,7 +2498,7 @@ func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimgostructs.CIMElementList
 					Class:    "GeneratingUnit",
 					Property: "GeneratingUnit.maxOperatingP",
 					Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is greater than sum of RotatingMachine.ratedS (%v).", gu.MaxOperatingP, sumRS),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2536,7 +2536,7 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimgostructs.CI
 								Class:    "HydroGeneratingUnit",
 								Property: "HydroGeneratingUnit.energyConversionCapability",
 								Message:  fmt.Sprintf("HydroGeneratingUnit as generator but associated SynchronousMachine type is '%v'.", uriSM),
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					} else if strings.HasSuffix(uriHGU, "pumpAndGenerator") {
@@ -2546,7 +2546,7 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimgostructs.CI
 								Class:    "HydroGeneratingUnit",
 								Property: "HydroGeneratingUnit.energyConversionCapability",
 								Message:  fmt.Sprintf("HydroGeneratingUnit as pumpAndGenerator but associated SynchronousMachine type is '%v'.", uriSM),
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					}
@@ -2587,7 +2587,7 @@ func CheckTerminalConnectionSameNode(dataset *cimgostructs.CIMElementList) []Vio
 				Class:    "ConductingEquipment",
 				Property: "rdf:type",
 				Message:  "Terminals of a two-terminal equipment connect to the same ConnectivityNode.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -2640,7 +2640,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  "SynchronousMachine of type condenser should not have a ReactiveCapabilityCurve.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "generator") || strings.HasSuffix(uri, "generatorOrCondenser") {
@@ -2650,7 +2650,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Generator type ReactiveCapabilityCurve needs at least 2 points (found %v).", count),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "motor") || strings.HasSuffix(uri, "motorOrCondenser") {
@@ -2660,7 +2660,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Motor type ReactiveCapabilityCurve needs at least 2 points (found %v).", count),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if strings.HasSuffix(uri, "generatorOrMotor") || strings.HasSuffix(uri, "generatorOrCondenserOrMotor") {
@@ -2670,7 +2670,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Combined type ReactiveCapabilityCurve needs at least 3 points (found %v).", count),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2708,7 +2708,7 @@ func CheckReactiveCapabilityCurveUnits(dataset *cimgostructs.CIMElementList) []V
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Incorrect units for ReactiveCapabilityCurve (x: %v, y1: %v, y2: %v). Expected x: W, y1: VAr, y2: VAr.", rcc.XUnit.URI, rcc.Y1Unit.URI, rcc.Y2Unit.URI),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -2739,7 +2739,7 @@ func CheckSubstationCount(dataset *cimgostructs.CIMElementList) []Violation {
 			Property: "rdf:type",
 			//{?substations}. {?voltagelevels}.
 			Message:  fmt.Sprintf("The model has either one Substation or a Substation per VoltageLevel. Number of Substation-s: %v. Number of VoltageLevel-s: %v.", substations, voltageLevels),
-			Severity: "sh.Warning",
+			Severity: "sh:Warning",
 		})
 	}
 
@@ -2798,7 +2798,7 @@ func CheckTapChangerNeutralUValueRange(dataset *cimgostructs.CIMElementList) []V
 						Class:    class,
 						Property: "TapChanger.neutralU",
 						Message:  fmt.Sprintf("TapChanger.neutralU (%v) is not equal to PowerTransformerEnd.ratedU (%v).", neutralU, te.RatedU),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}

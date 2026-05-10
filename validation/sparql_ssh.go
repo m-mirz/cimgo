@@ -43,7 +43,7 @@ func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) 
 				Class:    "EnergySource",
 				Property: "EnergySource.activePower",
 				Message:  "EnergySource that is a consumer (activePower > 0).",
-				Severity: "sh.Warning",
+				Severity: "sh:Warning",
 			})
 		}
 	}
@@ -72,7 +72,7 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIM
 					Class:    "TapChangerControl",
 					Property: "RegulatingControl.discrete",
 					Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			continue
@@ -84,7 +84,7 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIM
 				Class:    "RegulatingControl",
 				Property: "RegulatingControl.discrete",
 				Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -116,7 +116,7 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 					Class:    "CsConverter",
 					Property: "CsConverter.maxAlpha",
 					Message:  "The maxAlpha value is greater than 18 for a rectifier.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 			if csc.MinAlpha < 10 || csc.MinAlpha > csc.MaxAlpha {
@@ -125,7 +125,7 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 					Class:    "CsConverter",
 					Property: "CsConverter.minAlpha",
 					Message:  "The minAlpha value is less than 10 or greater than CsConverter.maxAlpha for a rectifier.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 		} else if mode == inverter {
@@ -135,7 +135,7 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 					Class:    "CsConverter",
 					Property: "CsConverter.maxGamma",
 					Message:  "The maxGamma value is greater than 20 for an inverter.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 			if csc.MinGamma < 17 || csc.MinGamma > csc.MaxGamma {
@@ -144,7 +144,7 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 					Class:    "CsConverter",
 					Property: "CsConverter.minGamma",
 					Message:  "The minGamma value is less than 17 or greater than CsConverter.maxGamma for an inverter.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 		}
@@ -177,7 +177,7 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "CsConverter.targetIdc is not provided for a converter with CsPpccControlKind.dcCurrent.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		} else if control == dcVoltage && csc.TargetUdc == 0 {
 			violations = append(violations, Violation{
@@ -185,7 +185,7 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "ACDCConverter.targetUdc is not provided for a converter with CsPpccControlKind.dcVoltage.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		} else if control == activePower && csc.TargetPpcc == 0 {
 			violations = append(violations, Violation{
@@ -193,7 +193,7 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "ACDCConverter.targetPpcc is not provided for a converter with CsPpccControlKind.activePower.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -225,7 +225,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroop.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "pPccAndUdcDroopWithCompensation":
@@ -235,7 +235,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc, VsConverter.droop and VsConverter.droopCompensation are not provided for VsPpccControlKind.pPccAndUdcDroopWithCompensation.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "pPccAndUdcDroopPilot":
@@ -245,7 +245,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroopPilot.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "udc":
@@ -255,7 +255,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "ACDCConverter.targetUdc is not provided for VsPpccControlKind.udc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "pPcc":
@@ -265,7 +265,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "ACDCConverter.targetPpcc is not provided for VsPpccControlKind.pPcc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "phasePcc":
@@ -275,7 +275,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "VsConverter.targetPhasePcc is not provided for VsPpccControlKind.phasePcc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -308,7 +308,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetPowerFactorPcc is not provided for VsQpccControlKind.powerFactorPcc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "pulseWidthModulation":
@@ -318,7 +318,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetPWMfactor and/or VsConverter.targetPhasePcc are not provided for VsQpccControlKind.pulseWidthModulation.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "reactivePcc":
@@ -328,7 +328,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetQpcc is not provided for VsQpccControlKind.reactivePcc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		case prefix + "voltagePcc":
@@ -338,7 +338,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetUpcc is not provided for VsQpccControlKind.voltagePcc.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -366,7 +366,7 @@ func CheckEnergySourcePQ(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "EnergySource",
 				Property: "EnergySource.voltageAngle",
 				Message:  "EnergySource modelled as voltage source (attributes voltageAngle and voltageMagnitude are used). Please assess depending on the use case.",
-				Severity: "sh.Warning",
+				Severity: "sh:Warning",
 			})
 		}
 	}

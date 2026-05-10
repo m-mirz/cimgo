@@ -208,6 +208,7 @@ type fileSpec struct {
 type checkSpec struct {
 	Name         string
 	ShapeID      string // Original SHACL Shape ID (e.g. eqc:ACLineSegment.length-length)
+	RuleID       string // Extracted Rule ID (e.g. eq600:ACLineSegment.length-length)
 	Class        string
 	Tag          string
 	Component    string
@@ -320,9 +321,9 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 
 func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Type, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
 	// Detect inverse and multi-segment paths up front. Inverse paths
-	// (`^cim.X.Y`) flip the constraint sense from "look at this object's
+	// (`^cim:X.Y`) flip the constraint sense from "look at this object's
 	// field" to "scan the dataset for objects pointing at this one". Some
-	// multi-segment shapes ([ref, rdf.type]) are recognised as a class-of-
+	// multi-segment shapes ([ref, rdf:type]) are recognised as a class-of-
 	// referenced-object check; everything else is currently skipped.
 	if len(c.Path) == 0 {
 		return checkSpec{}, nil, fmt.Errorf("empty path")
@@ -334,18 +335,18 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		rawPath = rawPath[1:]
 	}
 
-	// `^rdf.type` is a dataset-level cardinality check: "count of instances
+	// `^rdf:type` is a dataset-level cardinality check: "count of instances
 	// whose rdf:type is the focus class". MinCount=N → at least N instances
 	// must exist; MaxCount=N → at most N. Handled here before generic
-	// inverse-path machinery, which would try to parse "rdf.type" as a
+	// inverse-path machinery, which would try to parse "rdf:type" as a
 	// class.field and fail with "no Go struct rdf".
-	if isInverse && len(c.Path) == 1 && rawPath == "rdf.type" {
+	if isInverse && len(c.Path) == 1 && rawPath == "rdf:type" {
 		return buildDatasetCardinalityCheck(stemCamel, structName, shapeID, c, used)
 	}
 
 	// Classify multi-segment paths. The dominant shape is a forward chain
-	// ending in `rdf.type` (657 of 669 multi-segment HasValue/In); we also
-	// accept a forward chain *without* the trailing rdf.type for Or, where
+	// ending in `rdf:type` (657 of 669 multi-segment HasValue/In); we also
+	// accept a forward chain *without* the trailing rdf:type for Or, where
 	// the disjunction-of-Class shapes already encode the type assertion.
 	forwardChainEndsRdfType := false
 	forwardChainOnly := false
@@ -358,7 +359,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			}
 		}
 		if allForward {
-			if c.Path[len(c.Path)-1] == "rdf.type" {
+			if c.Path[len(c.Path)-1] == "rdf:type" {
 				forwardChainEndsRdfType = true
 			} else {
 				forwardChainOnly = true
@@ -417,13 +418,13 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		return checkSpec{}, nil, fmt.Errorf("no field with xml tag %q on %s", tag, owner)
 	}
 
-	// sh.NodeKind on a path ending in rdf:type is structurally satisfied:
+	// sh:NodeKind on a path ending in rdf:type is structurally satisfied:
 	// Go's static type system already enforces literal/IRI/blank-node
 	// distinctions at compile time. A pointer-to-struct field with no MRID
 	// is a blank node by construction, an MRID-bearing reference is an IRI,
 	// and a primitive field is a literal — none of which can be violated
 	// at runtime.
-	if c.Component == "sh.NodeKindConstraintComponent" && len(c.Path) >= 1 && c.Path[len(c.Path)-1] == "rdf.type" {
+	if c.Component == "sh:NodeKindConstraintComponent" && len(c.Path) >= 1 && c.Path[len(c.Path)-1] == "rdf:type" {
 		return checkSpec{}, nil, fmt.Errorf("NodeKind on path ending in rdf:type is structurally satisfied")
 	}
 
@@ -447,12 +448,15 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 
 	severity := c.Severity
 	if severity == "" {
-		severity = "sh.Violation"
+		severity = "sh:Violation"
 	}
+
+	ruleID := shapeID
 
 	cs := checkSpec{
 		Name:      name,
 		ShapeID:   shapeID,
+		RuleID:    ruleID,
 		Class:     structName,
 		Tag:       tag,
 		Component: c.Component,
@@ -487,7 +491,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			if !ok {
 				return checkSpec{}, nil, fmt.Errorf("no field with xml tag %q on %s", forwardTag, targetClass)
 			}
-			if c.Component != "sh.HasValueConstraintComponent" {
+			if c.Component != "sh:HasValueConstraintComponent" {
 				return checkSpec{}, nil, fmt.Errorf("multi-segment inverse %s not supported", c.Component)
 			}
 			want, ok := c.Payload["Value"].(string)
@@ -509,24 +513,24 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			return cs, imports, nil
 		}
 		switch c.Component {
-		case "sh.RequiredConstraintComponent":
+		case "sh:RequiredConstraintComponent":
 			prelude, cond := inverseCountCheck(targetClasses, field, "==", "0")
 			cs.Prelude, cs.Condition = prelude, cond
 			cs.NoV = true
 			imports = append(imports, "strings")
-		case "sh.MinCountConstraintComponent":
+		case "sh:MinCountConstraintComponent":
 			min := int(anyToFloat(c.Payload["MinCount"]))
 			prelude, cond := inverseCountCheck(targetClasses, field, "<", fmt.Sprintf("%d", min))
 			cs.Prelude, cs.Condition = prelude, cond
 			cs.NoV = true
 			imports = append(imports, "strings")
-		case "sh.MaxCountConstraintComponent":
+		case "sh:MaxCountConstraintComponent":
 			max := int(anyToFloat(c.Payload["MaxCount"]))
 			prelude, cond := inverseCountCheck(targetClasses, field, ">", fmt.Sprintf("%d", max))
 			cs.Prelude, cs.Condition = prelude, cond
 			cs.NoV = true
 			imports = append(imports, "strings")
-		case "sh.ClassConstraintComponent":
+		case "sh:ClassConstraintComponent":
 			// Class on an inverse path asserts the *referrers* are of a
 			// given class. Our inverse-index loop already filters to
 			// *targetClasses, so the constraint is structurally satisfied
@@ -538,7 +542,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			// no runtime evaluator to fall back on.
 			assertedClass, ok := classNameFromPayload(c.Payload["Class"])
 			if !ok {
-				return checkSpec{}, nil, fmt.Errorf("inverse Class payload not a cim.* string")
+				return checkSpec{}, nil, fmt.Errorf("inverse Class payload not a cim:* string")
 			}
 			for _, tc := range targetClasses {
 				if !isClassOrAncestor(tc, assertedClass) {
@@ -556,41 +560,41 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	// satisfied: every reference hop in our Go data model is 0..1, so the
 	// path-end value-count cannot exceed 1. Flag these explicitly before
 	// the per-shape branches below, otherwise they fall through into the
-	// "forwardChainOnly only handles Or" / "ends-rdf.type only handles
+	// "forwardChainOnly only handles Or" / "ends-rdf:type only handles
 	// HasValue/In/Required" rejections and get reported as plain
 	// "not supported" — which understates how many are actually OK.
-	if len(c.Path) > 1 && !isInverse && c.Component == "sh.MaxCountConstraintComponent" &&
+	if len(c.Path) > 1 && !isInverse && c.Component == "sh:MaxCountConstraintComponent" &&
 		(forwardChainEndsRdfType || forwardChainOnly) {
 		if int(anyToFloat(c.Payload["MaxCount"])) == 1 {
 			return checkSpec{}, nil, fmt.Errorf("multi-segment MaxCount=1 is structurally satisfied (refs are 0..1)")
 		}
 	}
 
-	// Forward-chain-ending-rdf.type branch. Covers any number of forward
-	// reference hops followed by a final rdf.type segment. The chain
+	// Forward-chain-ending-rdf:type branch. Covers any number of forward
+	// reference hops followed by a final rdf:type segment. The chain
 	// resolves cleanly to a class-of-referenced-object check; the trailing
-	// rdf.type is satisfied by the Go type system once the chain lands.
+	// rdf:type is satisfied by the Go type system once the chain lands.
 	// HasValue → exact match; In → allow-set; Required → reduce to "first
 	// ref must be present" (the chain's existence is the constraint).
 	if forwardChainEndsRdfType {
 		refSegs := c.Path[:len(c.Path)-1]
 		switch c.Component {
-		case "sh.HasValueConstraintComponent":
+		case "sh:HasValueConstraintComponent":
 			guard, cond, err := refClassEqualCondition(refSegs, structType, c.Payload["Value"])
 			if err != nil {
 				return checkSpec{}, nil, err
 			}
 			cs.Guard, cs.Condition = guard, cond
 			imports = append(imports, "strings")
-		case "sh.InConstraintComponent":
+		case "sh:InConstraintComponent":
 			guard, cond, err := refClassInCondition(refSegs, structType, c.Payload["Values"])
 			if err != nil {
 				return checkSpec{}, nil, err
 			}
 			cs.Guard, cs.Condition = guard, cond
 			imports = append(imports, "strings")
-		case "sh.RequiredConstraintComponent":
-			// Required at end-rdf.type degenerates to "the chain's first
+		case "sh:RequiredConstraintComponent":
+			// Required at end-rdf:type degenerates to "the chain's first
 			// reference must be present". The chain implicitly requires
 			// each subsequent hop to resolve too, but for the dominant
 			// CIM modelling intent ("this must be set") checking the
@@ -603,22 +607,22 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			}
 			cs.Condition = cond
 		default:
-			return checkSpec{}, nil, fmt.Errorf("multi-segment %v ending in rdf.type not supported for %s", c.Path, c.Component)
+			return checkSpec{}, nil, fmt.Errorf("multi-segment %v ending in rdf:type not supported for %s", c.Path, c.Component)
 		}
 		return cs, imports, nil
 	}
 
-	// Forward chain WITHOUT trailing rdf.type. Two shapes map cleanly:
+	// Forward chain WITHOUT trailing rdf:type. Two shapes map cleanly:
 	//
-	//   - sh.Or with all-Class shapes: the disjunction is the type test on
+	//   - sh:Or with all-Class shapes: the disjunction is the type test on
 	//     the final referenced object.
-	//   - sh.Datatype on a chain whose last segment is a literal field on
+	//   - sh:Datatype on a chain whose last segment is a literal field on
 	//     a known compound class (e.g. Location.mainAddress / StreetAddress
 	//     .status / Status.dateTime): walk the N-1 ref hops, type-assert
 	//     to the literal's parent class, then apply the same datatype check
 	//     used for single-segment string fields.
 	if forwardChainOnly {
-		if c.Component == "sh.DatatypeConstraintComponent" {
+		if c.Component == "sh:DatatypeConstraintComponent" {
 			cs2, imports2, err := multiSegDatatypeCheck(c, structType)
 			if err == nil {
 				cs.Guard = cs2.Guard
@@ -628,7 +632,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			}
 			return checkSpec{}, nil, err
 		}
-		if c.Component != "sh.OrConstraintComponent" {
+		if c.Component != "sh:OrConstraintComponent" {
 			return checkSpec{}, nil, fmt.Errorf("multi-segment path %v not supported for %s", c.Path, c.Component)
 		}
 		classes, err := orClassListFromShapes(c.Payload["Shapes"])
@@ -658,117 +662,117 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	}
 
 	switch c.Component {
-	case "sh.MinExclusiveConstraintComponent":
+	case "sh:MinExclusiveConstraintComponent":
 		guard, cond, err := numericCompare(field, "<=", c.Payload["Value"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.MaxExclusiveConstraintComponent":
+	case "sh:MaxExclusiveConstraintComponent":
 		guard, cond, err := numericCompare(field, ">=", c.Payload["Value"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.MinInclusiveConstraintComponent":
+	case "sh:MinInclusiveConstraintComponent":
 		guard, cond, err := numericCompare(field, "<", c.Payload["Value"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.MaxInclusiveConstraintComponent":
+	case "sh:MaxInclusiveConstraintComponent":
 		guard, cond, err := numericCompare(field, ">", c.Payload["Value"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.RequiredConstraintComponent":
+	case "sh:RequiredConstraintComponent":
 		cond, err := requiredCondition(field)
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Condition = cond
-	case "sh.MinCountConstraintComponent":
+	case "sh:MinCountConstraintComponent":
 		guard, cond, err := minCountCondition(field, c.Payload["MinCount"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.MaxCountConstraintComponent":
+	case "sh:MaxCountConstraintComponent":
 		guard, cond, err := maxCountCondition(field, c.Payload["MaxCount"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.HasValueConstraintComponent":
+	case "sh:HasValueConstraintComponent":
 		guard, cond, err := hasValueCondition(field, c.Payload["Value"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.InConstraintComponent":
+	case "sh:InConstraintComponent":
 		guard, cond, err := inCondition(field, c.Payload["Values"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.MinLengthConstraintComponent":
+	case "sh:MinLengthConstraintComponent":
 		guard, cond, err := minLengthCondition(field, c.Payload["MinLength"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
 		imports = append(imports, "unicode/utf8")
-	case "sh.MaxLengthConstraintComponent":
+	case "sh:MaxLengthConstraintComponent":
 		guard, cond, err := maxLengthCondition(field, c.Payload["MaxLength"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
 		imports = append(imports, "unicode/utf8")
-	case "sh.PatternConstraintComponent":
+	case "sh:PatternConstraintComponent":
 		decl, guard, cond, err := patternCondition(field, c.Payload, name+"Regex")
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Decl, cs.Guard, cs.Condition = decl, guard, cond
 		imports = append(imports, "regexp")
-	case "sh.LessThanConstraintComponent":
+	case "sh:LessThanConstraintComponent":
 		guard, cond, err := pairCompare(structType, field, c.Payload["Path"], ">=")
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.LessThanOrEqualsConstraintComponent":
+	case "sh:LessThanOrEqualsConstraintComponent":
 		guard, cond, err := pairCompare(structType, field, c.Payload["Path"], ">")
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
-	case "sh.ClassConstraintComponent":
+	case "sh:ClassConstraintComponent":
 		guard, cond, err := classCondition(field, c.Payload["Class"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
 		imports = append(imports, "strings")
-	case "sh.DatatypeConstraintComponent":
+	case "sh:DatatypeConstraintComponent":
 		guard, cond, dtImports, err := datatypeCondition(field, c.Payload["Datatype"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
 		imports = append(imports, dtImports...)
-	case "sh.NotConstraintComponent":
+	case "sh:NotConstraintComponent":
 		// Single-segment Not is a forward-Class assertion with the
 		// condition inverted. The wrapped shape must reduce to a single
-		// sh.Class — anything richer (Not of a length range, of an Or,
+		// sh:Class — anything richer (Not of a length range, of an Or,
 		// etc.) is too uncommon here to be worth recursive emission.
 		notClass, err := notClassFromShapeRef(c.Payload["ShapeRef"])
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
-		guard, _, err := classCondition(field, "cim."+notClass)
+		guard, _, err := classCondition(field, "cim:"+notClass)
 		if err != nil {
 			return checkSpec{}, nil, err
 		}
@@ -798,8 +802,8 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 //       constraint by construction. If a future TTL ever breaks this
 //       invariant the generator will refuse with a "not yet implemented"
 //       error rather than silently dropping the constraint.
-//     - sh.NodeKindConstraintComponent on a path ending in rdf:type [8]:
-//       once the chain resolves to a typed *cim.X, NodeKind=Literal/IRI/
+//     - sh:NodeKindConstraintComponent on a path ending in rdf:type [8]:
+//       once the chain resolves to a typed *cim:X, NodeKind=Literal/IRI/
 //       BlankNode is automatically satisfied by Go's static type system;
 //       any emitted check would be a no-op.
 //
@@ -823,7 +827,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 //       cim:AngleReference. These use sh:targetNode <sentinel> + sh:sparql
 //       to define their target via a SPARQL query rather than a class —
 //       out of shaclgen's static-field-check scope.
-//     - sh.In payload empty [4]: TTL bug — empty `sh:in ()` lists in
+//     - sh:In payload empty [4]: TTL bug — empty `sh:in ()` lists in
 //       Operation profile (would imply "no value acceptable"). Skip.
 //     - non-CIM target classes [4]: diff.DifferenceModel and mdc.FullModel
 //       — model-metadata classes, out of scope.
@@ -837,41 +841,41 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 // signals the caller to skip the constraint with a "not supported" reason.
 func componentShort(component string) (string, bool) {
 	switch component {
-	case "sh.MinExclusiveConstraintComponent":
+	case "sh:MinExclusiveConstraintComponent":
 		return "MinExclusive", true
-	case "sh.MaxExclusiveConstraintComponent":
+	case "sh:MaxExclusiveConstraintComponent":
 		return "MaxExclusive", true
-	case "sh.MinInclusiveConstraintComponent":
+	case "sh:MinInclusiveConstraintComponent":
 		return "MinInclusive", true
-	case "sh.MaxInclusiveConstraintComponent":
+	case "sh:MaxInclusiveConstraintComponent":
 		return "MaxInclusive", true
-	case "sh.RequiredConstraintComponent":
+	case "sh:RequiredConstraintComponent":
 		return "Required", true
-	case "sh.MinCountConstraintComponent":
+	case "sh:MinCountConstraintComponent":
 		return "MinCount", true
-	case "sh.MaxCountConstraintComponent":
+	case "sh:MaxCountConstraintComponent":
 		return "MaxCount", true
-	case "sh.HasValueConstraintComponent":
+	case "sh:HasValueConstraintComponent":
 		return "HasValue", true
-	case "sh.InConstraintComponent":
+	case "sh:InConstraintComponent":
 		return "In", true
-	case "sh.MinLengthConstraintComponent":
+	case "sh:MinLengthConstraintComponent":
 		return "MinLength", true
-	case "sh.MaxLengthConstraintComponent":
+	case "sh:MaxLengthConstraintComponent":
 		return "MaxLength", true
-	case "sh.PatternConstraintComponent":
+	case "sh:PatternConstraintComponent":
 		return "Pattern", true
-	case "sh.LessThanConstraintComponent":
+	case "sh:LessThanConstraintComponent":
 		return "LessThan", true
-	case "sh.LessThanOrEqualsConstraintComponent":
+	case "sh:LessThanOrEqualsConstraintComponent":
 		return "LessThanOrEquals", true
-	case "sh.ClassConstraintComponent":
+	case "sh:ClassConstraintComponent":
 		return "Class", true
-	case "sh.DatatypeConstraintComponent":
+	case "sh:DatatypeConstraintComponent":
 		return "Datatype", true
-	case "sh.OrConstraintComponent":
+	case "sh:OrConstraintComponent":
 		return "Or", true
-	case "sh.NotConstraintComponent":
+	case "sh:NotConstraintComponent":
 		return "Not", true
 	}
 	return "", false
@@ -929,7 +933,7 @@ func requiredCondition(field reflect.StructField) (string, error) {
 	}
 }
 
-// minCountCondition handles sh.MinCount. For pointer fields, MinCount=1 is
+// minCountCondition handles sh:MinCount. For pointer fields, MinCount=1 is
 // equivalent to Required. For slices we compare against the literal threshold.
 // Other field kinds are skipped — a scalar's count is always 0 or 1, and a
 // MinCount > 1 against that would be unsatisfiable, suggesting bad input.
@@ -948,7 +952,7 @@ func minCountCondition(field reflect.StructField, payload any) (string, string, 
 	}
 }
 
-// maxCountCondition handles sh.MaxCount. Pointers and scalars are structurally
+// maxCountCondition handles sh:MaxCount. Pointers and scalars are structurally
 // bounded at 1, so MaxCount >= 1 is vacuous and we skip it. MaxCount=0 (a
 // "must not be set" rule) is rare but real; emit it as a presence check.
 func maxCountCondition(field reflect.StructField, payload any) (string, string, error) {
@@ -973,7 +977,7 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 	}
 }
 
-// hasValueCondition handles sh.HasValue for string-typed fields and for
+// hasValueCondition handles sh:HasValue for string-typed fields and for
 // enum-as-IRI reference fields (pointer to struct{URI string}). Enum-URI
 // fields need a special path because the value lives one pointer hop deeper
 // than a plain string — comparing v.Field.URI against the matching
@@ -1025,7 +1029,7 @@ func hasValueCondition(field reflect.StructField, payload any) (string, string, 
 	}
 }
 
-// inCondition handles sh.In for string-typed fields and for enum-as-IRI
+// inCondition handles sh:In for string-typed fields and for enum-as-IRI
 // reference fields. Same enum-URI rationale as hasValueCondition.
 func inCondition(field reflect.StructField, payload any) (string, string, error) {
 	rawValues, ok := payload.([]any)
@@ -1138,9 +1142,9 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 // enumURIFieldConst inspects field for the enum-as-IRI shape (pointer to a
 // struct with a single string field named URI). When the shape matches, the
 // returned constIdent is the cimgostructs constant identifier corresponding
-// to payload — derived by stripping the cim. prefix and dropping the dot
+// to payload — derived by stripping the cim: prefix and dropping the dot
 // between enum name and member, since cimgostructs names enum constants
-// `<EnumName><Member>` (e.g. cim.InputSignalKind.generatorElectricalPower →
+// `<EnumName><Member>` (e.g. cim:InputSignalKind.generatorElectricalPower →
 // InputSignalKindgeneratorElectricalPower). A missing constant turns into a
 // build error in the generated code, not a silent miscompare here.
 func enumURIFieldConst(field reflect.StructField, payload string) (string, bool, error) {
@@ -1166,7 +1170,7 @@ func enumURIFieldConst(field reflect.StructField, payload string) (string, bool,
 	return rest[:dot] + rest[dot+1:], true, nil
 }
 
-// minLengthCondition handles sh.MinLength on string fields. Skip absent
+// minLengthCondition handles sh:MinLength on string fields. Skip absent
 // values (empty string ≡ omitempty absent) so an unrelated MinLength rule
 // doesn't fire on every dataset element that simply doesn't set the field —
 // Required handles "must be present" separately.
@@ -1180,7 +1184,7 @@ func minLengthCondition(field reflect.StructField, payload any) (string, string,
 	return guard, cond, nil
 }
 
-// maxLengthCondition handles sh.MaxLength on string fields. Empty string
+// maxLengthCondition handles sh:MaxLength on string fields. Empty string
 // trivially passes (0 ≤ max), so the skip-empty guard is redundant but kept
 // for parity with MinLength/HasValue/In so the loop body shape stays uniform.
 func maxLengthCondition(field reflect.StructField, payload any) (string, string, error) {
@@ -1193,7 +1197,7 @@ func maxLengthCondition(field reflect.StructField, payload any) (string, string,
 	return guard, cond, nil
 }
 
-// patternCondition handles sh.Pattern on string fields. The regex is hoisted
+// patternCondition handles sh:Pattern on string fields. The regex is hoisted
 // to a package-level var via regexp.MustCompile so each Check call reuses one
 // compiled pattern. We test-compile at generator time: if the SHACL pattern
 // uses XSD/XPath-only syntax that Go's RE2 engine rejects (e.g. lookahead,
@@ -1221,7 +1225,7 @@ func patternCondition(field reflect.StructField, payload map[string]any, varName
 }
 
 // pairCompare emits a cross-field comparison on the same struct, used for
-// sh.LessThan and sh.LessThanOrEquals. `op` is the comparison that *violates*
+// sh:LessThan and sh:LessThanOrEquals. `op` is the comparison that *violates*
 // the rule: ">=" for LessThan (A must be < B; violation when A >= B), ">" for
 // LessThanOrEquals. Skip-empty matches numericCompare's omitempty semantics:
 // if either field is zero we treat it as absent and bow out of the check.
@@ -1280,11 +1284,11 @@ func castExpr(cast, expr string) string {
 	return cast + "(" + expr + ")"
 }
 
-// classCondition handles sh.ClassConstraintComponent for forward reference
+// classCondition handles sh:ClassConstraintComponent for forward reference
 // fields. It dereferences the MRID, looks up the target object in the
 // dataset, and verifies its Go type matches the expected class. Missing
 // references and dangling MRIDs are treated as "skip" (no violation): a
-// missing-reference complaint is the job of sh.Required, not sh.Class, so
+// missing-reference complaint is the job of sh:Required, not sh:Class, so
 // flagging here would double-report. When the named class is abstract (not
 // in StructMap) we accept any concrete subclass — same dispatch as the
 // inverse-path branch.
@@ -1335,8 +1339,8 @@ func classCondition(field reflect.StructField, payload any) (string, string, err
 	return b.String(), "!isWantedClass", nil
 }
 
-// datatypeCondition handles sh.DatatypeConstraintComponent. For the dominant
-// xsd.dateTime case (and xsd.date) we emit a parse attempt against the Go
+// datatypeCondition handles sh:DatatypeConstraintComponent. For the dominant
+// xsd:dateTime case (and xsd:date) we emit a parse attempt against the Go
 // time package; other XSD datatypes are mostly redundant with Go's static
 // types and skipped with a structural-satisfaction reason.
 func datatypeCondition(field reflect.StructField, payload any) (string, string, []string, error) {
@@ -1350,13 +1354,13 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 		return "", "", nil, fmt.Errorf("Datatype %q on %s field is structurally satisfied", dt, field.Type.Kind())
 	}
 	switch dt {
-	case "xsd.dateTime":
+	case "xsd:dateTime":
 		guard := fmt.Sprintf("\t\tif v.%s == \"\" {\n\t\t\tcontinue\n\t\t}\n\t\t_, parseErr := time.Parse(time.RFC3339, v.%s)", field.Name, field.Name)
 		return guard, "parseErr != nil", []string{"time"}, nil
-	case "xsd.date":
+	case "xsd:date":
 		guard := fmt.Sprintf("\t\tif v.%s == \"\" {\n\t\t\tcontinue\n\t\t}\n\t\t_, parseErr := time.Parse(\"2006-01-02\", v.%s)", field.Name, field.Name)
 		return guard, "parseErr != nil", []string{"time"}, nil
-	case "xsd.gMonthDay":
+	case "xsd:gMonthDay":
 		// xsd:gMonthDay canonical form is "--MM-DD" but CGMES instances
 		// commonly write "MM-DD" without the leading dashes. Try both
 		// before flagging a violation.
@@ -1370,25 +1374,25 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 	return "", "", nil, fmt.Errorf("Datatype %q not supported on string field", dt)
 }
 
-// buildDatasetCardinalityCheck handles `^rdf.type` cardinality constraints
+// buildDatasetCardinalityCheck handles `^rdf:type` cardinality constraints
 // (MinCount/MaxCount on the count of focus-class instances in the dataset).
 // Emitted as a DatasetCheck — the per-element loop is skipped entirely and
 // a single violation is appended (or not) based on the global count.
 func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {
 	compShort, ok := componentShort(c.Component)
 	if !ok {
-		return checkSpec{}, nil, fmt.Errorf("component %s not supported on ^rdf.type", c.Component)
+		return checkSpec{}, nil, fmt.Errorf("component %s not supported on ^rdf:type", c.Component)
 	}
 	var op, threshold string
 	switch c.Component {
-	case "sh.MinCountConstraintComponent":
+	case "sh:MinCountConstraintComponent":
 		min := int(anyToFloat(c.Payload["MinCount"]))
 		op, threshold = "<", fmt.Sprintf("%d", min)
-	case "sh.MaxCountConstraintComponent":
+	case "sh:MaxCountConstraintComponent":
 		max := int(anyToFloat(c.Payload["MaxCount"]))
 		op, threshold = ">", fmt.Sprintf("%d", max)
 	default:
-		return checkSpec{}, nil, fmt.Errorf("only Min/MaxCount supported on ^rdf.type, got %s", c.Component)
+		return checkSpec{}, nil, fmt.Errorf("only Min/MaxCount supported on ^rdf:type, got %s", c.Component)
 	}
 	// Resolve focus class to either a single concrete or a list of concrete
 	// subclasses (when the focus is abstract). Counting is a union over all
@@ -1410,8 +1414,11 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 	}
 	severity := c.Severity
 	if severity == "" {
-		severity = "sh.Violation"
+		severity = "sh:Violation"
 	}
+
+	ruleID := shapeID
+
 	var b strings.Builder
 	b.WriteString("\tdatasetCount := 0\n")
 	b.WriteString("\tfor _, ref := range dataset.Elements {\n")
@@ -1424,10 +1431,11 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 	cs := checkSpec{
 		Name:         name,
 		ShapeID:      shapeID,
+		RuleID:       ruleID,
 		Class:        structName,
-		Tag:          "^rdf.type",
+		Tag:          "^rdf:type",
 		Component:    c.Component,
-		Property:     "^rdf.type",
+		Property:     "^rdf:type",
 		Message:      strings.Trim(c.Message, "\""),
 		Severity:     severity,
 		Prelude:      b.String(),
@@ -1437,7 +1445,7 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 	return cs, nil, nil
 }
 
-// multiSegDatatypeCheck handles sh.Datatype on a forward chain where the
+// multiSegDatatypeCheck handles sh:Datatype on a forward chain where the
 // last segment is a literal field on a known compound class. The strategy:
 // walk the N-1 reference hops, type-assert the resulting Element to the
 // parent class extracted from the last segment, then apply the existing
@@ -1494,15 +1502,15 @@ func multiSegDatatypeCheck(c shaclimport.ConstraintInfo, structType reflect.Type
 	var cond string
 	var extraImports []string
 	switch dt {
-	case "xsd.dateTime":
+	case "xsd:dateTime":
 		fmt.Fprintf(&b, "\t\t_, parseErr := time.Parse(time.RFC3339, parent.%s)", field.Name)
 		cond = "parseErr != nil"
 		extraImports = []string{"time", "strings"}
-	case "xsd.date":
+	case "xsd:date":
 		fmt.Fprintf(&b, "\t\t_, parseErr := time.Parse(\"2006-01-02\", parent.%s)", field.Name)
 		cond = "parseErr != nil"
 		extraImports = []string{"time", "strings"}
-	case "xsd.gMonthDay":
+	case "xsd:gMonthDay":
 		fmt.Fprintf(&b, "\t\t_, parseErr1 := time.Parse(\"--01-02\", parent.%s)\n", field.Name)
 		fmt.Fprintf(&b, "\t\t_, parseErr2 := time.Parse(\"01-02\", parent.%s)", field.Name)
 		cond = "parseErr1 != nil && parseErr2 != nil"
@@ -1514,8 +1522,8 @@ func multiSegDatatypeCheck(c shaclimport.ConstraintInfo, structType reflect.Type
 }
 
 // walkForwardRefChain emits Guard text that chases a sequence of forward
-// reference hops. Each segment must be `cim.<Class>.<field>` (already with
-// cim. prefix). The function dereferences each reference, looks the target
+// reference hops. Each segment must be `cim:<Class>.<field>` (already with
+// cim: prefix). The function dereferences each reference, looks the target
 // up in the dataset, and (for all but the final hop) type-asserts the
 // target to the class implied by the *next* segment's class portion. The
 // final hop returns the raw Element value as `targetVar`; the caller plugs
@@ -1525,7 +1533,7 @@ func multiSegDatatypeCheck(c shaclimport.ConstraintInfo, structType reflect.Type
 // At every step, if a reference is missing or the dataset lookup fails or a
 // type assertion fails, we `continue`. The chain not resolving means there
 // is no "value" for the property path at this focus node — so by SHACL
-// semantics no value-shape constraint can fail; sh.Required is the
+// semantics no value-shape constraint can fail; sh:Required is the
 // constraint that signals "the chain must resolve", and lives separately.
 func walkForwardRefChain(pathSegs []string, startType reflect.Type, startVar string) (string, string, error) {
 	if len(pathSegs) == 0 {
@@ -1583,8 +1591,8 @@ func walkForwardRefChain(pathSegs []string, startType reflect.Type, startVar str
 	return strings.TrimRight(b.String(), "\n"), currentVar, nil
 }
 
-// refClassEqualCondition implements sh.HasValue along a forward chain ending
-// in rdf.type: chase the chain, then require the final target's Go type to
+// refClassEqualCondition implements sh:HasValue along a forward chain ending
+// in rdf:type: chase the chain, then require the final target's Go type to
 // match the named class exactly.
 func refClassEqualCondition(refSegs []string, startType reflect.Type, payload any) (string, string, error) {
 	want, ok := payload.(string)
@@ -1594,10 +1602,10 @@ func refClassEqualCondition(refSegs []string, startType reflect.Type, payload an
 	want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
 	wantClass, ok := stripCIMPrefix(want)
 	if !ok {
-		return "", "", fmt.Errorf("HasValue rdf.type %q not in cim namespace", want)
+		return "", "", fmt.Errorf("HasValue rdf:type %q not in cim namespace", want)
 	}
 	if _, ok := cimgostructs.StructMap[wantClass]; !ok {
-		return "", "", fmt.Errorf("HasValue rdf.type %q has no Go struct", wantClass)
+		return "", "", fmt.Errorf("HasValue rdf:type %q has no Go struct", wantClass)
 	}
 	guard, targetVar, err := walkForwardRefChain(refSegs, startType, "v")
 	if err != nil {
@@ -1607,8 +1615,8 @@ func refClassEqualCondition(refSegs []string, startType reflect.Type, payload an
 	return guard, "!isWantedClass", nil
 }
 
-// refClassInCondition implements sh.In along a forward chain ending in
-// rdf.type: chase the chain, then require the final target's Go type to be
+// refClassInCondition implements sh:In along a forward chain ending in
+// rdf:type: chase the chain, then require the final target's Go type to be
 // one of the listed classes. Emitted as a `type switch` because Go interface
 // values can't be keyed by their concrete type at the language level.
 func refClassInCondition(refSegs []string, startType reflect.Type, payload any) (string, string, error) {
@@ -1645,11 +1653,11 @@ func refClassInCondition(refSegs []string, startType reflect.Type, payload any) 
 }
 
 // classListFromValues parses a SHACL `Values` payload into a list of Go
-// struct names, normalising the `<cim.Foo>`/`cim100.Foo` IRI forms and
+// struct names, normalising the `<cim:Foo>`/`cim100.Foo` IRI forms and
 // verifying each name resolves to a generated struct. Abstract base classes
 // (not in StructMap directly) are expanded to their concrete subclasses so
 // the resulting allow-set is exhaustive at the Go-type level. Shared by
-// sh.In on rdf.type and sh.Or with all-Class shapes.
+// sh:In on rdf:type and sh:Or with all-Class shapes.
 func classListFromValues(rawValues []any) ([]string, error) {
 	seen := map[string]bool{}
 	var classes []string
@@ -1662,12 +1670,12 @@ func classListFromValues(rawValues []any) ([]string, error) {
 	for _, v := range rawValues {
 		s, ok := v.(string)
 		if !ok {
-			return nil, fmt.Errorf("rdf.type list contains non-string %v", v)
+			return nil, fmt.Errorf("rdf:type list contains non-string %v", v)
 		}
 		s = strings.TrimPrefix(strings.TrimSuffix(s, ">"), "<")
 		cls, ok := stripCIMPrefix(s)
 		if !ok {
-			return nil, fmt.Errorf("rdf.type %q not in cim namespace", s)
+			return nil, fmt.Errorf("rdf:type %q not in cim namespace", s)
 		}
 		if _, ok := cimgostructs.StructMap[cls]; ok {
 			add(cls)
@@ -1675,7 +1683,7 @@ func classListFromValues(rawValues []any) ([]string, error) {
 		}
 		subs := concreteSubclassesEmbedding(cls)
 		if len(subs) == 0 {
-			return nil, fmt.Errorf("rdf.type %q has no Go struct", cls)
+			return nil, fmt.Errorf("rdf:type %q has no Go struct", cls)
 		}
 		for _, s := range subs {
 			add(s)
@@ -1686,7 +1694,7 @@ func classListFromValues(rawValues []any) ([]string, error) {
 }
 
 // orClassListFromShapes accepts the Or payload's `Shapes` list (a list of
-// shape lists, each containing a single sh.ClassConstraintComponent) and
+// shape lists, each containing a single sh:ClassConstraintComponent) and
 // returns the equivalent allowed-class list, or an error when the shape
 // can't be reduced to a flat class disjunction. This is the only Or shape
 // the generator handles — it captures the dominant "this reference must be
@@ -1706,7 +1714,7 @@ func orClassListFromShapes(payload any) ([]string, error) {
 			return nil, fmt.Errorf("Or shape %d has %d constraints (only single-Class shapes supported)", i, len(inner))
 		}
 		c := inner[0]
-		if c.Component != "sh.ClassConstraintComponent" {
+		if c.Component != "sh:ClassConstraintComponent" {
 			return nil, fmt.Errorf("Or shape %d component %q is not Class", i, c.Component)
 		}
 		want, _ := c.Payload["Class"].(string)
@@ -1724,7 +1732,7 @@ func orClassListFromShapes(payload any) ([]string, error) {
 }
 
 // notClassFromShapeRef accepts the Not payload's `ShapeRef` list (expected
-// to contain a single sh.ClassConstraintComponent) and returns the negated
+// to contain a single sh:ClassConstraintComponent) and returns the negated
 // class name. Like Or, this only handles the simple Class-only shape.
 func notClassFromShapeRef(payload any) (string, error) {
 	shapes, ok := asConstraintList(payload)
@@ -1735,7 +1743,7 @@ func notClassFromShapeRef(payload any) (string, error) {
 		return "", fmt.Errorf("Not has %d constraints (only single-Class shape supported)", len(shapes))
 	}
 	c := shapes[0]
-	if c.Component != "sh.ClassConstraintComponent" {
+	if c.Component != "sh:ClassConstraintComponent" {
 		return "", fmt.Errorf("Not component %q is not Class", c.Component)
 	}
 	want, _ := c.Payload["Class"].(string)
@@ -1906,7 +1914,7 @@ func concreteSubclassesEmbedding(abstract string) []string {
 }
 
 // classNameFromPayload normalises a SHACL `sh:class` payload (an IRI in
-// either `<cim.X>` or `cim.X` form) to a bare Go struct name. Returns false
+// either `<cim:X>` or `cim:X` form) to a bare Go struct name. Returns false
 // if the payload isn't a string in the cim namespace.
 func classNameFromPayload(payload any) (string, bool) {
 	s, ok := payload.(string)
@@ -2001,7 +2009,7 @@ func simpleClassName(s string) (string, bool) {
 	return name, true
 }
 
-// stripCIMPrefix removes a leading "cim." or "cim<version>." (e.g. "cim100.")
+// stripCIMPrefix removes a leading "cim:" or "cim<version>." (e.g. "cim100.")
 // segment from a SHACL identifier. Returns the remainder and true on match.
 // CGMES profiles intermix CIM 16/17 (no version suffix or "cim16") and CIM 100
 // (CGMES 3.0) names, but cimgostructs has a single Go struct per class
@@ -2014,14 +2022,14 @@ func stripCIMPrefix(s string) (string, bool) {
 	for len(rest) > 0 && rest[0] >= '0' && rest[0] <= '9' {
 		rest = rest[1:]
 	}
-	if len(rest) == 0 || rest[0] != '.' {
+	if len(rest) == 0 || (rest[0] != '.' && rest[0] != ':') {
 		return "", false
 	}
 	return rest[1:], true
 }
 
 // cimNamespaceFromPrefix maps a simplified IRI prefix to the full namespace URI.
-// "cim.X.Y" → "http://iec.ch/TC57/CIM100#"
+// "cim:X.Y" → "http://iec.ch/TC57/CIM100#"
 // "cim100.X.Y" → "http://iec.ch/TC57/CIM100-European#"
 func cimNamespaceFromPrefix(simplified string) string {
 	if strings.HasPrefix(simplified, "cim100.") {

@@ -73,7 +73,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList
 				Class:    "MutualCoupling",
 				Property: "MutualCoupling.First_Terminal",
 				Message:  fmt.Sprintf("The terminals are either not related to ACLineSegment or the first and the second terminal associations are not pointing to different ACLineSegments. Type line 1: %s. Type line 2: %s.", t1, t2),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}

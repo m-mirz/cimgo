@@ -101,7 +101,7 @@ func checkProf10EQ(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 	case "external":
 		return nil
 	}
-	return []Violation{prof10violation(id, msgEQ, "sh.Info")}
+	return []Violation{prof10violation(id, msgEQ, "sh:Info")}
 }
 
 const msgDY = "The file header dependencies cardinalities and types for DY profile are not according to PROF10."
@@ -110,13 +110,13 @@ const msgDY = "The file header dependencies cardinalities and types for DY profi
 func checkProf10DY(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgDY, "sh.Violation")}
+		return []Violation{prof10violation(id, msgDY, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	if dep != profEQ {
-		return []Violation{prof10violation(id, msgDY, "sh.Violation")}
+		return []Violation{prof10violation(id, msgDY, "sh:Violation")}
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func checkProf10DL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 	}
 	allowed := map[string]bool{profDY: true, profTP: true, profEQ: true, profSC: true, profOP: true}
 	if !allowed[dep] {
-		return []Violation{prof10violation(id, msgDL, "sh.Violation")}
+		return []Violation{prof10violation(id, msgDL, "sh:Violation")}
 	}
 	return nil
 }
@@ -143,14 +143,14 @@ const msgSC = "The file header dependencies cardinalities and types for SC profi
 func checkProf10SC(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgSC, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSC, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	allowed := map[string]bool{profEQ: true, profEQBD: true, profOP: true}
 	if !allowed[dep] {
-		return []Violation{prof10violation(id, msgSC, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSC, "sh:Violation")}
 	}
 	return nil
 }
@@ -161,14 +161,14 @@ const msgOP = "The file header dependencies cardinalities and types for OP profi
 func checkProf10OP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgOP, "sh.Violation")}
+		return []Violation{prof10violation(id, msgOP, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	allowed := map[string]bool{profEQ: true, profEQBD: true, profSC: true}
 	if !allowed[dep] {
-		return []Violation{prof10violation(id, msgOP, "sh.Violation")}
+		return []Violation{prof10violation(id, msgOP, "sh:Violation")}
 	}
 	return nil
 }
@@ -184,7 +184,7 @@ func checkProf10GL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 	}
 	allowed := map[string]bool{profEQBD: true, profEQ: true, profSC: true, profOP: true}
 	if !allowed[dep] {
-		return []Violation{prof10violation(id, msgGL, "sh.Violation")}
+		return []Violation{prof10violation(id, msgGL, "sh:Violation")}
 	}
 	return nil
 }
@@ -195,13 +195,13 @@ const msgSV = "The file header dependencies cardinalities and types for SV profi
 func checkProf10SV(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgSV, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSV, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	if dep != profTP {
-		return []Violation{prof10violation(id, msgSV, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSV, "sh:Violation")}
 	}
 	return nil
 }
@@ -212,13 +212,13 @@ const msgTP = "The file header dependencies cardinalities and types for TP profi
 func checkProf10TP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgTP, "sh.Violation")}
+		return []Violation{prof10violation(id, msgTP, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	if dep != profSSH {
-		return []Violation{prof10violation(id, msgTP, "sh.Violation")}
+		return []Violation{prof10violation(id, msgTP, "sh:Violation")}
 	}
 	return nil
 }
@@ -229,13 +229,13 @@ const msgSSH = "The file header dependencies cardinalities and types for SSH pro
 func checkProf10SSH(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
 	dep := dependentOnProfile(m, dataset)
 	if dep == "" {
-		return []Violation{prof10violation(id, msgSSH, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
 	}
 	if dep == "external" {
 		return nil
 	}
 	if dep != profEQ {
-		return []Violation{prof10violation(id, msgSSH, "sh.Violation")}
+		return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
 	}
 	return nil
 }

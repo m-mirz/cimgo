@@ -49,7 +49,7 @@ func CheckLinearShuntCompensatorSectionsRange(dataset *cimgostructs.CIMElementLi
 				Class:    "LinearShuntCompensator",
 				Property: "ShuntCompensator.sections",
 				Message:  fmt.Sprintf("The value (%v) is not between zero and ShuntCompensator.maximumSections (%d).", lsc.Sections, lsc.MaximumSections),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -90,7 +90,7 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimgostructs.CIMElemen
 				Class:    "NonlinearShuntCompensator",
 				Property: "ShuntCompensator.sections",
 				Message:  fmt.Sprintf("The value (%v) does not equal one of the NonlinearShuntCompenstorPoint.sectionNumber.", section),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -117,7 +117,7 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimgostructs.CIMEle
 				Class:    class,
 				Property: "RegulatingControl.mode",
 				Message:  "Both minAllowedTargetValue and maxAllowedTargetValue are not provided for RegulatingControl in mode powerFactor.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -164,7 +164,7 @@ func CheckTapChangerStepInteger(dataset *cimgostructs.CIMElementList) []Violatio
 				Class:    class,
 				Property: "TapChanger.step",
 				Message:  fmt.Sprintf("Non-integer value (%v) for a discrete TapChangerControl.", step),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -254,29 +254,29 @@ func checkCsConverterTargetAngleApplicability(dataset *cimgostructs.CIMElementLi
 			invalidMode = cimgostructs.CsOperatingModeKindrectifier
 		}
 		if mode == invalidMode {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh.Violation"})
+			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 
 		// Check OPTIONAL: PccTerminal → PowerTransformer → RegulatingControl
 		if cs.PccTerminal == nil {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh.Violation"})
+			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		pccTermID := strings.TrimPrefix(cs.PccTerminal.MRID, "#")
 		pccTerm, hasTerm := dataset.Terminals[pccTermID]
 		if !hasTerm || pccTerm.ConductingEquipment == nil {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh.Violation"})
+			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		eqID := strings.TrimPrefix(pccTerm.ConductingEquipment.MRID, "#")
 		if _, isPT := dataset.Elements[eqID].(*cimgostructs.PowerTransformer); !isPT {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh.Violation"})
+			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		discrete, hasRC := rcDiscrete[pccTermID]
 		if !hasRC || discrete {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh.Violation"})
+			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 		}
 	}
 	return violations
@@ -341,7 +341,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimgostructs.CIMElementL
 				Class:    "ControlArea",
 				Property: "ControlArea.netInterchange",
 				Message:  fmt.Sprintf("The sum of the EquivalentInjections which are connected to the BoundaryPoint-s differs from the ControlArea.netInterchange. ControlArea.netInterchange= %v. Sum of the EquivalentInjections= %v.", ca.NetInterchange, sum),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -361,7 +361,7 @@ func CheckEquivalentInjectionRegulation(dataset *cimgostructs.CIMElementList) []
 					Class:    "EquivalentInjection",
 					Property: "regulationStatus",
 					Message:  "EquivalentInjection.regulationStatus and regulationTarget are required when regulationCapability is true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else {
@@ -371,7 +371,7 @@ func CheckEquivalentInjectionRegulation(dataset *cimgostructs.CIMElementList) []
 					Class:    "EquivalentInjection",
 					Property: "regulationStatus",
 					Message:  "EquivalentInjection.regulationStatus and regulationTarget should not be exchanged when regulationCapability is false.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -418,7 +418,7 @@ func CheckRotatingMachinePLimits(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    goTypeName(obj),
 				Property: "RotatingMachine.p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v] of associated GeneratingUnit.", negP, gu.MinOperatingP, gu.MaxOperatingP),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -446,7 +446,7 @@ func CheckRotatingMachineQLimits(dataset *cimgostructs.CIMElementList) []Violati
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v] (no ReactiveCapabilityCurve).", negQ, sm.MinQ, sm.MaxQ),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -481,7 +481,7 @@ func CheckSynchronousMachineOperatingModeMatch(dataset *cimgostructs.CIMElementL
 				Class:    "SynchronousMachine",
 				Property: "SynchronousMachine.operatingMode",
 				Message:  fmt.Sprintf("SynchronousMachine.operatingMode (%v) is not consistent with SynchronousMachine.type (%v).", mode, kind),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -517,7 +517,7 @@ func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimgostructs.CIMElementL
 				Class:    "ControlArea",
 				Property: "rdf:type",
 				Message:  fmt.Sprintf("Multiple generating units (%v) in ControlArea %s have non-zero normalPF.", slacks, caID),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -544,7 +544,7 @@ func CheckExternalNetworkInjectionLimits(dataset *cimgostructs.CIMElementList) [
 				Class:    "ExternalNetworkInjection",
 				Property: "p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v].", negP, eni.MinP, eni.MaxP),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		negQ := -eni.Q
@@ -557,7 +557,7 @@ func CheckExternalNetworkInjectionLimits(dataset *cimgostructs.CIMElementList) [
 				Class:    "ExternalNetworkInjection",
 				Property: "q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v].", negQ, eni.MinQ, eni.MaxQ),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -583,7 +583,7 @@ func CheckEquivalentInjectionLimits(dataset *cimgostructs.CIMElementList) []Viol
 				Class:    "EquivalentInjection",
 				Property: "p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v].", negP, ei.MinP, ei.MaxP),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		negQ := -ei.Q
@@ -596,7 +596,7 @@ func CheckEquivalentInjectionLimits(dataset *cimgostructs.CIMElementList) []Viol
 				Class:    "EquivalentInjection",
 				Property: "q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v].", negQ, ei.MinQ, ei.MaxQ),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -665,7 +665,7 @@ func CheckRotatingMachineCurveLimits(dataset *cimgostructs.CIMElementList) []Vio
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of curve x-range [%v, %v].", negP, minX, maxX),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 		if negQ < minY1 || negQ > maxY2 {
@@ -674,7 +674,7 @@ func CheckRotatingMachineCurveLimits(dataset *cimgostructs.CIMElementList) []Vio
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of curve y-range [%v, %v].", negQ, minY1, maxY2),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -695,7 +695,7 @@ func CheckRegulatingControlTargetValuePositive(dataset *cimgostructs.CIMElementL
 					Class:    "RegulatingControl",
 					Property: "targetValue",
 					Message:  "RegulatingControl.targetValue shall be positive value in cases where the RegulatingControl.mode is set to voltage.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -739,7 +739,7 @@ func CheckShuntCompensatorSectionsInteger(dataset *cimgostructs.CIMElementList) 
 						Class:    class,
 						Property: "ShuntCompensator.sections",
 						Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", sections),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}

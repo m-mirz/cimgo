@@ -59,7 +59,7 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimgostructs.CIMElementList
 				Class:    goTypeName(obj),
 				Property: "DiagramObject.IdentifiedObject",
 				Message:  "The value type shall not be an instance of cim:Diagram, cim:DiagramObject, cim:VisibilityLayer, cim:DiagramStyle, cim:DiagramObjectStyle or cim:TextDiagramObject.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}

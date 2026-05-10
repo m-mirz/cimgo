@@ -26,14 +26,14 @@ func ValidateEQNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []shacl
 
 func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
-	violations = append(violations, ValidateSSHProfile(dataset)...)
+	violations = append(violations, ValidateSSHProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedSteadystatehypothesisProfileSHACL(dataset)...)
 	return violations
 }
 
 func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
-	violations = append(violations, ValidateSSHNotSolvedMASProfile(dataset)...)
+	violations = append(violations, ValidateSSHNotSolvedMASProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedSteadystatehypothesisNotsolvedmasProfileSHACL(dataset)...)
 	return violations
 }
@@ -98,7 +98,7 @@ func ValidateTPNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []shacl
 
 func ValidateEQBDProfile(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
-	violations = append(violations, ValidateEQBDProfile(dataset)...)
+	violations = append(violations, ValidateEQBDProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedEquipmentboundaryProfileSHACL(dataset)...)
 	return violations
 }

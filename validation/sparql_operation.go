@@ -64,7 +64,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimgostructs.CIMElementList)
 				violations = append(violations, Violation{
 					ObjectID: id, Class: class, Property: "Terminal",
 					Message:  fmt.Sprintf("Measurement.Terminal should not be exchanged for measurementType '%s'.", mType),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 			continue
@@ -74,7 +74,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimgostructs.CIMElementList)
 			violations = append(violations, Violation{
 				ObjectID: id, Class: class, Property: "Terminal",
 				Message:  fmt.Sprintf("Measurement.Terminal is required for measurementType '%s'.", mType),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 			continue
 		}
@@ -97,7 +97,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimgostructs.CIMElementList)
 			violations = append(violations, Violation{
 				ObjectID: id, Class: class, Property: "Terminal",
 				Message:  fmt.Sprintf("Terminal %s is not a terminal of PowerSystemResource %s.", termID, psrID),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}

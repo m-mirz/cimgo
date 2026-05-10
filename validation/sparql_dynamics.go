@@ -63,7 +63,7 @@ func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimgostruc
 					Class:    typeName,
 					Property: "ExcitationSystemDynamics.SynchronousMachineDynamics",
 					Message:  "The association ExcitationSystemDynamics.SynchronousMachineDynamics points to an object of type SynchronousMachineSimplified.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -99,7 +99,7 @@ func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimgostructs
 					Class:    "SynchronousMachineTimeConstantReactance",
 					Property: "SynchronousMachineTimeConstantReactance.modelType",
 					Message:  "Missing attributes or default values not provided according to 61970-457 Annex A (subtransientSimplified/roundRotor).",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if mt == subtransient && rt == roundRotor {
@@ -110,7 +110,7 @@ func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimgostructs
 					Class:    "SynchronousMachineTimeConstantReactance",
 					Property: "SynchronousMachineTimeConstantReactance.modelType",
 					Message:  "Missing attributes or default values not provided according to 61970-457 Annex A (subtransient/roundRotor).",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else if mt == subtransient && rt == salientPole {
@@ -120,7 +120,7 @@ func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimgostructs
 					Class:    "SynchronousMachineTimeConstantReactance",
 					Property: "SynchronousMachineTimeConstantReactance.modelType",
 					Message:  "Missing attributes or default values not provided according to 61970-457 Annex A (subtransient/salientPole).",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -189,7 +189,7 @@ func CheckTurbineGovernorMbaseEquation(dataset *cimgostructs.CIMElementList) []V
 				Class:    goTypeName(obj),
 				Property: "mwbase",
 				Message:  fmt.Sprintf("The value %v does not equal RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS (%v).", mwbase, expected),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -210,41 +210,41 @@ func CheckExcitationSystemGains(dataset *cimgostructs.CIMElementList) []Violatio
 			if v.Kir == 0 && v.Kpr <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcAC8B", Property: "ExcAC8B.kpr",
-					Message: "The value negative or zero when ExcAC8B.kir = 0.", Severity: "sh.Violation",
+					Message: "The value negative or zero when ExcAC8B.kir = 0.", Severity: "sh:Violation",
 				})
 			}
 		case *cimgostructs.ExcIEEEAC8B:
 			if v.Kir == 0 && v.Kpr <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcIEEEAC8B", Property: "ExcIEEEAC8B.kpr",
-					Message: "The value negative or zero when ExcIEEEAC8B.kir = 0.", Severity: "sh.Violation",
+					Message: "The value negative or zero when ExcIEEEAC8B.kir = 0.", Severity: "sh:Violation",
 				})
 			}
 		case *cimgostructs.ExcIEEEAC7B:
 			if v.Kia == 0 && v.Kpa <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpa",
-					Message: "The value negative or zero when ExcIEEEAC7B.kia = 0.", Severity: "sh.Violation",
+					Message: "The value negative or zero when ExcIEEEAC7B.kia = 0.", Severity: "sh:Violation",
 				})
 			}
 			if v.Kir == 0 && v.Kpr <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpr",
-					Message: "The value negative or zero when ExcIEEEAC7B.kir = 0.", Severity: "sh.Violation",
+					Message: "The value negative or zero when ExcIEEEAC7B.kir = 0.", Severity: "sh:Violation",
 				})
 			}
 		case *cimgostructs.ExcBBC:
 			if v.K == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcBBC", Property: "ExcBBC.k",
-					Message: "The value is 0.", Severity: "sh.Violation",
+					Message: "The value is 0.", Severity: "sh:Violation",
 				})
 			}
 		case *cimgostructs.ExcIEEEDC4B:
 			if v.Kd > 0 && v.Td <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "ExcIEEEDC4B", Property: "ExcIEEEDC4B.td",
-					Message: "The value negative or zero when ExcIEEEDC4B.kd > 0.", Severity: "sh.Violation",
+					Message: "The value negative or zero when ExcIEEEDC4B.kd > 0.", Severity: "sh:Violation",
 				})
 			}
 		}
@@ -265,14 +265,14 @@ func CheckPssInputSignals(dataset *cimgostructs.CIMElementList) []Violation {
 			if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "Pss2ST", Property: "Pss2ST.inputSignal1Type",
-					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh.Violation",
+					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
 				})
 			}
 		case *cimgostructs.PssWECC:
 			if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "PssWECC", Property: "PssWECC.inputSignal1Type",
-					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh.Violation",
+					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
 				})
 			}
 		}
@@ -303,7 +303,7 @@ func CheckGovHydro4GainPoints(dataset *cimgostructs.CIMElementList) []Violation 
 				if val != 0 {
 					violations = append(violations, Violation{
 						ObjectID: id, Class: "GovHydro4", Property: "GovHydro4." + prop,
-						Message: "The value is not 0 when GovHydro4.model is simple.", Severity: "sh.Violation",
+						Message: "The value is not 0 when GovHydro4.model is simple.", Severity: "sh:Violation",
 					})
 				}
 			}
@@ -324,38 +324,38 @@ func CheckGovHydro4GainPoints(dataset *cimgostructs.CIMElementList) []Violation 
 			if m == francisPelton && v.Bmax != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.bmax",
-					Message: "The value is not 0 when GovHydro4.model is francisPelton.", Severity: "sh.Violation",
+					Message: "The value is not 0 when GovHydro4.model is francisPelton.", Severity: "sh:Violation",
 				})
 			}
 			// Sequence checks
 			if v.Gv1 <= v.Gv0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.gv1",
-					Message: "The value is not greater than GovHydro4.gv0 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh.Violation",
+					Message: "The value is not greater than GovHydro4.gv0 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh:Violation",
 				})
 			}
 			if v.Gv2 <= v.Gv1 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.gv2",
-					Message: "The value is not greater than GovHydro4.gv1 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh.Violation",
+					Message: "The value is not greater than GovHydro4.gv1 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh:Violation",
 				})
 			}
 			if v.Gv3 <= v.Gv2 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.gv3",
-					Message: "The value is not greater than GovHydro4.gv2 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh.Violation",
+					Message: "The value is not greater than GovHydro4.gv2 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh:Violation",
 				})
 			}
 			if v.Gv4 <= v.Gv3 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.gv4",
-					Message: "The value is not greater than GovHydro4.gv3 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh.Violation",
+					Message: "The value is not greater than GovHydro4.gv3 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh:Violation",
 				})
 			}
 			if v.Gv5 <= v.Gv4 || v.Gv5 >= 1.0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "GovHydro4", Property: "GovHydro4.gv5",
-					Message: "The value is either not greater than GovHydro4.gv4 or it is not less than 1 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh.Violation",
+					Message: "The value is either not greater than GovHydro4.gv4 or it is not less than 1 when GovHydro4.model is francisPelton or kaplan.", Severity: "sh:Violation",
 				})
 			}
 		}
@@ -389,7 +389,7 @@ func CheckLoadStaticModelAttributes(dataset *cimgostructs.CIMElementList) []Viol
 				v.Eq1 != 0 || v.Eq2 != 0 || v.Eq3 != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "LoadStatic", Property: "LoadStatic.staticLoadModelType",
-					Message: "The load is represented as a constant impedance but other properties (attributes) are defined.", Severity: "sh.Violation",
+					Message: "The load is represented as a constant impedance but other properties (attributes) are defined.", Severity: "sh:Violation",
 				})
 			}
 		} else if m == exponential {
@@ -399,7 +399,7 @@ func CheckLoadStaticModelAttributes(dataset *cimgostructs.CIMElementList) []Viol
 			if v.Kp4 != 0 || v.Kq4 != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "LoadStatic", Property: "LoadStatic.staticLoadModelType",
-					Message: "Unnecessary properties defined for exponential model type (kp4/kq4).", Severity: "sh.Violation",
+					Message: "Unnecessary properties defined for exponential model type (kp4/kq4).", Severity: "sh:Violation",
 				})
 			}
 		} else if m == zIP1 {
@@ -408,7 +408,7 @@ func CheckLoadStaticModelAttributes(dataset *cimgostructs.CIMElementList) []Viol
 			if v.Ep1 != 0 || v.Ep2 != 0 || v.Ep3 != 0 || v.Eq1 != 0 || v.Eq2 != 0 || v.Eq3 != 0 || v.Kp4 != 0 || v.Kq4 != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "LoadStatic", Property: "LoadStatic.staticLoadModelType",
-					Message: "Unnecessary properties defined for zIP1 model type.", Severity: "sh.Violation",
+					Message: "Unnecessary properties defined for zIP1 model type.", Severity: "sh:Violation",
 				})
 			}
 		} else if m == zIP2 {
@@ -417,7 +417,7 @@ func CheckLoadStaticModelAttributes(dataset *cimgostructs.CIMElementList) []Viol
 			if v.Ep1 != 0 || v.Ep2 != 0 || v.Ep3 != 0 || v.Eq1 != 0 || v.Eq2 != 0 || v.Eq3 != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: "LoadStatic", Property: "LoadStatic.staticLoadModelType",
-					Message: "Unnecessary properties defined for zIP2 model type.", Severity: "sh.Violation",
+					Message: "Unnecessary properties defined for zIP2 model type.", Severity: "sh:Violation",
 				})
 			}
 		}
@@ -449,7 +449,7 @@ func CheckRotatingMachineSaturation(dataset *cimgostructs.CIMElementList) []Viol
 			if s2 < s1 {
 				violations = append(violations, Violation{
 					ObjectID: id, Class: goTypeName(obj), Property: "RotatingMachineDynamics.saturationFactor120",
-					Message: "The value is less than RotatingMachineDynamics.saturationFactor.", Severity: "sh.Violation",
+					Message: "The value is less than RotatingMachineDynamics.saturationFactor.", Severity: "sh:Violation",
 				})
 			}
 		}
@@ -468,7 +468,7 @@ func CheckSynchronousMachineSimplifiedAttributes(dataset *cimgostructs.CIMElemen
 		if sms.SaturationFactor != 0 || sms.SaturationFactor120 != 0 {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: "SynchronousMachineSimplified", Property: "rdf:type",
-				Message: "Saturation related attributes are not needed for SynchronousMachineSimplified.", Severity: "sh.Violation",
+				Message: "Saturation related attributes are not needed for SynchronousMachineSimplified.", Severity: "sh:Violation",
 			})
 		}
 	}
@@ -502,7 +502,7 @@ func CheckDynamicsAssociations(dataset *cimgostructs.CIMElementList) []Violation
 				if strings.HasPrefix(typeName, "Gov") || strings.HasPrefix(typeName, "Mech") || strings.HasSuffix(typeName, "UserDefined") {
 					violations = append(violations, Violation{
 						ObjectID: id, Class: typeName, Property: "rdf:type",
-						Message: "Required association to either SynchronousMachineDynamics or to AsynchronousMachineDynamics is missing.", Severity: "sh.Violation",
+						Message: "Required association to either SynchronousMachineDynamics or to AsynchronousMachineDynamics is missing.", Severity: "sh:Violation",
 					})
 				}
 			}

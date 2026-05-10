@@ -67,7 +67,7 @@ func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
 			Class:    "SynchronousMachine",
 			Property: "referencePriority",
 			Message:  "Multiple machines with highest SynchronousMachine.referencePriority found.",
-			Severity: "sh.Violation",
+			Severity: "sh:Violation",
 		})
 	}
 
@@ -93,7 +93,7 @@ func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
 				Class:    "SynchronousMachine",
 				Property: "referencePriority",
 				Message:  "The SynchronousMachine with highest priority is not connected to a TopologicalIsland.AngleRefTopologicalNode.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -131,7 +131,7 @@ func CheckDanglingReferences(dataset *cimgostructs.CIMElementList) []Violation {
 								Class:    goTypeName(obj),
 								Property: val.Type().Field(i).Name,
 								Message:  fmt.Sprintf("Dangling reference to '%s'.", targetID),
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					}
@@ -171,7 +171,7 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 			violations = append(violations, Violation{
 				ObjectID: tnID, Class: "TopologicalNode", Property: "rdf:type",
 				Message:  fmt.Sprintf("SvVoltage is not instantiated for energized TopologicalNode part of island %s.", islandID),
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -209,7 +209,7 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 			violations = append(violations, Violation{
 				ObjectID: id, Class: "Switch", Property: "rdf:type",
 				Message:  "SvSwitch not instantiated for energized retained Switch.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -243,7 +243,7 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvStatus is not instantiated for energized ConductingEquipment.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -289,7 +289,7 @@ func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) [
 					Class:    "RegulatingControl",
 					Property: "RegulatingControl.targetValue",
 					Message:  fmt.Sprintf("Enabled RegulatingControl-s of the same type associated with the same TopologicalNode have different target values. RegulatingControl ID: %s.", ids[i]),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -358,7 +358,7 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) [
 				violations = append(violations, Violation{
 					ObjectID: scID, Class: goTypeName(scObj), Property: "ShuntCompensator.sections",
 					Message:  fmt.Sprintf("SvShuntCompensatorSections.sections (%v) is not the same as ShuntCompensator.sections (%v) for non-regulating ShuntCompensator.", svsc.Sections, sections),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -411,7 +411,7 @@ func CheckSvTapStepPositionSync(dataset *cimgostructs.CIMElementList) []Violatio
 				violations = append(violations, Violation{
 					ObjectID: tcID, Class: goTypeName(tcObj), Property: "TapChanger.step",
 					Message:  fmt.Sprintf("SvTapStep.position (%v) is not the same as TapChanger.step (%v) for non-regulating TapChanger.", svts.Position, step),
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}
@@ -467,7 +467,7 @@ func CheckSvStatusInstance(dataset *cimgostructs.CIMElementList) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvStatus is not instantiated for a ConductingEquipment connected to a TopologicalNode which is referenced by a TopologicalIsland.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -520,7 +520,7 @@ func CheckSvShuntCompensatorSectionsInstance(dataset *cimgostructs.CIMElementLis
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvShuntCompensatorSections is not instantiated for an energized ShuntCompensator.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -583,7 +583,7 @@ func CheckSvTapStepInstance(dataset *cimgostructs.CIMElementList) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvTapStep is not instantiated for an energized TapChanger.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -634,7 +634,7 @@ func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Vi
 							violations = append(violations, Violation{
 								ObjectID: id, Class: "RegulatingControl", Property: "rdf:type",
 								Message:  fmt.Sprintf("The controlled point and the controlling equipment (SynchronousMachine %s) are not located in the same TopologicalIsland.", sm.Id),
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					}
@@ -690,7 +690,7 @@ func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Vi
 							violations = append(violations, Violation{
 								ObjectID: id, Class: "RegulatingControl", Property: "rdf:type",
 								Message:  fmt.Sprintf("The controlled point and the controlling equipment (%s %s) are not located in the same TopologicalIsland.", class, tcID),
-								Severity: "sh.Violation",
+								Severity: "sh:Violation",
 							})
 						}
 					}

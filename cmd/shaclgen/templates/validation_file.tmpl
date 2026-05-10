@@ -42,6 +42,7 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 	if {{.Condition}} {
 		violations = append(violations, shaclmodel.Violation{
 			ObjectID: "",
+			RuleID:   {{printf "%q" .RuleID}},
 			Class:    {{printf "%q" .Class}},
 			Property: {{printf "%q" .Property}},
 			Message:  {{printf "%q" .Message}},
@@ -64,6 +65,7 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 		if {{.Condition}} {
 			violations = append(violations, shaclmodel.Violation{
 				ObjectID: id,
+				RuleID:   {{printf "%q" .RuleID}},
 				Class:    {{printf "%q" .Class}},
 				Property: {{printf "%q" .Property}},
 				Message:  {{printf "%q" .Message}},

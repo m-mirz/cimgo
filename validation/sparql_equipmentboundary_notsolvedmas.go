@@ -55,7 +55,7 @@ func CheckBoundaryPointTieFlow(dataset *cimgostructs.CIMElementList) []Violation
 					Class:    "BoundaryPoint",
 					Property: "isExcludedFromAreaInterchange",
 					Message:  "TieFlow is modelled but isExcludedFromAreaInterchange is true.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		} else {
@@ -65,7 +65,7 @@ func CheckBoundaryPointTieFlow(dataset *cimgostructs.CIMElementList) []Violation
 					Class:    "BoundaryPoint",
 					Property: "isExcludedFromAreaInterchange",
 					Message:  "TieFlow is required but not modelled for this BoundaryPoint.",
-					Severity: "sh.Violation",
+					Severity: "sh:Violation",
 				})
 			}
 		}

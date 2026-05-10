@@ -6,6 +6,7 @@ package shaclmodel
 // Violation describes a single failed SHACL constraint against one focus node.
 type Violation struct {
 	ObjectID string
+	RuleID   string
 	Class    string
 	Property string
 	Message  string

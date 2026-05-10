@@ -70,7 +70,7 @@ func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimgostructs.CIMElem
 						Class:    "TopologicalNode",
 						Property: "Terminal.phases",
 						Message:  fmt.Sprintf("The phase codes for the connected terminals are not consistent. Terminal %s code: %s, Terminal %s code: %s.", terms[i].MRID, val1, terms[j].MRID, val2),
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 					goto NextNode
 				}
@@ -172,7 +172,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 				Class:    class,
 				Property: "retained",
 				Message:  "Terminals of retained Switch connect to the same TopologicalNode.",
-				Severity: "sh.Violation",
+				Severity: "sh:Violation",
 			})
 		}
 	}
@@ -212,7 +212,7 @@ func CheckTerminalExch8TopologicalNode(dataset *cimgostructs.CIMElementList) []V
 						Class:    "Terminal",
 						Property: "TopologicalNode",
 						Message:  "The Terminal is referenced by a RegulatingControl but is not associated with a TopologicalNode.",
-						Severity: "sh.Violation",
+						Severity: "sh:Violation",
 					})
 				}
 			}

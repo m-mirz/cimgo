@@ -36,7 +36,7 @@ func CheckCsConverterStateValueRange(dataset *cimgostructs.CIMElementList) []Vio
 					Class:    "CsConverter",
 					Property: "CsConverter.alpha",
 					Message:  "The alpha value is outside typical range (10-18 degrees) for a rectifier.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 		} else if mode == inverter {
@@ -46,7 +46,7 @@ func CheckCsConverterStateValueRange(dataset *cimgostructs.CIMElementList) []Vio
 					Class:    "CsConverter",
 					Property: "CsConverter.gamma",
 					Message:  "The gamma value is outside typical range (17-20 degrees) for an inverter.",
-					Severity: "sh.Warning",
+					Severity: "sh:Warning",
 				})
 			}
 		}
@@ -68,7 +68,7 @@ func CheckTopologicalIslandCount(dataset *cimgostructs.CIMElementList) []Violati
 			Class:    "TopologicalIsland",
 			Property: "rdf:type",
 			Message:  "No TopologicalIsland instantiated.",
-			Severity: "sh.Violation",
+			Severity: "sh:Violation",
 		})
 	}
 

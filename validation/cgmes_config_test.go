@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"cimgo/shaclgen"
 	"testing"
 )
 
@@ -11,7 +10,7 @@ func TestValidatePSTType1EQ(t *testing.T) {
 	// model-metadata constraints in the CSV reference are out of scope here.
 	dataset := loadDataset(t, "../CGMES-Test-Configurations/v3.0/PST/PST_PhaseTapChangerLinear_Type1/PST_Type1_EQ.xml")
 
-	violations := shaclgen.ValidateGeneratedEquipment61970301ComplexProfile(dataset)
+	violations := ValidateEQProfile(dataset)
 	t.Logf("Focus node,Path,Constraint Component,Message,Severity")
 	for _, v := range violations {
 		t.Logf("%s,%s,%s,%s,%s", v.ObjectID, v.Property, v.Class, v.Message, v.Severity)

@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// ValidateCommonRules runs hand-written checks for common rules (all600, io).
-func ValidateCommonRules(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateCommonRulesSPARQL runs hand-written checks for common rules (all600, io).
+func ValidateCommonRulesSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	// Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
 	violations = append(violations, CheckIdentifiedObjectStringLengths(dataset)...)

@@ -2,8 +2,8 @@ package validation
 
 import "cimgo/cimgostructs"
 
-// ValidateShortCircuitProfile runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
-func ValidateShortCircuitProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateSCProfileSPARQL runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
+func ValidateSCProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSeriesCompensatorVaristorUsage(dataset)...)
 	violations = append(violations, CheckTransformerEndGrounding(dataset)...)

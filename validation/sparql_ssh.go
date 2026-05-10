@@ -2,10 +2,10 @@ package validation
 
 import "cimgo/cimgostructs"
 
-// ValidateSSHProfile runs hand-written checks for
+// ValidateSSHProfileSPARQL runs hand-written checks for
 // 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL and
 // 61970-456_SteadyStateHypothesis-AP-Con-Complex-SHACL.
-func ValidateSSHProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSSHProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckEnergySourceActivePowerConsumer(dataset)...)
 	violations = append(violations, CheckRegulatingControlTargetDeadbandApplicability(dataset)...)

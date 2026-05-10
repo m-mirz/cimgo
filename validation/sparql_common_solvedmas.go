@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// ValidateCommonRulesSolvedMASProfile runs hand-written checks for common rules that require solved MAS, i.e. 61970-301-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL.
-func ValidateCommonRulesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateCommonRulesSolvedMASSPARQL runs hand-written checks for common rules that require solved MAS, i.e. 61970-301-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL.
+func ValidateCommonRulesSolvedMASSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	// Profile: 61970-456_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
 	violations = append(violations, CheckAngleReference(dataset)...)

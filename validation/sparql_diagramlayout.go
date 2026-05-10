@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// ValidateDiagramLayoutProfile runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
-func ValidateDiagramLayoutProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateDLProfileSPARQL runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
+func ValidateDLProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	return CheckDiagramObjectIdentifiedObjectType(dataset)
 }
 

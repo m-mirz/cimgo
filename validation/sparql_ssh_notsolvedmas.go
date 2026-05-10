@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// ValidateSSHNotSolvedMASProfile runs hand-written checks for
+// ValidateSSHNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL and
 // 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateSSHNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSSHNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckLinearShuntCompensatorSectionsRange(dataset)...)
 	violations = append(violations, CheckNonlinearShuntCompensatorSectionsValid(dataset)...)

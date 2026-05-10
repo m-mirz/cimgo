@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// ValidateEquipmentProfile runs hand-written checks for 61970-301_Equipment-AP-Con-Complex-SHACL.
-func ValidateEquipmentProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateEQProfileSPARQL runs hand-written checks for 61970-301_Equipment-AP-Con-Complex-SHACL.
+func ValidateEQProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACDCTerminalSequenceNumbering(dataset)...)
 	violations = append(violations, CheckTerminalPhasesConsistencyEquipment(dataset)...)

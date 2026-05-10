@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// ValidateShortCircuitNotSolvedMASProfile runs hand-written checks for
+// ValidateSCNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateShortCircuitNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	return CheckMutualCouplingTerminalsAssignment(dataset)
 }
 

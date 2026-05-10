@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// ValidateEquipmentBoundaryProfile runs hand-written checks for 61970-301_EquipmentBoundary.
-func ValidateEquipmentBoundaryProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateEQBDProfileSPARQL runs hand-written checks for 61970-301_EquipmentBoundary.
+func ValidateEQBDProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	return CheckBoundaryPointTieFlow(dataset)
 }
 

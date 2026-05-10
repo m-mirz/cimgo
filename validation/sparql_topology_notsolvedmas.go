@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// ValidateTopologyNotSolvedMASProfile runs hand-written checks for
+// ValidateTPNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL and
 // 61970-600_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateTopologyNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
 	violations = append(violations, CheckSwitchSameTopologicalNode(dataset)...)

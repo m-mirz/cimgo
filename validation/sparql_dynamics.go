@@ -8,10 +8,10 @@ import (
 	"strings"
 )
 
-// ValidateDynamicsProfile runs hand-written checks for
+// ValidateDYProfileSPARQL runs hand-written checks for
 // 61970-457_Dynamics-AP-Con-Complex-SHACL and
 // 61970-302_Dynamics-AP-Con-Complex-SHACL.
-func ValidateDynamicsProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateDYProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
 	violations = append(violations, CheckSynchronousMachineTimeConstantReactanceModelType(dataset)...)

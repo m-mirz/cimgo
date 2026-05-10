@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// ValidateOperationProfile runs hand-written checks for 61970-301_Operation.
-func ValidateOperationProfile(dataset *cimgostructs.CIMElementList) []Violation {
+// ValidateOPProfileSPARQL runs hand-written checks for 61970-301_Operation.
+func ValidateOPProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	return CheckMeasurementTerminalRequiredCases(dataset)
 }
 

@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// ValidateEquipmentNotSolvedMASProfile runs hand-written checks for
+// ValidateEQNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateEquipmentNotSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
 	violations = append(violations, CheckRegulatingControlTargetValueTapChanger(dataset)...)

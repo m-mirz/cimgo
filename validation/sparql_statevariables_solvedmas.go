@@ -7,10 +7,10 @@ import (
 	"strings"
 )
 
-// ValidateStateVariablesSolvedMASProfile runs hand-written checks for
+// ValidateSVSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL and
 // 61970-456_StateVariables-AP-Con-Complex-SolvedMAS-SHACL
-func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSVSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
 	violations = append(violations, CheckSvTapStepPositionInteger(dataset)...)

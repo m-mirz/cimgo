@@ -8,7 +8,7 @@ import (
 func TestValidateDiagramLayoutProfileSPARQL(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must NOT point to:
 	// Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
-	dataset := loadDataset(t, "../testdata/test_shacl_012_DL_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_DL_001.xml")
 
 	byID := indexByID(ValidateDiagramLayoutProfile(dataset))
 
@@ -28,7 +28,7 @@ func TestValidateDiagramLayoutProfileSPARQL(t *testing.T) {
 func TestValidateEquipmentBoundaryProfileSPARQL(t *testing.T) {
 	// If isExcludedFromAreaInterchange is false (default), a TieFlow is required.
 	// If true, no TieFlow should be modeled.
-	dataset := loadDataset(t, "../testdata/test_shacl_013_EQBD_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_EQBD_001.xml")
 
 	byID := indexByID(ValidateEquipmentBoundaryProfile(dataset))
 
@@ -49,7 +49,7 @@ func TestValidateEquipmentBoundaryProfileSPARQL(t *testing.T) {
 
 func TestValidateShortCircuitNotSolvedMASProfileSPARQL(t *testing.T) {
 	// MutualCoupling.First_Terminal and Second_Terminal must point to different ACLineSegments.
-	dataset := loadDataset(t, "../testdata/test_shacl_014_SC_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_SC_NOTSOLVED_001.xml")
 
 	byID := indexByID(ValidateShortCircuitNotSolvedMASProfile(dataset))
 
@@ -68,7 +68,7 @@ func TestValidateShortCircuitNotSolvedMASProfileSPARQL(t *testing.T) {
 func TestValidateShortCircuitProfileSPARQL(t *testing.T) {
 	t.Run("SeriesCompensatorVaristor", func(t *testing.T) {
 		// varistorRatedCurrent/VoltageThreshold only exchanged if varistorPresent is true.
-		dataset := loadDataset(t, "../testdata/test_shacl_015_SC_VARISTOR_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SC_001.xml")
 		byID := indexByID(ValidateShortCircuitProfile(dataset))
 		if got := len(byID["SC.OK.1"]); got != 0 {
 			t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
@@ -87,7 +87,7 @@ func TestValidateShortCircuitProfileSPARQL(t *testing.T) {
 
 	t.Run("452", func(t *testing.T) {
 		// Various complex SC 452 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_028_SC_452_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SC_002.xml")
 		byID := indexByID(ValidateShortCircuitProfile(dataset))
 		if got := len(byID["SM.OK"]); got != 0 {
 			t.Errorf("SM.OK: expected 0 violations, got %d: %v", got, byID["SM.OK"])
@@ -106,7 +106,7 @@ func TestValidateShortCircuitProfileSPARQL(t *testing.T) {
 
 	t.Run("6002", func(t *testing.T) {
 		// varistorRatedCurrent and varistorVoltageThreshold are required if SeriesCompensator.varistorPresent is true.
-		dataset := loadDataset(t, "../testdata/test_shacl_036_SC_600_2_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SC_003.xml")
 		byID := indexByID(ValidateShortCircuitProfile(dataset))
 		if got := len(byID["SC.OK.1"]); got != 0 {
 			t.Errorf("SC.OK.1: expected 0 violations, got %d: %v", got, byID["SC.OK.1"])
@@ -123,7 +123,7 @@ func TestValidateShortCircuitProfileSPARQL(t *testing.T) {
 
 func TestValidateStateVariablesProfileSPARQL(t *testing.T) {
 	// alpha [10, 18] for rectifier, gamma [17, 20] for inverter.
-	dataset := loadDataset(t, "../testdata/test_shacl_016_SV_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_SV_001.xml")
 
 	byID := indexByID(ValidateStateVariablesProfile(dataset))
 
@@ -145,7 +145,7 @@ func TestValidateStateVariablesProfileSPARQL(t *testing.T) {
 func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 	t.Run("SvTapStepPositionRange", func(t *testing.T) {
 		// position must be within [lowStep, highStep] of the associated TapChanger.
-		dataset := loadDataset(t, "../testdata/test_shacl_017_SV_SOLVED_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_001.xml")
 		byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
 		if got := len(byID["SV.OK.1"]); got != 0 {
 			t.Errorf("SV.OK.1: expected 0 violations, got %d: %v", got, byID["SV.OK.1"])
@@ -161,7 +161,7 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("AngleReference", func(t *testing.T) {
 		// Priority 1 SM must be at the AngleRefTopologicalNode.
-		dataset := loadDataset(t, "../testdata/test_shacl_029_SOLVED_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002.xml")
 		violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
 		byID := indexByID(violations)
 		if got := len(byID["SM.OK"]); got != 0 {
@@ -188,7 +188,7 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("456", func(t *testing.T) {
 		// Various complex SV SolvedMAS 456 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_030_SV_SOLVED_456_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003.xml")
 		byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
 		for _, id := range []string{
 			"SM.ENERGIZED", // Missing SvPowerFlow
@@ -206,7 +206,7 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("600-1", func(t *testing.T) {
 		// Various complex SV SolvedMAS 600-1 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_033_SV_600_SOLVED_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004.xml")
 		byID := indexByID(ValidateAllProfiles(dataset))
 		for _, id := range []string{
 			"S1",                     // Dangling reference
@@ -224,7 +224,7 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("RegulatingControl-600-2", func(t *testing.T) {
 		// Various complex RC SolvedMAS 600-2 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_034_SOLVED_600_2_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_005.xml")
 		violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
 		byID := indexByID(violations)
 		if got := len(byID["RC.V.2"]); got != 1 {
@@ -239,7 +239,7 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 	// Various complex SSH NotSolvedMAS rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_018_SSH_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_SSH_NOTSOLVED_001.xml")
 
 	byID := indexByID(ValidateSSHNotSolvedMASProfile(dataset))
 
@@ -263,7 +263,7 @@ func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 
 func TestValidateSSHProfileSPARQL(t *testing.T) {
 	// Various complex SSH SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_019_SSH_COMPLEX_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_SSH_001.xml")
 
 	byID := indexByID(ValidateSSHProfile(dataset))
 
@@ -285,7 +285,7 @@ func TestValidateSSHProfileSPARQL(t *testing.T) {
 func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 	t.Run("PhaseCodeConsistency", func(t *testing.T) {
 		// Terminals at the same TopologicalNode must have consistent phase codes.
-		dataset := loadDataset(t, "../testdata/test_shacl_020_TP_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_TP_001.xml")
 		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
 		if got := len(byID["TN.OK"]); got != 0 {
 			t.Errorf("TN.OK: expected 0 violations, got %d: %v", got, byID["TN.OK"])
@@ -298,7 +298,7 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("EXCH8TopologicalNode", func(t *testing.T) {
 		// Terminal.TopologicalNode is required if a RegulatingControl is associated.
-		dataset := loadDataset(t, "../testdata/test_shacl_023_TP_600_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_TP_002.xml")
 		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
 		if got := len(byID["Term.OK"]); got != 0 {
 			t.Errorf("Term.OK: expected 0 violations, got %d: %v", got, byID["Term.OK"])
@@ -311,7 +311,7 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("SameTopologicalNode", func(t *testing.T) {
 		// Terminals of a retained Switch shall not be connected to the same TopologicalNode.
-		dataset := loadDataset(t, "../testdata/test_shacl_031_TP_456_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_TP_003.xml")
 		byID := indexByID(ValidateTopologyNotSolvedMASProfile(dataset))
 		if got := len(byID["SW.OK"]); got != 0 {
 			t.Errorf("SW.OK: expected 0 violations, got %d: %v", got, byID["SW.OK"])
@@ -329,7 +329,7 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 	t.Run("MbaseEquation", func(t *testing.T) {
 		// mwbase must equal RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS.
-		dataset := loadDataset(t, "../testdata/test_shacl_021_DY_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_DY_001.xml")
 		byID := indexByID(ValidateDynamicsProfile(dataset))
 		if got := len(byID["GOV.OK"]); got != 0 {
 			t.Errorf("GOV.OK: expected 0 violations, got %d: %v", got, byID["GOV.OK"])
@@ -342,7 +342,7 @@ func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 
 	t.Run("ExcitationSystemDynamics", func(t *testing.T) {
 		// ExcitationSystemDynamics.SynchronousMachineDynamics shall not point to a SynchronousMachineSimplified.
-		dataset := loadDataset(t, "../testdata/test_shacl_022_DY_EXC_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_DY_002.xml")
 		byID := indexByID(ValidateDynamicsProfile(dataset))
 		if got := len(byID["EXC.OK"]); got != 0 {
 			t.Errorf("EXC.OK: expected 0 violations, got %d: %v", got, byID["EXC.OK"])
@@ -355,7 +355,7 @@ func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 
 	t.Run("302", func(t *testing.T) {
 		// Various complex Dynamics 302 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_032_DY_302_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_DY_003.xml")
 		byID := indexByID(ValidateDynamicsProfile(dataset))
 		for _, id := range []string{
 			"EXC.AC8B.BAD",
@@ -379,7 +379,7 @@ func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 
 func TestValidateCommonSPARQL(t *testing.T) {
 	// Various common CGMES SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_shacl_024_COMMON_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_COMMON_001.xml")
 
 	byID := indexByID(ValidateCommonRules(dataset))
 
@@ -406,7 +406,7 @@ func TestValidateCommonSPARQL(t *testing.T) {
 
 func TestValidateEquipmentNotSolvedMASProfileSPARQL(t *testing.T) {
 	// RegulatingControl.targetValue must be within TapChanger capability limits.
-	dataset := loadDataset(t, "../testdata/test_shacl_025_EQ_NOTSOLVED_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_EQ_NOTSOLVED_001.xml")
 
 	byID := indexByID(ValidateEquipmentNotSolvedMASProfile(dataset))
 
@@ -422,7 +422,7 @@ func TestValidateEquipmentNotSolvedMASProfileSPARQL(t *testing.T) {
 func TestValidateEquipmentProfileSPARQL(t *testing.T) {
 	t.Run("452", func(t *testing.T) {
 		// Various complex EQ 452 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_026_EQ_452_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_EQ_001.xml")
 		byID := indexByID(ValidateEquipmentProfile(dataset))
 		if got := len(byID["SW.OK.SAME_VL"]); got != 0 {
 			t.Errorf("SW.OK.SAME_VL: expected 0 violations, got %d: %v", got, byID["SW.OK.SAME_VL"])
@@ -438,7 +438,7 @@ func TestValidateEquipmentProfileSPARQL(t *testing.T) {
 
 	t.Run("6002", func(t *testing.T) {
 		// Various complex EQ 600-2 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_shacl_035_EQ_600_2_SPARQL.xml")
+		dataset := loadDataset(t, "../testdata/test_sparql_EQ_002.xml")
 		byID := indexByID(ValidateEquipmentProfile(dataset))
 		if got := len(byID["global"]); got == 0 {
 			t.Errorf("global: expected violation for substation count, got none")
@@ -456,7 +456,7 @@ func TestValidateEquipmentProfileSPARQL(t *testing.T) {
 func TestValidateOperationNotSolvedMASSPARQL(t *testing.T) {
 	// Measurement.Terminal must reference a Terminal of the Equipment referenced by
 	// Measurement.PowerSystemResource, unless measurementType is TapPosition or SwitchPosition.
-	dataset := loadDataset(t, "../testdata/test_shacl_027_OP_NOTSOLVED_SPARQL.xml")
+	dataset := loadDataset(t, "../testdata/test_sparql_OP_001.xml")
 
 	byID := indexByID(ValidateOperationProfile(dataset))
 

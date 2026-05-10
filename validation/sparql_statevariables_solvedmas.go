@@ -15,7 +15,8 @@ func ValidateStateVariablesSolvedMASProfile(dataset *cimgostructs.CIMElementList
 	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
 	violations = append(violations, CheckSvTapStepPositionInteger(dataset)...)
 	violations = append(violations, CheckSvShuntCompensatorSectionsInteger(dataset)...)
-	violations = append(violations, CheckSvStateVariablesInstance(dataset)...)
+	violations = append(violations, CheckSvSwitchInstance(dataset)...)
+	violations = append(violations, CheckSvPowerFlowInstance(dataset)...)
 	violations = append(violations, CheckSvPowerFlowPLimits(dataset)...)
 	violations = append(violations, CheckSvPowerFlowQLimits(dataset)...)
 	violations = append(violations, CheckSvVoltageLimits(dataset)...)
@@ -164,39 +165,20 @@ func CheckSvTapStepPositionInteger(dataset *cimgostructs.CIMElementList) []Viola
 	return violations
 }
 
-// CheckSvStateVariablesInstance implements svs456:SvPowerFlow-instance, svs456:SvSwitch-instance, mas600:SvStatus-SV__4, mas600:SvShuntCompensatorSections-SV__4 and mas600:SvTapStep-SV__4
+// CheckSvSwitchInstance implements svs456:SvSwitch-instance
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
-// Description: minimum instantiation requirements for SvPowerFlow and SvSwitch.
-func CheckSvStateVariablesInstance(dataset *cimgostructs.CIMElementList) []Violation {
+// Description: SvSwitch must be instantiated for all switching devices.
+func CheckSvSwitchInstance(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	// Pre-build indexes
-	inServiceMap := make(map[string]bool)
-	for _, svs := range dataset.SvStatuss {
-		if svs.ConductingEquipment != nil && svs.InService {
-			inServiceMap[strings.TrimPrefix(svs.ConductingEquipment.MRID, "#")] = true
-		}
-	}
-
-	tnInIsland := make(map[string]bool)
-	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
-		}
-	}
-
-	// 1. Check SvSwitch for ALL switching devices
 	for id, obj := range dataset.Elements {
-		isSwitch := false
 		switch obj.(type) {
 		case *cimgostructs.Switch, *cimgostructs.Breaker, *cimgostructs.LoadBreakSwitch,
 			*cimgostructs.Disconnector, *cimgostructs.Fuse, *cimgostructs.Jumper,
 			*cimgostructs.GroundDisconnector, *cimgostructs.DisconnectingCircuitBreaker,
 			*cimgostructs.Cut:
-			isSwitch = true
-		}
-		if !isSwitch {
+		default:
 			continue
 		}
 
@@ -216,18 +198,38 @@ func CheckSvStateVariablesInstance(dataset *cimgostructs.CIMElementList) []Viola
 		}
 	}
 
-	// 2. Check SvPowerFlow for energized equipment
+	return violations
+}
+
+// CheckSvPowerFlowInstance implements svs456:SvPowerFlow-instance
+// Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvPowerFlow must be instantiated for all energized injection equipment.
+func CheckSvPowerFlowInstance(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	inServiceMap := make(map[string]bool)
+	for _, svs := range dataset.SvStatuss {
+		if svs.ConductingEquipment != nil && svs.InService {
+			inServiceMap[strings.TrimPrefix(svs.ConductingEquipment.MRID, "#")] = true
+		}
+	}
+
+	tnInIsland := make(map[string]bool)
+	for _, island := range dataset.TopologicalIslands {
+		if island.TopologicalNodes != nil {
+			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		}
+	}
+
 	for id, obj := range dataset.Elements {
-		isTarget := false
 		switch obj.(type) {
 		case *cimgostructs.NonConformLoad, *cimgostructs.EquivalentInjection, *cimgostructs.EnergySource,
 			*cimgostructs.ExternalNetworkInjection, *cimgostructs.PowerElectronicsConnection,
 			*cimgostructs.AsynchronousMachine, *cimgostructs.EnergyConsumer, *cimgostructs.LinearShuntCompensator,
 			*cimgostructs.NonlinearShuntCompensator, *cimgostructs.StaticVarCompensator,
 			*cimgostructs.SynchronousMachine, *cimgostructs.StationSupply, *cimgostructs.ConformLoad:
-			isTarget = true
-		}
-		if !isTarget {
+		default:
 			continue
 		}
 
@@ -258,135 +260,12 @@ func CheckSvStateVariablesInstance(dataset *cimgostructs.CIMElementList) []Viola
 				}
 			}
 		}
-
 		if !found {
 			violations = append(violations, Violation{
 				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
 				Message:  "SvPowerFlow is not instantiated for energized equipment.",
 				Severity: "sh.Violation",
 			})
-		}
-	}
-
-	// 3. Check SvStatus for ALL energized ConductingEquipment
-	for id, obj := range dataset.Elements {
-		typeName := goTypeName(obj)
-		isCE := strings.HasPrefix(typeName, "Synchronous") || strings.HasPrefix(typeName, "Asynchronous") ||
-			strings.HasPrefix(typeName, "Energy") || strings.HasPrefix(typeName, "Line") ||
-			strings.HasPrefix(typeName, "Breaker") || strings.HasPrefix(typeName, "Disconnector")
-		if !isCE || typeName == "Equipment" {
-			continue
-		}
-
-		energized := false
-		for _, term := range dataset.Terminals {
-			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
-				if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
-					energized = true
-					break
-				}
-			}
-		}
-		if !energized {
-			continue
-		}
-
-		found := false
-		for _, svs := range dataset.SvStatuss {
-			if svs.ConductingEquipment != nil && strings.TrimPrefix(svs.ConductingEquipment.MRID, "#") == id {
-				found = true
-				break
-			}
-		}
-		if !found {
-			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
-				Message:  "SvStatus is not instantiated for a ConductingEquipment connected to a TopologicalNode which is referenced by a TopologicalIsland.",
-				Severity: "sh.Violation",
-			})
-		}
-	}
-
-	// 4. Check SvShuntCompensatorSections for energized shunt compensators
-	for id, obj := range dataset.Elements {
-		switch obj.(type) {
-		case *cimgostructs.LinearShuntCompensator, *cimgostructs.NonlinearShuntCompensator:
-			energized := false
-			for _, term := range dataset.Terminals {
-				if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
-					if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
-						energized = true
-						break
-					}
-				}
-			}
-			if !energized {
-				continue
-			}
-
-			found := false
-			for _, svsc := range dataset.SvShuntCompensatorSectionss {
-				if svsc.ShuntCompensator != nil && strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#") == id {
-					found = true
-					break
-				}
-			}
-			if !found {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
-					Message:  "SvShuntCompensatorSections is not instantiated for an energized ShuntCompensator.",
-					Severity: "sh.Violation",
-				})
-			}
-		}
-	}
-
-	// 5. Check SvTapStep for energized tap changers
-	for id, obj := range dataset.Elements {
-		switch obj.(type) {
-		case *cimgostructs.RatioTapChanger, *cimgostructs.PhaseTapChangerLinear,
-			*cimgostructs.PhaseTapChangerSymmetrical, *cimgostructs.PhaseTapChangerAsymmetrical,
-			*cimgostructs.PhaseTapChangerTabular:
-
-			energized := false
-			var teID string
-			val := reflect.ValueOf(obj).Elem()
-			teField := val.FieldByName("TransformerEnd")
-			if teField.IsValid() && !teField.IsNil() {
-				teID = strings.TrimPrefix(teField.Elem().FieldByName("MRID").String(), "#")
-			}
-
-			if teObj, ok := dataset.Elements[teID]; ok {
-				teVal := reflect.ValueOf(teObj).Elem()
-				termField := teVal.FieldByName("Terminal")
-				if termField.IsValid() && !termField.IsNil() {
-					termID := strings.TrimPrefix(termField.Elem().FieldByName("MRID").String(), "#")
-					if term, ok := dataset.Terminals[termID]; ok {
-						if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
-							energized = true
-						}
-					}
-				}
-			}
-
-			if !energized {
-				continue
-			}
-
-			found := false
-			for _, svts := range dataset.SvTapSteps {
-				if svts.TapChanger != nil && strings.TrimPrefix(svts.TapChanger.MRID, "#") == id {
-					found = true
-					break
-				}
-			}
-			if !found {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
-					Message:  "SvTapStep is not instantiated for an energized TapChanger.",
-					Severity: "sh.Violation",
-				})
-			}
 		}
 	}
 

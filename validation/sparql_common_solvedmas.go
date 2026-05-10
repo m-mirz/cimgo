@@ -4,6 +4,7 @@ import (
 	"cimgo/cimgostructs"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -17,9 +18,10 @@ func ValidateCommonRulesSolvedMASProfile(dataset *cimgostructs.CIMElementList) [
 	violations = append(violations, CheckSvTapStepPositionSync(dataset)...)
 	violations = append(violations, CheckSvShuntCompensatorSectionsSync(dataset)...)
 	violations = append(violations, CheckStateVariablesInstantiated(dataset)...)
-	// and some rules that apply also to StateVariables SolvedMAS profile
-	// TODO refactor to avoid duplication with ValidateStateVariablesProfile
-	violations = append(violations, CheckSvStateVariablesInstance(dataset)...)
+	// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL (mas600)
+	violations = append(violations, CheckSvStatusInstance(dataset)...)
+	violations = append(violations, CheckSvShuntCompensatorSectionsInstance(dataset)...)
+	violations = append(violations, CheckSvTapStepInstance(dataset)...)
 	// Profile: 61970-600-2_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
 	violations = append(violations, CheckRegulatingControlContradictory(dataset)...)
 	violations = append(violations, CheckRegulatingControlSameIsland(dataset)...)
@@ -277,6 +279,7 @@ func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) [
 		if len(ids) < 2 {
 			continue
 		}
+		sort.Strings(ids)
 
 		val0 := dataset.RegulatingControls[ids[0]].TargetValue
 		for i := 1; i < len(ids); i++ {
@@ -411,6 +414,177 @@ func CheckSvTapStepPositionSync(dataset *cimgostructs.CIMElementList) []Violatio
 					Severity: "sh.Violation",
 				})
 			}
+		}
+	}
+
+	return violations
+}
+
+// CheckSvStatusInstance implements mas600:SvStatus-SV__4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvStatus must be instantiated for all energized ConductingEquipment connected to a TopologicalIsland.
+func CheckSvStatusInstance(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	tnInIsland := make(map[string]bool)
+	for _, island := range dataset.TopologicalIslands {
+		if island.TopologicalNodes != nil {
+			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		}
+	}
+
+	for id, obj := range dataset.Elements {
+		typeName := goTypeName(obj)
+		isCE := strings.HasPrefix(typeName, "Synchronous") || strings.HasPrefix(typeName, "Asynchronous") ||
+			strings.HasPrefix(typeName, "Energy") || strings.HasPrefix(typeName, "Line") ||
+			strings.HasPrefix(typeName, "Breaker") || strings.HasPrefix(typeName, "Disconnector")
+		if !isCE || typeName == "Equipment" {
+			continue
+		}
+
+		energized := false
+		for _, term := range dataset.Terminals {
+			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
+				if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
+					energized = true
+					break
+				}
+			}
+		}
+		if !energized {
+			continue
+		}
+
+		found := false
+		for _, svs := range dataset.SvStatuss {
+			if svs.ConductingEquipment != nil && strings.TrimPrefix(svs.ConductingEquipment.MRID, "#") == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				Message:  "SvStatus is not instantiated for a ConductingEquipment connected to a TopologicalNode which is referenced by a TopologicalIsland.",
+				Severity: "sh.Violation",
+			})
+		}
+	}
+
+	return violations
+}
+
+// CheckSvShuntCompensatorSectionsInstance implements mas600:SvShuntCompensatorSections-SV__4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvShuntCompensatorSections must be instantiated for all energized ShuntCompensators.
+func CheckSvShuntCompensatorSectionsInstance(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	tnInIsland := make(map[string]bool)
+	for _, island := range dataset.TopologicalIslands {
+		if island.TopologicalNodes != nil {
+			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		}
+	}
+
+	for id, obj := range dataset.Elements {
+		switch obj.(type) {
+		case *cimgostructs.LinearShuntCompensator, *cimgostructs.NonlinearShuntCompensator:
+		default:
+			continue
+		}
+
+		energized := false
+		for _, term := range dataset.Terminals {
+			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
+				if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
+					energized = true
+					break
+				}
+			}
+		}
+		if !energized {
+			continue
+		}
+
+		found := false
+		for _, svsc := range dataset.SvShuntCompensatorSectionss {
+			if svsc.ShuntCompensator != nil && strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#") == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				Message:  "SvShuntCompensatorSections is not instantiated for an energized ShuntCompensator.",
+				Severity: "sh.Violation",
+			})
+		}
+	}
+
+	return violations
+}
+
+// CheckSvTapStepInstance implements mas600:SvTapStep-SV__4
+// Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
+// Origin: Derived from a SPARQL constraint.
+// Description: SvTapStep must be instantiated for all energized TapChangers.
+func CheckSvTapStepInstance(dataset *cimgostructs.CIMElementList) []Violation {
+	var violations []Violation
+
+	tnInIsland := make(map[string]bool)
+	for _, island := range dataset.TopologicalIslands {
+		if island.TopologicalNodes != nil {
+			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		}
+	}
+
+	for id, obj := range dataset.Elements {
+		switch obj.(type) {
+		case *cimgostructs.RatioTapChanger, *cimgostructs.PhaseTapChangerLinear,
+			*cimgostructs.PhaseTapChangerSymmetrical, *cimgostructs.PhaseTapChangerAsymmetrical,
+			*cimgostructs.PhaseTapChangerTabular:
+		default:
+			continue
+		}
+
+		energized := false
+		var teID string
+		val := reflect.ValueOf(obj).Elem()
+		if f := val.FieldByName("TransformerEnd"); f.IsValid() && !f.IsNil() {
+			teID = strings.TrimPrefix(f.Elem().FieldByName("MRID").String(), "#")
+		}
+		if teObj, ok := dataset.Elements[teID]; ok {
+			teVal := reflect.ValueOf(teObj).Elem()
+			if f := teVal.FieldByName("Terminal"); f.IsValid() && !f.IsNil() {
+				termID := strings.TrimPrefix(f.Elem().FieldByName("MRID").String(), "#")
+				if term, ok := dataset.Terminals[termID]; ok {
+					if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
+						energized = true
+					}
+				}
+			}
+		}
+		if !energized {
+			continue
+		}
+
+		found := false
+		for _, svts := range dataset.SvTapSteps {
+			if svts.TapChanger != nil && strings.TrimPrefix(svts.TapChanger.MRID, "#") == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				Message:  "SvTapStep is not instantiated for an energized TapChanger.",
+				Severity: "sh.Violation",
+			})
 		}
 	}
 

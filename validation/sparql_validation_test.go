@@ -457,7 +457,8 @@ func TestValidateRegulatingControl6002SPARQL(t *testing.T) {
 	// Various complex RC SolvedMAS 600-2 SPARQL rules.
 	dataset := loadDataset(t, "../testdata/test_shacl_034_SOLVED_600_2_SPARQL.xml")
 
-	byID := indexByID(ValidateStateVariablesSolvedMASProfile(dataset))
+	violations := append(ValidateCommonRulesSolvedMASProfile(dataset), ValidateStateVariablesSolvedMASProfile(dataset)...)
+	byID := indexByID(violations)
 
 	if got := len(byID["RC.V.2"]); got != 1 {
 		t.Errorf("RC.V.2: expected 1 violation for contradictory target, got %d: %v", got, byID["RC.V.2"])

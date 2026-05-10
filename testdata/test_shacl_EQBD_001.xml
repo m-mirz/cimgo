@@ -1,12 +1,40 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- ConnectivityNodeContainer referenced by both ConnectivityNodes -->
+  <cim:Line rdf:ID="Line.REF"/>
+  <!-- One ConnectivityNode per BoundaryPoint (inverse max-count = 1) -->
+  <cim:ConnectivityNode rdf:ID="ConnectivityNode.OK">
+    <cim:IdentifiedObject.mRID>ConnectivityNode.OK</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>CN-OK</cim:IdentifiedObject.name>
+    <cim:ConnectivityNode.ConnectivityNodeContainer rdf:resource="#Line.REF"/>
+  </cim:ConnectivityNode>
+  <cim:ConnectivityNode rdf:ID="ConnectivityNode.BAD">
+    <cim:IdentifiedObject.mRID>ConnectivityNode.BAD</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>CN-BAD</cim:IdentifiedObject.name>
+    <cim:ConnectivityNode.ConnectivityNodeContainer rdf:resource="#Line.REF"/>
+  </cim:ConnectivityNode>
   <!-- BoundaryPoint.fromEndIsoCode must be a valid 2-letter European ISO country code (sh:in) -->
   <cim:BoundaryPoint rdf:ID="BoundaryPoint.OK">
+    <cim:IdentifiedObject.mRID>BoundaryPoint.OK</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>BP-OK</cim:IdentifiedObject.name>
+    <cim:BoundaryPoint.fromEndName>DE-West</cim:BoundaryPoint.fromEndName>
+    <cim:BoundaryPoint.fromEndNameTso>TSO-DE</cim:BoundaryPoint.fromEndNameTso>
+    <cim:BoundaryPoint.toEndName>FR-East</cim:BoundaryPoint.toEndName>
+    <cim:BoundaryPoint.toEndNameTso>TSO-FR</cim:BoundaryPoint.toEndNameTso>
     <cim:BoundaryPoint.fromEndIsoCode>DE</cim:BoundaryPoint.fromEndIsoCode>
+    <cim:BoundaryPoint.toEndIsoCode>FR</cim:BoundaryPoint.toEndIsoCode>
+    <cim:BoundaryPoint.ConnectivityNode rdf:resource="#ConnectivityNode.OK"/>
   </cim:BoundaryPoint>
+  <!-- fromEndIsoCode=XX violates sh:in -->
   <cim:BoundaryPoint rdf:ID="BoundaryPoint.BAD">
+    <cim:IdentifiedObject.mRID>BoundaryPoint.BAD</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>BP-BAD</cim:IdentifiedObject.name>
+    <cim:BoundaryPoint.fromEndName>XX-West</cim:BoundaryPoint.fromEndName>
+    <cim:BoundaryPoint.fromEndNameTso>TSO-XX</cim:BoundaryPoint.fromEndNameTso>
+    <cim:BoundaryPoint.toEndName>FR-East</cim:BoundaryPoint.toEndName>
+    <cim:BoundaryPoint.toEndNameTso>TSO-FR</cim:BoundaryPoint.toEndNameTso>
     <cim:BoundaryPoint.fromEndIsoCode>XX</cim:BoundaryPoint.fromEndIsoCode>
+    <cim:BoundaryPoint.toEndIsoCode>FR</cim:BoundaryPoint.toEndIsoCode>
+    <cim:BoundaryPoint.ConnectivityNode rdf:resource="#ConnectivityNode.BAD"/>
   </cim:BoundaryPoint>
 </rdf:RDF>

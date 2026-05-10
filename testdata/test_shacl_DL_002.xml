@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:Diagram rdf:ID="Diagram.REF">
+    <cim:IdentifiedObject.mRID>Diagram.REF</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>TestDiagram</cim:IdentifiedObject.name>
+    <cim:Diagram.orientation rdf:resource="http://iec.ch/TC57/CIM100#OrientationKind.positive"/>
+  </cim:Diagram>
+  <cim:DiagramObject rdf:ID="DiagramObject.REF">
+    <cim:IdentifiedObject.mRID>DiagramObject.REF</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>TestDiagramObject</cim:IdentifiedObject.name>
+    <cim:DiagramObject.Diagram rdf:resource="#Diagram.REF"/>
+  </cim:DiagramObject>
+  <!-- sequenceNumber=1 is valid (> 0) -->
   <cim:DiagramObjectPoint rdf:ID="DiagramObjectPoint.OK">
     <cim:DiagramObjectPoint.sequenceNumber>1</cim:DiagramObjectPoint.sequenceNumber>
-    <cim:DiagramObjectPoint.xPosition>0.0</cim:DiagramObjectPoint.xPosition>
-    <cim:DiagramObjectPoint.yPosition>0.0</cim:DiagramObjectPoint.yPosition>
+    <cim:DiagramObjectPoint.xPosition>1.0</cim:DiagramObjectPoint.xPosition>
+    <cim:DiagramObjectPoint.yPosition>1.0</cim:DiagramObjectPoint.yPosition>
+    <cim:DiagramObjectPoint.DiagramObject rdf:resource="#DiagramObject.REF"/>
   </cim:DiagramObjectPoint>
+  <!-- sequenceNumber=-1 violates sh:minExclusive 0 -->
   <cim:DiagramObjectPoint rdf:ID="DiagramObjectPoint.NEG">
     <cim:DiagramObjectPoint.sequenceNumber>-1</cim:DiagramObjectPoint.sequenceNumber>
     <cim:DiagramObjectPoint.xPosition>1.0</cim:DiagramObjectPoint.xPosition>
     <cim:DiagramObjectPoint.yPosition>1.0</cim:DiagramObjectPoint.yPosition>
+    <cim:DiagramObjectPoint.DiagramObject rdf:resource="#DiagramObject.REF"/>
   </cim:DiagramObjectPoint>
 </rdf:RDF>

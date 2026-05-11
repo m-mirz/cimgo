@@ -23,6 +23,7 @@ func main() {
 	flag.BoolVar(&cfg.Solved, "solved", false, "Enable SolvedMAS checks.")
 	flag.BoolVar(&cfg.NotSolved, "notsolved", true, "Enable NotSolvedMAS checks.")
 	flag.BoolVar(&cfg.Common, "common", true, "Enable Common/AllProfiles rules.")
+	flag.BoolVar(&cfg.Quality, "quality", false, "Enable CIMdesk-style modeling quality checks.")
 	flag.BoolVar(&jsonOutput, "json", false, "Output results in JSON format.")
 
 	flag.Usage = func() {

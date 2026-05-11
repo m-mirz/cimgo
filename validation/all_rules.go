@@ -115,6 +115,7 @@ type Config struct {
 	Solved             bool
 	NotSolved          bool
 	Common             bool
+	Quality            bool              // enables CIMdesk-style modeling quality checks
 	SilencedRules      []string
 	EQBDBaseVoltageIDs map[string]struct{} // enables EQBD2 check when non-nil
 }
@@ -185,6 +186,10 @@ func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmode
 	}
 	if profileSelected("OP") {
 		violations = append(violations, ValidateOPProfile(dataset)...)
+	}
+
+	if cfg.Quality {
+		violations = append(violations, ValidateCIMdeskQualityChecks(dataset)...)
 	}
 
 	if len(cfg.SilencedRules) > 0 {

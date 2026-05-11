@@ -60,6 +60,23 @@ wired into per-profile orchestrators and aggregated by
 For a complete validation pass including both generated and hand-written SPARQL
 rules, use `validation.ValidateAllProfiles`.
 
+> **TODO:** Auto-detect profiles and MAS type from the loaded dataset.
+> Currently `RunValidation` runs all selected profile checks regardless of
+> whether matching profile data is present, and the `Solved`/`NotSolved` flags
+> must be set by the caller. The intended improvement is:
+>
+> 1. Inspect the `FullModel`/`DifferenceModel` headers in the loaded dataset
+>    to determine which CGMES profiles are actually present (e.g. EQ, SSH, SC,
+>    DY, …).
+> 2. Skip profile validators whose profile is absent — e.g. do not run
+>    `sc:PowerTransformerEnd.phaseAngleClock-cardinality` when no SC file was
+>    loaded, avoiding false positives on missing-but-optional fields.
+> 3. Auto-detect solved vs. not-solved MAS by checking whether a State
+>    Variables (SV) profile is present and whether it references a solved
+>    Topology: run `SolvedMAS` checks only when SV data is present, and
+>    `NotSolvedMAS` checks only when it is absent, rather than relying on the
+>    caller to pass the correct boolean flags.
+
 Across 73 profiles there are 9153 constraints total. Of these, 4184 generate
 code and 4969 are skipped: 4933 are structurally satisfied by the Go type
 system (generating a check would never fire or would produce false positives)
@@ -136,4 +153,40 @@ Each manual validation rule is standardized with a header that provides traceabi
 | Short Circuit (SC) | 7 | 7 | 100% |
 | Others (TP, DL, All, etc.) | 28 | 28 | 100% |
 | **Total** | **192** | **192** | **100%** |
+
+### CIMdesk checks outside the CGMES SHACL standard
+
+CIMdesk implements two categories of checks that are not encoded in the CGMES SHACL TTL files and are therefore not covered by `cmd/shaclgen` or the hand-written SPARQL rules.
+
+#### C:600 conformance rules not yet implemented
+
+These carry a CGMES rule ID but are defined in the conformance document rather than the SHACL TTL files:
+
+| Rule ID | Description |
+|---------|-------------|
+| `C:600:ALL:NA:PROF11` | Undeclared or unrecognized classes/properties are present in the file. |
+| `C:600:EQ:Substation:count` | The number of `Substation`s shall be less than the number of `VoltageLevel`s; each `Substation` should contain more than one `VoltageLevel`. |
+
+#### CIMdesk-specific modeling quality checks (no rule ID)
+
+These have no CGMES rule ID and appear to be CIMdesk's own heuristics. They are outside the scope of the CGMES SHACL standard:
+
+| Class | Check |
+|-------|-------|
+| *(global)* | No `TapChangerControl`s found — none of the `PowerTransformer`s are used for voltage regulation. |
+| *(global)* | No `RegulatingControl`s found — none of the `RegulatingCondEq`s (`SynchronousMachine`, `ShuntCompensator`, `StaticVarCompensator`) are used for voltage regulation. |
+| *(global)* | No boundary connections found — the IGM is an island without any inter-connections. |
+| *(global)* | No `ShuntCompensator` objects found; at least one is expected. |
+| `Substation` / `ControlArea` | Instance has no child objects and is not referenced by any other instance. |
+| `GeographicalRegion` | None of the `PowerTransformer`s in the region are used for voltage regulation. |
+| `ACLineSegment` / `DCLineSegment` | No `Location` associated with the segment. |
+| `ACLineSegment` | `ACLineSegment.x / ACLineSegment.r` ratio is too large. |
+| `ACLineSegment` / `PowerTransformer` | At least one associated `OperationalLimit` is violated. |
+| `BaseVoltage` | Two `BaseVoltage` instances share the same `nominalVoltage` value. |
+| `PowerTransformer` | Both ends of the transformer have the same `nominalVoltage`. |
+| `ConnectivityNode` | Open-ended node with only one `Terminal` connected. |
+| `Disconnector` | The two `ConnectivityNode`s the `Disconnector` connects are in different `VoltageLevel`s. |
+| `ConformLoad` | The load and its connected `TopologicalNode`s are not in the same `EquipmentContainer`. |
+| `RegulatingControl` | Target voltage deviates 10–20 % from the `nominalVoltage` of the regulated `ConnectivityNode` / `TopologicalNode`. |
+| `md:FullModel` | Profile type inferred from the file contents differs from the type declared in the model header. |
 

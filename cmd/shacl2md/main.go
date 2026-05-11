@@ -315,7 +315,6 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes
 	if err != nil {
 		return shaclimport.FileStats{}, err
 	}
-	fr = shaclimport.SimplifyFileResults(fr)
 
 	baseName := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	stats := shaclimport.FileStats{
@@ -340,17 +339,32 @@ func processFile(file string, doJSON, doMD bool, outputDir string, allSHACLTypes
 }
 
 func updateStats(stats *shaclimport.FileStats, shapes []shaclimport.ShapeInfo, allSHACLTypes, allSPARQLTypes map[string]bool) {
+	updateStatsDedup(stats, shapes, allSHACLTypes, allSPARQLTypes, make(map[string]bool))
+}
+
+func updateStatsDedup(stats *shaclimport.FileStats, shapes []shaclimport.ShapeInfo, allSHACLTypes, allSPARQLTypes, seen map[string]bool) {
 	for _, s := range shapes {
 		for _, c := range s.Constraints {
 			if c.IsSPARQL() {
+				sel, _ := c.Payload["Select"].(string)
+				key := s.ID + "::" + sel
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
 				stats.SparqlCounts[c.Component]++
 				allSPARQLTypes[c.Component] = true
 			} else {
+				key := s.ID + "::" + c.Component
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
 				stats.ShaclCounts[c.Component]++
 				allSHACLTypes[c.Component] = true
 			}
 		}
-		updateStats(stats, s.Properties, allSHACLTypes, allSPARQLTypes)
+		updateStatsDedup(stats, s.Properties, allSHACLTypes, allSPARQLTypes, seen)
 	}
 }
 

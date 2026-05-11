@@ -446,6 +446,28 @@ func ExtractConstraints(sw *ShapeWrapper, allWrapped map[string]*ShapeWrapper, v
 
 	for _, cw := range sw.Constraints {
 		if !cw.IsSHACL() {
+			if sc, ok := cw.Data.(*shacl.SPARQLConstraint); ok {
+				var msgs []string
+				for _, m := range sc.Messages {
+					msgs = append(msgs, SimplifyTerm(m))
+				}
+				msg := strings.Join(msgs, "; ")
+				if msg == "" {
+					msg = defaultMessage
+				}
+				constraints = append(constraints, ConstraintInfo{
+					Path:        path,
+					Severity:    defaultSeverity,
+					Message:     msg,
+					Name:        defaultName,
+					Description: defaultDescription,
+					Component:   SimplifyIRI(cw.Type),
+					Payload: map[string]any{
+						"Prefixes": sc.Prefixes,
+						"Select":   sc.Select,
+					},
+				})
+			}
 			continue
 		}
 

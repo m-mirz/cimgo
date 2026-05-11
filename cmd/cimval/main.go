@@ -46,11 +46,20 @@ func main() {
 	}
 
 	dataset := cimgostructs.NewCIMElementList()
+	eqbdBVIDs := make(map[string]struct{})
 	for _, file := range files {
 		b, err := os.ReadFile(file)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
+		}
+		if bytes.Contains(b, []byte("EquipmentBoundary-EU/3.0")) {
+			temp := cimgostructs.NewCIMElementList()
+			if _, err = cimprofiles.DecodeProfile(bytes.NewReader(b), temp); err == nil {
+				for id := range temp.BaseVoltages {
+					eqbdBVIDs[id] = struct{}{}
+				}
+			}
 		}
 		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
 		if err != nil {
@@ -58,6 +67,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	cfg.EQBDBaseVoltageIDs = eqbdBVIDs
 
 	if !jsonOutput {
 		fmt.Printf("Loaded %d elements from %d files\n", len(dataset.Elements), len(files))

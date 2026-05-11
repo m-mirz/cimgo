@@ -111,11 +111,12 @@ func ValidateOPProfile(dataset *cimgostructs.CIMElementList) []shaclmodel.Violat
 }
 
 type Config struct {
-	Profiles      []string
-	Solved        bool
-	NotSolved     bool
-	Common        bool
-	SilencedRules []string
+	Profiles           []string
+	Solved             bool
+	NotSolved          bool
+	Common             bool
+	SilencedRules      []string
+	EQBDBaseVoltageIDs map[string]struct{} // enables EQBD2 check when non-nil
 }
 
 func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmodel.Violation {
@@ -178,6 +179,9 @@ func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmode
 	}
 	if profileSelected("EQBD") {
 		violations = append(violations, ValidateEQBDProfile(dataset)...)
+		if cfg.EQBDBaseVoltageIDs != nil {
+			violations = append(violations, CheckBaseVoltageInEQBD(dataset, cfg.EQBDBaseVoltageIDs)...)
+		}
 	}
 	if profileSelected("OP") {
 		violations = append(violations, ValidateOPProfile(dataset)...)

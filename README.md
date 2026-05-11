@@ -60,8 +60,8 @@ wired into per-profile orchestrators and aggregated by
 For a complete validation pass including both generated and hand-written SPARQL
 rules, use `validation.ValidateAllProfiles`.
 
-Across 73 profiles there are 9153 constraints total. Of these, 6971 generate
-code and 2182 are skipped: 2146 are structurally satisfied by the Go type
+Across 73 profiles there are 9153 constraints total. Of these, 4184 generate
+code and 4969 are skipped: 4933 are structurally satisfied by the Go type
 system (generating a check would never fire or would produce false positives)
 and 36 cannot be conducted due to upstream SHACL TTL defects.
 
@@ -82,11 +82,12 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 6 | `sh:minCount 0` + `sh:maxCount 1` → synthetic `sh:Optional` | The pair means "0 or 1 values". `sh:minCount 0` is dropped by Rule 3; the matching `sh:maxCount 1` is replaced by a single `Optional` sentinel to record the upper bound without implying a presence requirement. |
 | 7 | `sh:minCount 1` + `sh:maxCount 1` → synthetic `sh:Required` | The pair means "exactly 1 value". Both constraints are collapsed into a single `Required` sentinel, avoiding duplicate presence checks. |
 
-### Structurally satisfied (2146 skips)
+### Structurally satisfied (4933 skips)
 
 | Count | Constraint | Reason |
 |------:|-----------|--------|
 | 1302 | `sh:maxCount 1` on scalar fields | Scalar fields (`int`, `float`, `bool`, `string`) hold exactly one value; MaxCount ≥ 1 is vacuously true. |
+| 2787 | `sh:required` on `float` fields | Float fields use `omitempty`; `0.0` is indistinguishable from absent after XML decode. This makes presence checks unreliable: a legitimately-zero physical quantity (e.g. `bch=0`, `r=0`, `b=0`) would always trigger a false positive. Range constraints (`sh:minExclusive`, `sh:minInclusive`) cover the must-be-positive subset where zero is genuinely invalid. Fixing the general case would require switching all float fields to `*float64`. |
 | 413 | `sh:required` on `bool` fields | Bool fields use `omitempty`; `false` is indistinguishable from absent after XML decode. Fixing would require switching all bool fields to `*bool`. |
 | 334 | `sh:maxCount 1` on pointer fields | Pointer fields are either nil (0 values) or non-nil (1 value). |
 | 56 | `sh:maxCount 1` on multi-hop paths | Every hop in a CIM reference path is a 0..1 pointer, so the count is always ≤ 1. |

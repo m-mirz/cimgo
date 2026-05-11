@@ -44,6 +44,21 @@ func dependentOnProfile(m *cimgostructs.Model, dataset *cimgostructs.CIMElementL
 	return "external"
 }
 
+// datasetHasProfile reports whether the dataset contains at least one loaded model with the given profile URI.
+func datasetHasProfile(dataset *cimgostructs.CIMElementList, prof string) bool {
+	for _, fm := range dataset.FullModels {
+		if profileURI(&fm.Model) == prof {
+			return true
+		}
+	}
+	for _, dm := range dataset.DifferenceModels {
+		if profileURI(&dm.Model) == prof {
+			return true
+		}
+	}
+	return false
+}
+
 func prof10violation(id, msg, severity string) Violation {
 	return Violation{
 		ObjectID:    id,
@@ -116,6 +131,9 @@ func checkProf10DY(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 		return []Violation{prof10violation(id, msgDY, "sh:Violation")}
 	}
 	if dep == "external" {
+		if datasetHasProfile(dataset, profEQ) {
+			return []Violation{prof10violation(id, msgDY, "sh:Violation")}
+		}
 		return nil
 	}
 	if dep != profEQ {
@@ -201,6 +219,9 @@ func checkProf10SV(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 		return []Violation{prof10violation(id, msgSV, "sh:Violation")}
 	}
 	if dep == "external" {
+		if datasetHasProfile(dataset, profTP) {
+			return []Violation{prof10violation(id, msgSV, "sh:Violation")}
+		}
 		return nil
 	}
 	if dep != profTP {
@@ -218,6 +239,9 @@ func checkProf10TP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 		return []Violation{prof10violation(id, msgTP, "sh:Violation")}
 	}
 	if dep == "external" {
+		if datasetHasProfile(dataset, profSSH) {
+			return []Violation{prof10violation(id, msgTP, "sh:Violation")}
+		}
 		return nil
 	}
 	if dep != profSSH {
@@ -235,6 +259,9 @@ func checkProf10SSH(id string, m *cimgostructs.Model, dataset *cimgostructs.CIME
 		return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
 	}
 	if dep == "external" {
+		if datasetHasProfile(dataset, profEQ) {
+			return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
+		}
 		return nil
 	}
 	if dep != profEQ {

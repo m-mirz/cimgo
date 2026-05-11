@@ -10,6 +10,38 @@ import (
 	"testing"
 )
 
+// loadEQBDBaseVoltageIDs scans a directory for EQBD XML files and returns the
+// set of BaseVoltage mRIDs defined in them. Pass the result as Config.EQBDBaseVoltageIDs
+// to enable the EQBD2 (BaseVoltage-in-boundary) check.
+func loadEQBDBaseVoltageIDs(t *testing.T, path string) map[string]struct{} {
+	t.Helper()
+	ids := make(map[string]struct{})
+	files, err := os.ReadDir(path)
+	if err != nil {
+		t.Fatalf("Failed to read directory %s: %v", path, err)
+	}
+	for _, f := range files {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".xml") {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(path, f.Name()))
+		if err != nil {
+			t.Fatalf("Failed to read %s: %v", f.Name(), err)
+		}
+		if !bytes.Contains(b, []byte("EquipmentBoundary-EU/3.0")) {
+			continue
+		}
+		temp := cimgostructs.NewCIMElementList()
+		if _, err := cimprofiles.DecodeProfile(bytes.NewReader(b), temp); err != nil {
+			t.Fatalf("Failed to decode EQBD file %s: %v", f.Name(), err)
+		}
+		for id := range temp.BaseVoltages {
+			ids[id] = struct{}{}
+		}
+	}
+	return ids
+}
+
 // indexByID groups generated SHACL violations by their focus-node MRID so the
 // per-object assertions below stay readable.
 func indexByID(violations []Violation) map[string][]Violation {

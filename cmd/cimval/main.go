@@ -33,9 +33,9 @@ func main() {
 
 	flag.Parse()
 
-	if profStr != "" {
-		cfg.Profiles = strings.Split(strings.ToUpper(profStr), ",")
-	}
+	explicitFlags := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { explicitFlags[f.Name] = true })
+
 	if silenceStr != "" {
 		cfg.SilencedRules = strings.Split(silenceStr, ",")
 	}
@@ -47,6 +47,7 @@ func main() {
 	}
 
 	dataset := cimgostructs.NewCIMElementList()
+	profileDatasets := make(map[string]*cimgostructs.CIMElementList)
 	eqbdBVIDs := make(map[string]struct{})
 	for _, file := range files {
 		b, err := os.ReadFile(file)
@@ -54,21 +55,39 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		if bytes.Contains(b, []byte("EquipmentBoundary-EU/3.0")) {
-			temp := cimgostructs.NewCIMElementList()
-			if _, err = cimprofiles.DecodeProfile(bytes.NewReader(b), temp); err == nil {
-				for id := range temp.BaseVoltages {
-					eqbdBVIDs[id] = struct{}{}
-				}
-			}
-		}
-		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+		isolated, err := cimprofiles.DecodeProfile(bytes.NewReader(b), nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
 			os.Exit(1)
 		}
+		dc := validation.DetectConfig(isolated)
+		if len(dc.Profiles) == 1 {
+			name := dc.Profiles[0]
+			profileDatasets[name] = isolated
+			if name == "EQBD" {
+				for id := range isolated.BaseVoltages {
+					eqbdBVIDs[id] = struct{}{}
+				}
+			}
+		}
+		if err := cimprofiles.MergeInto(dataset, isolated); err != nil {
+			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
+			os.Exit(1)
+		}
 	}
 	cfg.EQBDBaseVoltageIDs = eqbdBVIDs
+	cfg.PerProfileDatasets = profileDatasets
+
+	detected := validation.DetectConfig(dataset)
+	if profStr != "" {
+		cfg.Profiles = strings.Split(strings.ToUpper(profStr), ",")
+	} else {
+		cfg.Profiles = detected.Profiles
+	}
+	if !explicitFlags["solved"] && !explicitFlags["notsolved"] {
+		cfg.Solved = detected.Solved
+		cfg.NotSolved = detected.NotSolved
+	}
 
 	if !jsonOutput {
 		fmt.Printf("Loaded %d elements from %d files\n", len(dataset.Elements), len(files))

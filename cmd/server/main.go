@@ -166,30 +166,28 @@ func processCIMFiles(id string) error {
 	}
 	log.Println("Processing files:", entries)
 
-	mergedCIMData := cimgostructs.NewCIMElementList()
-
+	readers := make([]io.Reader, 0, len(entries))
 	for _, entry := range entries {
 		b, err := os.ReadFile(entry)
 		if err != nil {
 			return fmt.Errorf("failed to read file %s: %w", entry, err)
 		}
+		readers = append(readers, bytes.NewReader(b))
+	}
 
-		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), mergedCIMData)
-		if err != nil {
-			return fmt.Errorf("failed to decode profile %s: %w", entry, err)
-		}
+	mergedCIMData, err := cimprofiles.DecodeProfiles(readers, nil)
+	if err != nil {
+		return fmt.Errorf("failed to decode profiles: %w", err)
+	}
+	log.Println("Decoded CIM data")
 
-		jsonOut, err := json.MarshalIndent(mergedCIMData.Elements, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to create a nicely formatted JSON: %w", err)
-		}
-		log.Println("Decoded CIM data")
-
-		// write the merged data back to disk for debugging
-		debugFile := filepath.Join(dirPath, "merged_output.json")
-		if err := os.WriteFile(debugFile, jsonOut, 0644); err != nil {
-			log.Printf("Failed to write merged output to disk: %v", err)
-		}
+	jsonOut, err := json.MarshalIndent(mergedCIMData.Elements, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to create a nicely formatted JSON: %w", err)
+	}
+	debugFile := filepath.Join(dirPath, "merged_output.json")
+	if err := os.WriteFile(debugFile, jsonOut, 0644); err != nil {
+		log.Printf("Failed to write merged output to disk: %v", err)
 	}
 
 	// Generate Protobuf serialization

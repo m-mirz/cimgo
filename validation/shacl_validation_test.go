@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cimgo/cimgostructs"
 	"cimgo/cimprofiles"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,37 +53,41 @@ func indexByID(violations []Violation) map[string][]Violation {
 	return out
 }
 
-func loadDataset(t *testing.T, path string) *cimgostructs.CIMElementList {
-	t.Helper()
+func loadDataset(tb testing.TB, path string) *cimgostructs.CIMElementList {
+	tb.Helper()
 	dataset := cimgostructs.NewCIMElementList()
 	b, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("Failed to read %s: %v", path, err)
+		tb.Fatalf("Failed to read %s: %v", path, err)
 	}
 	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-	t.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
+	tb.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
 
-func loadDirectory(t *testing.T, path string) *cimgostructs.CIMElementList {
-	t.Helper()
-	dataset := cimgostructs.NewCIMElementList()
+func loadDirectory(tb testing.TB, path string) *cimgostructs.CIMElementList {
+	tb.Helper()
 	files, err := os.ReadDir(path)
 	if err != nil {
-		t.Fatalf("Failed to read directory %s: %v", path, err)
+		tb.Fatalf("Failed to read directory %s: %v", path, err)
 	}
+
+	var readers []io.Reader
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".xml") {
-			fullPath := filepath.Join(path, f.Name())
-			b, err := os.ReadFile(fullPath)
+			b, err := os.ReadFile(filepath.Join(path, f.Name()))
 			if err != nil {
-				t.Fatalf("Failed to read %s: %v", fullPath, err)
+				tb.Fatalf("Failed to read %s: %v", f.Name(), err)
 			}
-			cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-			t.Logf("Loaded %s", f.Name())
+			readers = append(readers, bytes.NewReader(b))
 		}
 	}
-	t.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
+
+	dataset, err := cimprofiles.DecodeProfiles(readers, nil)
+	if err != nil {
+		tb.Fatalf("Failed to decode profiles in %s: %v", path, err)
+	}
+	tb.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
 

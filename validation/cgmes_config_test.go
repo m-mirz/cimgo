@@ -1,6 +1,12 @@
 package validation
 
 import (
+	"bytes"
+	"cimgo/cimgostructs"
+	"cimgo/cimprofiles"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -581,4 +587,116 @@ func TestValidatePSTType3(t *testing.T) {
 	if infoEQBDCount != 1 {
 		t.Errorf("expected 1 PROF10-EQ sh:Info (missing EQBD ref), got %d", infoEQBDCount)
 	}
+}
+
+// readRealGridReaders reads all XML files from the RealGrid-Merged directory and
+// returns them as byte slices (to allow repeated benchmark iterations without re-reading disk).
+func readRealGridFiles(b *testing.B) [][]byte {
+	b.Helper()
+	const dir = "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/"
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		b.Fatalf("failed to read RealGrid directory: %v", err)
+	}
+	var blobs [][]byte
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".xml") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			b.Fatalf("failed to read %s: %v", e.Name(), err)
+		}
+		blobs = append(blobs, data)
+	}
+	return blobs
+}
+
+// BenchmarkRealGridValidation measures RunValidation on RealGrid (~115 MB, 4 files) with
+// all profile validators running in parallel. Dataset loading is excluded from the timer.
+func BenchmarkRealGridValidation(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	cfg := Config{
+		Profiles: []string{"EQ", "SSH", "TP", "SV"},
+		Common:   true,
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_ = RunValidation(dataset, cfg)
+	}
+}
+
+// BenchmarkSmallGridValidation measures RunValidation on SmallGrid (7 profiles, ~14 MB),
+// which has more parallelism headroom than RealGrid and is closer to a typical dataset.
+func BenchmarkSmallGridValidation(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/SmallGrid/SmallGrid-Merged/")
+	cfg := Config{
+		Profiles: []string{"EQ", "SSH", "TP", "SV", "DL", "GL", "EQBD"},
+		Common:   true,
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_ = RunValidation(dataset, cfg)
+	}
+}
+
+// BenchmarkRealGridLoadSequential measures loading RealGrid (~115 MB, 4 files) with
+// the original sequential DecodeProfile approach.
+func BenchmarkRealGridLoadSequential(b *testing.B) {
+	blobs := readRealGridFiles(b)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		dataset := cimgostructs.NewCIMElementList()
+		for _, blob := range blobs {
+			if _, err := cimprofiles.DecodeProfile(bytes.NewReader(blob), dataset); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+// BenchmarkRealGridLoadParallel measures loading RealGrid (~115 MB, 4 files) with
+// the new parallel DecodeProfiles approach.
+func BenchmarkRealGridLoadParallel(b *testing.B) {
+	blobs := readRealGridFiles(b)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		readers := make([]io.Reader, len(blobs))
+		for j, blob := range blobs {
+			readers[j] = bytes.NewReader(blob)
+		}
+		if _, err := cimprofiles.DecodeProfiles(readers, nil); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkRealGridValidateEQ(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateEQProfile(dataset) }
+}
+func BenchmarkRealGridValidateSSH(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateSSHProfile(dataset) }
+}
+func BenchmarkRealGridValidateTP(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateTPProfile(dataset) }
+}
+func BenchmarkRealGridValidateSV(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateSVProfile(dataset) }
+}
+func BenchmarkRealGridValidateCommon(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateCommonRulesSPARQL(dataset) }
 }

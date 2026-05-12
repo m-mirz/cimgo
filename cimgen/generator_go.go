@@ -49,7 +49,7 @@ func (cimSpec *CIMSpecification) setLangTypesGo() {
 
 func MapDataTypeGo(s string) string {
 	switch s {
-	case DataTypeString:
+	case DataTypeString, DataTypeDateTime, DataTypeDate, DataTypeMonthDay, "URI":
 		return "string"
 	case DataTypeBoolean:
 		return "bool"
@@ -57,8 +57,6 @@ func MapDataTypeGo(s string) string {
 		return "int"
 	case DataTypeFloat:
 		return "float64"
-	case DataTypeDateTime:
-		return "string"
 	default:
 		return "string"
 	}

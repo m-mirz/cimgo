@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:mdc="http://iec.ch/TC57/61970-552/ModelDescription/1#">
+  <!-- 1. Model Header Checks -->
+  <mdc:FullModel rdf:about="urn:uuid:header-1">
+    <mdc:Model.created>2026-05-09T12:00:00</mdc:Model.created> <!-- Missing Z -->
+    <mdc:Model.modelingAuthoritySet rdf:resource="" /> <!-- Empty -->
+  </mdc:FullModel>
+
+  <!-- 2. ID Syntax Checks -->
+  <cim:Substation rdf:ID="Substation-Not-A-UUID">
+    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
+  </cim:Substation>
+
+  <!-- 3. Duplicate mRID -->
+  <cim:Substation rdf:ID="_9336d36e-d917-4e54-9469-8730b200b3d5">
+    <cim:IdentifiedObject.mRID>DUPLICATE-MRID</cim:IdentifiedObject.mRID>
+  </cim:Substation>
+  <cim:Substation rdf:ID="_8336d36e-d917-4e54-9469-8730b200b3d5">
+    <cim:IdentifiedObject.mRID>DUPLICATE-MRID</cim:IdentifiedObject.mRID>
+  </cim:Substation>
+
+  <!-- 4. Float Special Values -->
+  <cim:ACLineSegment rdf:ID="_7336d36e-d917-4e54-9469-8730b200b3d5">
+    <cim:Conductor.length>NaN</cim:Conductor.length>
+  </cim:ACLineSegment>
+
+  <!-- 5. String Lengths -->
+  <cim:Substation rdf:ID="_6336d36e-d917-4e54-9469-8730b200b3d5">
+    <cim:IdentifiedObject.name>Very Long Name Over 128 Characters ... [TRUNCATED] ... Very Long Name Over 128 Characters ... [TRUNCATED] ... Very Long Name Over 128 Characters</cim:IdentifiedObject.name>
+  </cim:Substation>
+
+  <cim:Substation rdf:ID="_5336d36e-d917-4e54-9469-8730b200b3d5">
+    <eu:IdentifiedObject.shortName>NAME-TOO-LONG-13</eu:IdentifiedObject.shortName>
+  </cim:Substation>
+
+  <cim:Substation rdf:ID="_4336d36e-d917-4e54-9469-8730b200b3d5">
+    <eu:IdentifiedObject.energyIdentCodeEic>EIC-NOT-16-CHARS-1</eu:IdentifiedObject.energyIdentCodeEic>
+  </cim:Substation>
+</rdf:RDF>

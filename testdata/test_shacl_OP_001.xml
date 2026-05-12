@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- Accumulator referenced by the LimitSet (must satisfy 600-2 simple and 452 complex checks) -->
+  <cim:Accumulator rdf:ID="Accumulator.REF">
+    <cim:IdentifiedObject.mRID>Accumulator.REF</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>Acc-REF</cim:IdentifiedObject.name>
+    <cim:Measurement.PowerSystemResource rdf:resource="#PowerSystemResource.REF"/>
+    <cim:Measurement.measurementType>ActiveEnergy</cim:Measurement.measurementType>
+    <cim:Measurement.unitMultiplier rdf:resource="http://iec.ch/TC57/CIM100#UnitMultiplier.k"/>
+    <cim:Measurement.unitSymbol rdf:resource="http://iec.ch/TC57/CIM100#UnitSymbol.Wh"/>
+  </cim:Accumulator>
+  <!-- AccumulatorLimitSet referencing the Accumulator -->
+  <cim:AccumulatorLimitSet rdf:ID="AccumulatorLimitSet.REF">
+    <cim:IdentifiedObject.mRID>AccumulatorLimitSet.REF</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>ALS-REF</cim:IdentifiedObject.name>
+    <cim:AccumulatorLimitSet.Measurements rdf:resource="#Accumulator.REF"/>
+  </cim:AccumulatorLimitSet>
+  <!-- AccumulatorLimit.value must be > 0 (sh:minExclusive 0) -->
+  <cim:AccumulatorLimit rdf:ID="AccumulatorLimit.OK">
+    <cim:IdentifiedObject.mRID>AccumulatorLimit.OK</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>AL-OK</cim:IdentifiedObject.name>
+    <cim:AccumulatorLimit.LimitSet rdf:resource="#AccumulatorLimitSet.REF"/>
+    <cim:AccumulatorLimit.value>5</cim:AccumulatorLimit.value>
+  </cim:AccumulatorLimit>
+  <!-- value=-1 violates sh:minExclusive 0 -->
+  <cim:AccumulatorLimit rdf:ID="AccumulatorLimit.BAD">
+    <cim:IdentifiedObject.mRID>AccumulatorLimit.BAD</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>AL-BAD</cim:IdentifiedObject.name>
+    <cim:AccumulatorLimit.LimitSet rdf:resource="#AccumulatorLimitSet.REF"/>
+    <cim:AccumulatorLimit.value>-1</cim:AccumulatorLimit.value>
+  </cim:AccumulatorLimit>
+</rdf:RDF>

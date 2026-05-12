@@ -47,13 +47,12 @@ func DecodeToMap(r io.Reader) (map[string]interface{}, error) {
 
 	for {
 		token, err := dec.RawToken()
-		if err != nil && err != io.EOF {
-			return nil, err
-		}
-
 		if err == io.EOF {
-			// slog.Debug("Reached end of file")
+			// Reached end of file
 			return n.Value, nil
+		}
+		if err != nil {
+			return nil, err
 		}
 
 		switch t := token.(type) {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. OK: varistorPresent=true with attributes -->
+  <cim:SeriesCompensator rdf:ID="SC.OK.1">
+    <cim:SeriesCompensator.varistorPresent>true</cim:SeriesCompensator.varistorPresent>
+    <cim:SeriesCompensator.varistorRatedCurrent>100</cim:SeriesCompensator.varistorRatedCurrent>
+    <cim:SeriesCompensator.varistorVoltageThreshold>500</cim:SeriesCompensator.varistorVoltageThreshold>
+  </cim:SeriesCompensator>
+
+  <!-- 2. OK: varistorPresent=false without attributes -->
+  <cim:SeriesCompensator rdf:ID="SC.OK.2">
+    <cim:SeriesCompensator.varistorPresent>false</cim:SeriesCompensator.varistorPresent>
+  </cim:SeriesCompensator>
+
+  <!-- 3. BAD: varistorPresent=true missing attributes -->
+  <cim:SeriesCompensator rdf:ID="SC.BAD.REQUIRED">
+    <cim:SeriesCompensator.varistorPresent>true</cim:SeriesCompensator.varistorPresent>
+    <!-- Missing both -->
+  </cim:SeriesCompensator>
+</rdf:RDF>

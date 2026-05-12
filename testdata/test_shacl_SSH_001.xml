@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- BatteryUnit.storedE must be < ratedE (sh:lessThan) -->
+  <cim:BatteryUnit rdf:ID="BatteryUnit.OK">
+    <cim:IdentifiedObject.name>Battery-OK</cim:IdentifiedObject.name>
+    <cim:BatteryUnit.storedE>50.0</cim:BatteryUnit.storedE>
+    <cim:BatteryUnit.ratedE>100.0</cim:BatteryUnit.ratedE>
+  </cim:BatteryUnit>
+  <cim:BatteryUnit rdf:ID="BatteryUnit.BAD">
+    <cim:IdentifiedObject.name>Battery-BAD</cim:IdentifiedObject.name>
+    <cim:BatteryUnit.storedE>150.0</cim:BatteryUnit.storedE>
+    <cim:BatteryUnit.ratedE>100.0</cim:BatteryUnit.ratedE>
+  </cim:BatteryUnit>
+</rdf:RDF>

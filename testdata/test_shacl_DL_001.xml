@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:SynchronousMachine rdf:ID="SynchronousMachine.SM1">
+    <cim:IdentifiedObject.name>SM1</cim:IdentifiedObject.name>
+  </cim:SynchronousMachine>
+  <cim:GeneratingUnit rdf:ID="GeneratingUnit.GU1">
+    <cim:IdentifiedObject.name>GU1</cim:IdentifiedObject.name>
+  </cim:GeneratingUnit>
+  <cim:DiagramObject rdf:ID="DiagramObject.OK">
+    <cim:IdentifiedObject.name>DO-OK</cim:IdentifiedObject.name>
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#SynchronousMachine.SM1" />
+  </cim:DiagramObject>
+  <cim:DiagramObject rdf:ID="DiagramObject.BAD">
+    <cim:IdentifiedObject.name>DO-BAD</cim:IdentifiedObject.name>
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#GeneratingUnit.GU1" />
+  </cim:DiagramObject>
+  <cim:TextDiagramObject rdf:ID="TextDiagramObject.BAD">
+    <cim:IdentifiedObject.name>TDO-BAD</cim:IdentifiedObject.name>
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#GeneratingUnit.GU1" />
+    <cim:TextDiagramObject.text>label</cim:TextDiagramObject.text>
+  </cim:TextDiagramObject>
+</rdf:RDF>

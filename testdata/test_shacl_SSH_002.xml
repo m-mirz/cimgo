@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- EnergyConsumer.p must be >= 0 (sh:minInclusive 0) -->
+  <cim:EnergyConsumer rdf:ID="EnergyConsumer.OK">
+    <cim:IdentifiedObject.mRID>EnergyConsumer.OK</cim:IdentifiedObject.mRID>
+    <cim:EnergyConsumer.p>100.0</cim:EnergyConsumer.p>
+    <cim:EnergyConsumer.q>50.0</cim:EnergyConsumer.q>
+  </cim:EnergyConsumer>
+  <!-- p=-10 violates sh:minInclusive 0 -->
+  <cim:EnergyConsumer rdf:ID="EnergyConsumer.BAD">
+    <cim:IdentifiedObject.mRID>EnergyConsumer.BAD</cim:IdentifiedObject.mRID>
+    <cim:EnergyConsumer.p>-10.0</cim:EnergyConsumer.p>
+    <cim:EnergyConsumer.q>50.0</cim:EnergyConsumer.q>
+  </cim:EnergyConsumer>
+</rdf:RDF>

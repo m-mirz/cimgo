@@ -1,0 +1,1089 @@
+package turtle
+
+import (
+	"cimgo/rdf/graph"
+	"cimgo/rdf/namespace"
+	"cimgo/rdf/term"
+	"fmt"
+	"io"
+	"net/url"
+	"strconv"
+	"strings"
+	"unicode/utf8"
+)
+
+// Parse reads Turtle from r and adds triples to g.
+func Parse(g *graph.Graph, r io.Reader, opts ...Option) error {
+	cfg := &config{}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	parser := &turtleParser{
+		g:        g,
+		input:    string(data),
+		base:     cfg.base,
+		prefixes: make(map[string]string),
+	}
+	// Copy graph namespace bindings as initial prefixes
+	g.Namespaces()(func(prefix string, ns term.URIRef) bool {
+		parser.prefixes[prefix] = ns.Value()
+		return true
+	})
+	return parser.parse()
+}
+
+type turtleParser struct {
+	g        *graph.Graph
+	input    string
+	pos      int
+	line     int
+	col      int
+	base     string
+	prefixes map[string]string // prefix -> namespace URI
+}
+
+// parse is the main entry point.
+func (p *turtleParser) parse() error {
+	p.line = 1
+	p.col = 1
+	for {
+		p.skipWS()
+		if p.pos >= len(p.input) {
+			break
+		}
+		if err := p.statement(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// statement parses a directive or triple statement.
+func (p *turtleParser) statement() error {
+	p.skipWS()
+	if p.pos >= len(p.input) {
+		return nil
+	}
+
+	ch := p.input[p.pos]
+
+	// @prefix
+	if ch == '@' {
+		return p.directive()
+	}
+
+	// SPARQL-style PREFIX/BASE (case-insensitive)
+	if (ch == 'P' || ch == 'p') && p.matchKeywordCI("PREFIX") {
+		return p.sparqlPrefix()
+	}
+	if (ch == 'B' || ch == 'b') && p.matchKeywordCI("BASE") {
+		return p.sparqlBase()
+	}
+
+	// SPARQL-style VERSION (case-insensitive)
+	if (ch == 'V' || ch == 'v') && p.matchKeywordCI("VERSION") {
+		return p.sparqlVersion()
+	}
+
+	// Triple or reified triple
+	return p.tripleStatement()
+}
+
+// directive handles @prefix and @base.
+func (p *turtleParser) directive() error {
+	p.pos++ // skip '@'
+	if p.startsWith("prefix") {
+		p.pos += 6
+		p.skipWS()
+		prefix := p.readPrefixName()
+		if !p.expect(':') {
+			return p.errorf("expected ':' after prefix name")
+		}
+		p.skipWS()
+		iri, err := p.readIRI()
+		if err != nil {
+			return err
+		}
+		iri = p.resolveIRI(iri)
+		p.prefixes[prefix] = iri
+		p.g.Bind(prefix, term.NewURIRefUnsafe(iri))
+		p.skipWS()
+		if !p.expect('.') {
+			return p.errorf("expected '.' after @prefix")
+		}
+		return nil
+	}
+	if p.startsWith("version") {
+		p.pos += 7
+		p.skipWS()
+		if _, err := p.readVersionString(); err != nil {
+			return err
+		}
+		p.skipWS()
+		if !p.expect('.') {
+			return p.errorf("expected '.' after @version")
+		}
+		return nil
+	}
+	if p.startsWith("base") {
+		p.pos += 4
+		p.skipWS()
+		iri, err := p.readIRI()
+		if err != nil {
+			return err
+		}
+		p.base = p.resolveIRI(iri)
+		p.skipWS()
+		if !p.expect('.') {
+			return p.errorf("expected '.' after @base")
+		}
+		return nil
+	}
+	return p.errorf("unknown directive")
+}
+
+func (p *turtleParser) sparqlPrefix() error {
+	p.pos += 6
+	p.skipWS()
+	prefix := p.readPrefixName()
+	if !p.expect(':') {
+		return p.errorf("expected ':' after PREFIX name")
+	}
+	p.skipWS()
+	iri, err := p.readIRI()
+	if err != nil {
+		return err
+	}
+	iri = p.resolveIRI(iri)
+	p.prefixes[prefix] = iri
+	p.g.Bind(prefix, term.NewURIRefUnsafe(iri))
+	return nil
+}
+
+func (p *turtleParser) sparqlBase() error {
+	p.pos += 4
+	p.skipWS()
+	iri, err := p.readIRI()
+	if err != nil {
+		return err
+	}
+	p.base = p.resolveIRI(iri)
+	return nil
+}
+
+// tripleStatement parses: subject predicateObjectList '.'
+// Per the Turtle grammar, when the subject is a blankNodePropertyList,
+// the predicateObjectList is optional.
+// In Turtle 1.2, standalone reified triples << s p o >> . are also valid.
+func (p *turtleParser) tripleStatement() error {
+	subj, err := p.readSubject()
+	if err != nil {
+		return err
+	}
+
+	p.skipWS()
+	// When the subject is a blank node property list [...] or a reified triple,
+	// the predicateObjectList is optional — may be followed by just '.'.
+	if p.pos < len(p.input) && p.input[p.pos] == '.' {
+		if _, isBNode := subj.(term.BNode); isBNode {
+			p.pos++
+			return nil
+		}
+	}
+
+	if err := p.predicateObjectList(subj); err != nil {
+		return err
+	}
+
+	p.skipWS()
+	if !p.expect('.') {
+		return p.errorf("expected '.' at end of triple")
+	}
+	return nil
+}
+
+// predicateObjectList parses: verb objectList (';' verb objectList)*
+func (p *turtleParser) predicateObjectList(subj term.Subject) error {
+	pred, err := p.readVerb()
+	if err != nil {
+		return err
+	}
+
+	if err := p.objectList(subj, pred); err != nil {
+		return err
+	}
+
+	for {
+		p.skipWS()
+		if p.pos >= len(p.input) || p.input[p.pos] != ';' {
+			break
+		}
+		// Consume one or more consecutive semicolons.
+		for p.pos < len(p.input) && p.input[p.pos] == ';' {
+			p.pos++
+			p.skipWS()
+		}
+		// Allow trailing ';' before '.', ']', or '|}'
+		if p.pos >= len(p.input) || p.input[p.pos] == '.' || p.input[p.pos] == ']' || p.input[p.pos] == '|' {
+			break
+		}
+		pred, err = p.readVerb()
+		if err != nil {
+			return err
+		}
+		if err := p.objectList(subj, pred); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// objectList parses: object (',' object)*
+// In Turtle 1.2, each object may be followed by reifiers (~id) and annotation blocks ({| ... |}).
+func (p *turtleParser) objectList(subj term.Subject, pred term.URIRef) error {
+	obj, err := p.readObject()
+	if err != nil {
+		return err
+	}
+	p.g.Add(subj, pred, obj)
+	if err := p.readAnnotationsAndReifiers(subj, pred, obj); err != nil {
+		return err
+	}
+
+	for {
+		p.skipWS()
+		if p.pos >= len(p.input) || p.input[p.pos] != ',' {
+			break
+		}
+		p.pos++ // skip ','
+		p.skipWS()
+		obj, err = p.readObject()
+		if err != nil {
+			return err
+		}
+		p.g.Add(subj, pred, obj)
+		if err := p.readAnnotationsAndReifiers(subj, pred, obj); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// readSubject parses a subject: IRI, prefixed name, blank node, or collection.
+func (p *turtleParser) readSubject() (term.Subject, error) {
+	p.skipWS()
+	if p.pos >= len(p.input) {
+		return nil, p.errorf("unexpected end of input, expected subject")
+	}
+	ch := p.input[p.pos]
+
+	// Reified triple as subject: << s p o >> or << s p o ~ id >>
+	if ch == '<' && p.pos+1 < len(p.input) && p.input[p.pos+1] == '<' {
+		return p.readReifiedTriple()
+	}
+	if ch == '<' {
+		iri, err := p.readIRI()
+		if err != nil {
+			return nil, err
+		}
+		return term.NewURIRefUnsafe(p.resolveIRI(iri)), nil
+	}
+	if ch == '_' && p.pos+1 < len(p.input) && p.input[p.pos+1] == ':' {
+		return p.readBlankNodeLabel()
+	}
+	if ch == '[' {
+		return p.readBlankNodePropertyList()
+	}
+	if ch == '(' {
+		tmpTerm, err := p.readCollection()
+		if err != nil {
+			return nil, err
+		}
+		if subj, ok := tmpTerm.(term.Subject); ok {
+			return subj, nil
+		}
+		return nil, p.errorf("collection as subject must be a node")
+	}
+
+	// Prefixed name
+	uri, err := p.readPrefixedName()
+	if err != nil {
+		return nil, err
+	}
+	return term.NewURIRefUnsafe(uri), nil
+}
+
+// readVerb parses a predicate: 'a' | IRI | prefixed name.
+func (p *turtleParser) readVerb() (term.URIRef, error) {
+	p.skipWS()
+	// Check for 'a' keyword
+	if p.pos < len(p.input) && p.input[p.pos] == 'a' {
+		// Make sure it's not part of a longer name
+		next := p.pos + 1
+		if next >= len(p.input) || isDelimiter(p.input[next]) {
+			p.pos++
+			return namespace.RDF.Type, nil
+		}
+	}
+
+	return p.readPredicate()
+}
+
+func (p *turtleParser) readPredicate() (term.URIRef, error) {
+	p.skipWS()
+	if p.pos < len(p.input) && p.input[p.pos] == '<' {
+		iri, err := p.readIRI()
+		if err != nil {
+			return term.URIRef{}, err
+		}
+		return term.NewURIRefUnsafe(p.resolveIRI(iri)), nil
+	}
+	uri, err := p.readPrefixedName()
+	if err != nil {
+		return term.URIRef{}, err
+	}
+	return term.NewURIRefUnsafe(uri), nil
+}
+
+// readObject parses an object term.
+func (p *turtleParser) readObject() (term.Term, error) {
+	p.skipWS()
+	if p.pos >= len(p.input) {
+		return nil, p.errorf("unexpected end of input")
+	}
+	ch := p.input[p.pos]
+
+	// Triple term <<( s p o )>> or reified triple << s p o >>
+	if ch == '<' && p.pos+1 < len(p.input) && p.input[p.pos+1] == '<' {
+		return p.readTripleTermOrReified()
+	}
+	if ch == '<' {
+		iri, err := p.readIRI()
+		if err != nil {
+			return nil, err
+		}
+		return term.NewURIRefUnsafe(p.resolveIRI(iri)), nil
+	}
+	if ch == '_' && p.pos+1 < len(p.input) && p.input[p.pos+1] == ':' {
+		return p.readBlankNodeLabel()
+	}
+	if ch == '[' {
+		return p.readBlankNodePropertyList()
+	}
+	if ch == '(' {
+		return p.readCollection()
+	}
+	if ch == '"' || ch == '\'' {
+		return p.readLiteral()
+	}
+
+	// Try numeric literal
+	if ch == '+' || ch == '-' || (ch >= '0' && ch <= '9') || ch == '.' {
+		if lit, ok := p.tryNumeric(); ok {
+			return lit, nil
+		}
+	}
+
+	// Boolean keywords
+	if p.startsWith("true") && (p.pos+4 >= len(p.input) || isBoolTerminator(p.input[p.pos+4])) {
+		p.pos += 4
+		return term.NewLiteral(true), nil
+	}
+	if p.startsWith("false") && (p.pos+5 >= len(p.input) || isBoolTerminator(p.input[p.pos+5])) {
+		p.pos += 5
+		return term.NewLiteral(false), nil
+	}
+
+	// Prefixed name
+	uri, err := p.readPrefixedName()
+	if err != nil {
+		return nil, err
+	}
+	return term.NewURIRefUnsafe(uri), nil
+}
+
+// readIRI reads <...> and returns the IRI string (without angle brackets).
+func (p *turtleParser) readIRI() (string, error) {
+	if !p.expect('<') {
+		return "", p.errorf("expected '<'")
+	}
+	start := p.pos
+	for p.pos < len(p.input) {
+		ch := p.input[p.pos]
+		if ch == '>' {
+			iri := p.input[start:p.pos]
+			p.pos++
+			unescaped, err := p.unescapeIRI(iri)
+			if err != nil {
+				return "", err
+			}
+			if err := validateIRI(unescaped); err != nil {
+				return "", p.errorf("%s", err)
+			}
+			return unescaped, nil
+		}
+		if ch == '\\' {
+			p.pos += 2 // skip escape (handled in unescape)
+			continue
+		}
+		// Reject characters not allowed in IRIs per Turtle grammar.
+		if ch <= 0x20 || ch == '{' || ch == '}' || ch == '|' || ch == '^' || ch == '`' {
+			return "", p.errorf("invalid character %q in IRI", ch)
+		}
+		p.pos++
+	}
+	return "", p.errorf("unterminated IRI")
+}
+
+// readPrefixedName reads prefix:local and returns the full URI.
+func (p *turtleParser) readPrefixedName() (string, error) {
+	prefix := p.readPrefixName()
+	if !p.expect(':') {
+		return "", p.errorf("expected ':' in prefixed name")
+	}
+	local, err := p.readLocalName()
+	if err != nil {
+		return "", err
+	}
+	ns, ok := p.prefixes[prefix]
+	if !ok {
+		return "", p.errorf("undefined prefix %q", prefix)
+	}
+	return ns + unescapeLocalName(local), nil
+}
+
+// unescapeLocalName processes backslash escapes and percent-encoding in local names.
+// In Turtle, local names allow \-escaped reserved characters like \#, \~, \., etc.
+// The backslash is removed, yielding the literal character.
+func unescapeLocalName(s string) string {
+	if !strings.ContainsAny(s, "\\") {
+		return s
+	}
+	var sb strings.Builder
+	sb.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) {
+			i++
+			sb.WriteByte(s[i])
+		} else {
+			sb.WriteByte(s[i])
+		}
+	}
+	return sb.String()
+}
+
+// readBlankNodeLabel reads _:label per the BLANK_NODE_LABEL grammar rule.
+func (p *turtleParser) readBlankNodeLabel() (term.BNode, error) {
+	p.pos += 2 // skip "_:"
+	start := p.pos
+	if p.pos >= len(p.input) {
+		return term.BNode{}, p.errorf("empty blank node label after _:")
+	}
+	// First char: PN_CHARS_U | [0-9]
+	r, size := utf8.DecodeRuneInString(p.input[p.pos:])
+	if !isPNCharsU(r) && !(r >= '0' && r <= '9') {
+		return term.BNode{}, p.errorf("invalid blank node label start: %c", r)
+	}
+	p.pos += size
+	// Subsequent chars: (PN_CHARS | '.')*
+	for p.pos < len(p.input) {
+		r, size = utf8.DecodeRuneInString(p.input[p.pos:])
+		if isPNChar(r) || r == '.' {
+			p.pos += size
+		} else {
+			break
+		}
+	}
+	// Trim trailing dots.
+	for p.pos > start && p.input[p.pos-1] == '.' {
+		p.pos--
+	}
+	label := p.input[start:p.pos]
+	if label == "" {
+		return term.BNode{}, p.errorf("empty blank node label after _:")
+	}
+	return term.NewBNode(label), nil
+}
+
+// readBlankNodePropertyList reads [...].
+func (p *turtleParser) readBlankNodePropertyList() (term.BNode, error) {
+	p.pos++ // skip '['
+	p.skipWS()
+
+	b := term.NewBNode()
+
+	// Empty blank node []
+	if p.pos < len(p.input) && p.input[p.pos] == ']' {
+		p.pos++
+		return b, nil
+	}
+
+	if err := p.predicateObjectList(b); err != nil {
+		return term.BNode{}, err
+	}
+	p.skipWS()
+	if !p.expect(']') {
+		return term.BNode{}, p.errorf("expected ']'")
+	}
+	return b, nil
+}
+
+// readCollection reads (...) and builds rdf:List triples.
+func (p *turtleParser) readCollection() (term.Term, error) {
+	p.pos++ // skip '('
+	p.skipWS()
+
+	// Empty collection
+	if p.pos < len(p.input) && p.input[p.pos] == ')' {
+		p.pos++
+		return namespace.RDF.Nil, nil
+	}
+
+	var items []term.Term
+	for {
+		p.skipWS()
+		if p.pos >= len(p.input) {
+			return nil, p.errorf("unterminated collection")
+		}
+		if p.input[p.pos] == ')' {
+			p.pos++
+			break
+		}
+		obj, err := p.readObject()
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, obj)
+	}
+
+	// Build rdf:List chain
+	if len(items) == 0 {
+		return namespace.RDF.Nil, nil
+	}
+
+	head := term.NewBNode()
+	current := head
+	for i, item := range items {
+		p.g.Add(current, namespace.RDF.First, item)
+		if i < len(items)-1 {
+			next := term.NewBNode()
+			p.g.Add(current, namespace.RDF.Rest, next)
+			current = next
+		} else {
+			p.g.Add(current, namespace.RDF.Rest, namespace.RDF.Nil)
+		}
+	}
+	return head, nil
+}
+
+// readLiteral reads a string literal with optional language tag or datatype.
+func (p *turtleParser) readLiteral() (term.Literal, error) {
+	quote := p.input[p.pos]
+	p.pos++
+
+	// Check for triple-quoted string
+	longString := false
+	if p.pos+1 < len(p.input) && p.input[p.pos] == quote && p.input[p.pos+1] == quote {
+		p.pos += 2
+		longString = true
+	}
+
+	var sb strings.Builder
+	for p.pos < len(p.input) {
+		ch := p.input[p.pos]
+
+		if ch == '\\' {
+			p.pos++
+			if p.pos >= len(p.input) {
+				return term.Literal{}, p.errorf("unterminated escape")
+			}
+			escaped, err := p.readEscape()
+			if err != nil {
+				return term.Literal{}, err
+			}
+			sb.WriteString(escaped)
+			continue
+		}
+
+		if longString {
+			if ch == quote && p.pos+2 < len(p.input) && p.input[p.pos+1] == quote && p.input[p.pos+2] == quote {
+				p.pos += 3
+				goto done
+			}
+			r, size := utf8.DecodeRuneInString(p.input[p.pos:])
+			sb.WriteRune(r)
+			if ch == '\n' {
+				p.line++
+				p.col = 1
+			}
+			p.pos += size
+		} else {
+			if ch == quote {
+				p.pos++
+				goto done
+			}
+			if ch == '\n' || ch == '\r' {
+				return term.Literal{}, p.errorf("newline in short string")
+			}
+			r, size := utf8.DecodeRuneInString(p.input[p.pos:])
+			sb.WriteRune(r)
+			p.pos += size
+		}
+	}
+	return term.Literal{}, p.errorf("unterminated string literal")
+
+done:
+	value := sb.String()
+	var lopts []term.LiteralOption
+
+	// Language tag (with optional direction) or datatype
+	if p.pos < len(p.input) && p.input[p.pos] == '@' {
+		p.pos++
+		lang, err := p.readLangTag()
+		if err != nil {
+			return term.Literal{}, err
+		}
+		// Check for directional language tag: lang--dir
+		if idx := strings.Index(lang, "--"); idx >= 0 {
+			dir := lang[idx+2:]
+			lang = lang[:idx]
+			if dir != "ltr" && dir != "rtl" {
+				return term.Literal{}, p.errorf("invalid base direction %q (must be ltr or rtl)", dir)
+			}
+			lopts = append(lopts, term.WithLang(lang), term.WithDir(dir))
+		} else {
+			lopts = append(lopts, term.WithLang(lang))
+		}
+	} else if p.pos+1 < len(p.input) && p.input[p.pos] == '^' && p.input[p.pos+1] == '^' {
+		p.pos += 2
+		dt, err := p.readDatatypeIRI()
+		if err != nil {
+			return term.Literal{}, err
+		}
+		lopts = append(lopts, term.WithDatatype(term.NewURIRefUnsafe(dt)))
+	}
+
+	return term.NewLiteral(value, lopts...), nil
+}
+
+// readEscape handles escape sequences.
+func (p *turtleParser) readEscape() (string, error) {
+	ch := p.input[p.pos]
+	p.pos++
+	switch ch {
+	case 'n':
+		return "\n", nil
+	case 'r':
+		return "\r", nil
+	case 't':
+		return "\t", nil
+	case 'b':
+		return "\b", nil
+	case 'f':
+		return "\f", nil
+	case '\\':
+		return "\\", nil
+	case '"':
+		return "\"", nil
+	case '\'':
+		return "'", nil
+	case 'u':
+		return p.readUnicodeEscape(4)
+	case 'U':
+		return p.readUnicodeEscape(8)
+	default:
+		return "", p.errorf("unknown escape \\%c", ch)
+	}
+}
+
+func (p *turtleParser) readUnicodeEscape(n int) (string, error) {
+	if p.pos+n > len(p.input) {
+		return "", p.errorf("truncated unicode escape")
+	}
+	hex := p.input[p.pos : p.pos+n]
+	p.pos += n
+	code, err := strconv.ParseUint(hex, 16, 32)
+	if err != nil {
+		return "", p.errorf("invalid unicode escape: %s", hex)
+	}
+	// Reject surrogate code points (U+D800..U+DFFF).
+	if code >= 0xD800 && code <= 0xDFFF {
+		return "", p.errorf("invalid surrogate in unicode escape: %s", hex)
+	}
+	return string(rune(code)), nil
+}
+
+// tryNumeric attempts to parse a numeric literal.
+func (p *turtleParser) tryNumeric() (term.Literal, bool) {
+	start := p.pos
+
+	// Optional sign
+	if p.pos < len(p.input) && (p.input[p.pos] == '+' || p.input[p.pos] == '-') {
+		p.pos++
+	}
+
+	hasDigitsBefore := false
+	for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
+		hasDigitsBefore = true
+		p.pos++
+	}
+
+	hasDot := false
+	if p.pos < len(p.input) && p.input[p.pos] == '.' {
+		next := byte(0)
+		if p.pos+1 < len(p.input) {
+			next = p.input[p.pos+1]
+		}
+		if next >= '0' && next <= '9' {
+			hasDot = true
+			p.pos++ // skip '.'
+			for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
+				p.pos++
+			}
+		} else if hasDigitsBefore && (next == 'e' || next == 'E') {
+			// e.g. 123.E+1 — dot followed by exponent, no fractional digits
+			hasDot = true
+			p.pos++ // skip '.'
+		} else if !hasDigitsBefore {
+			p.pos = start
+			return term.Literal{}, false
+		}
+	}
+
+	hasExp := false
+	if p.pos < len(p.input) && (p.input[p.pos] == 'e' || p.input[p.pos] == 'E') {
+		hasExp = true
+		p.pos++
+		if p.pos < len(p.input) && (p.input[p.pos] == '+' || p.input[p.pos] == '-') {
+			p.pos++
+		}
+		if p.pos >= len(p.input) || p.input[p.pos] < '0' || p.input[p.pos] > '9' {
+			p.pos = start
+			return term.Literal{}, false
+		}
+		for p.pos < len(p.input) && p.input[p.pos] >= '0' && p.input[p.pos] <= '9' {
+			p.pos++
+		}
+	}
+
+	if !hasDigitsBefore && !hasDot {
+		p.pos = start
+		return term.Literal{}, false
+	}
+
+	lexical := p.input[start:p.pos]
+
+	var dt term.URIRef
+	switch {
+	case hasExp:
+		dt = term.XSDDouble
+	case hasDot:
+		dt = term.XSDDecimal
+	default:
+		dt = term.XSDInteger
+	}
+
+	return term.NewLiteral(lexical, term.WithDatatype(dt)), true
+}
+
+func (p *turtleParser) readLangTag() (string, error) {
+	start := p.pos
+	// First char must be a letter.
+	if p.pos >= len(p.input) || !((p.input[p.pos] >= 'a' && p.input[p.pos] <= 'z') || (p.input[p.pos] >= 'A' && p.input[p.pos] <= 'Z')) {
+		return "", p.errorf("invalid language tag: must start with a letter")
+	}
+	for p.pos < len(p.input) {
+		ch := p.input[p.pos]
+		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '-' || (ch >= '0' && ch <= '9') {
+			p.pos++
+		} else {
+			break
+		}
+	}
+	return p.input[start:p.pos], nil
+}
+
+func (p *turtleParser) readDatatypeIRI() (string, error) {
+	p.skipWS()
+	if p.pos < len(p.input) && p.input[p.pos] == '<' {
+		iri, err := p.readIRI()
+		if err != nil {
+			return "", err
+		}
+		return p.resolveIRI(iri), nil
+	}
+	// Prefixed name
+	return p.readPrefixedName()
+}
+
+// --- Helper methods ---
+
+func (p *turtleParser) readPrefixName() string {
+	start := p.pos
+	for p.pos < len(p.input) {
+		r, size := utf8.DecodeRuneInString(p.input[p.pos:])
+		if r == ':' || (r < 128 && isDelimiter(byte(r))) {
+			break
+		}
+		if p.pos == start {
+			// First char: must be PN_CHARS_BASE
+			if !isPNCharsBase(r) {
+				break
+			}
+		} else {
+			// Subsequent chars: PN_CHARS | '.'
+			if !isPNChar(r) && r != '.' {
+				break
+			}
+		}
+		p.pos += size
+	}
+	// Trim trailing dots (not allowed at end of prefix name).
+	for p.pos > start && p.input[p.pos-1] == '.' {
+		p.pos--
+	}
+	return p.input[start:p.pos]
+}
+
+func (p *turtleParser) readLocalName() (string, error) {
+	start := p.pos
+	first := true
+	for p.pos < len(p.input) {
+		ch := p.input[p.pos]
+		if ch == '\\' && p.pos+1 < len(p.input) {
+			next := p.input[p.pos+1]
+			// Only reserved character escapes allowed in local names, not \u or \U.
+			if next == 'u' || next == 'U' {
+				return "", p.errorf("\\%c escape not allowed in local name", next)
+			}
+			p.pos += 2
+			first = false
+			continue
+		}
+		if ch == '%' {
+			// Validate percent encoding: must be %HH.
+			if p.pos+2 >= len(p.input) || !isHexDigit(p.input[p.pos+1]) || !isHexDigit(p.input[p.pos+2]) {
+				return "", p.errorf("invalid percent encoding in local name")
+			}
+			p.pos += 3
+			first = false
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(p.input[p.pos:])
+		if first {
+			// First char of local name: PN_CHARS_U | ':' | [0-9] | PLX (handled above)
+			if !isPNCharsU(r) && r != ':' && !(r >= '0' && r <= '9') {
+				break
+			}
+		} else {
+			// Subsequent: PN_CHARS | '.' | ':' | PLX (handled above)
+			if r == ':' || r == '.' {
+				p.pos += size
+				continue
+			}
+			if r == ';' || r == ',' || r == '[' || r == ']' || r == '(' || r == ')' || r == '#' {
+				break
+			}
+			if r < 128 && isDelimiter(byte(r)) {
+				break
+			}
+			if !isPNChar(r) {
+				break
+			}
+		}
+		p.pos += size
+		first = false
+	}
+	// Trim trailing dots (not allowed at end of local name).
+	for p.pos > start && p.input[p.pos-1] == '.' {
+		p.pos--
+	}
+	return p.input[start:p.pos], nil
+}
+
+func (p *turtleParser) skipWS() {
+	for p.pos < len(p.input) {
+		ch := p.input[p.pos]
+		if ch == ' ' || ch == '\t' || ch == '\r' {
+			p.pos++
+			p.col++
+		} else if ch == '\n' {
+			p.pos++
+			p.line++
+			p.col = 1
+		} else if ch == '#' {
+			// Comment: skip to end of line
+			for p.pos < len(p.input) && p.input[p.pos] != '\n' {
+				p.pos++
+			}
+		} else {
+			break
+		}
+	}
+}
+
+func (p *turtleParser) expect(ch byte) bool {
+	if p.pos < len(p.input) && p.input[p.pos] == ch {
+		p.pos++
+		return true
+	}
+	return false
+}
+
+func (p *turtleParser) startsWith(s string) bool {
+	return strings.HasPrefix(p.input[p.pos:], s)
+}
+
+func (p *turtleParser) matchKeywordCI(kw string) bool {
+	if p.pos+len(kw) > len(p.input) {
+		return false
+	}
+	candidate := p.input[p.pos : p.pos+len(kw)]
+	if !strings.EqualFold(candidate, kw) {
+		return false
+	}
+	// Must be followed by whitespace or EOF
+	after := p.pos + len(kw)
+	if after < len(p.input) && !isWhitespace(p.input[after]) {
+		return false
+	}
+	return true
+}
+
+func (p *turtleParser) resolveIRI(iri string) string {
+	if p.base == "" || isAbsoluteIRI(iri) {
+		return iri
+	}
+	b, err := url.Parse(p.base)
+	if err != nil {
+		return iri
+	}
+	ref, err := url.Parse(iri)
+	if err != nil {
+		return iri
+	}
+	resolved := b.ResolveReference(ref).String()
+	// Go's url.ResolveReference drops an empty fragment. In RDF, <#> resolved
+	// against a base must preserve the '#' separator.
+	if strings.Contains(iri, "#") && !strings.Contains(resolved, "#") {
+		resolved += "#"
+	}
+	return resolved
+}
+
+func (p *turtleParser) unescapeIRI(s string) (string, error) {
+	if !strings.ContainsRune(s, '\\') {
+		return s, nil
+	}
+	var sb strings.Builder
+	i := 0
+	for i < len(s) {
+		if s[i] == '\\' && i+1 < len(s) {
+			i++
+			switch s[i] {
+			case 'u':
+				if i+5 > len(s) {
+					return "", p.errorf("truncated \\u escape in IRI")
+				}
+				code, err := strconv.ParseUint(s[i+1:i+5], 16, 32)
+				if err != nil {
+					return "", p.errorf("invalid \\u escape in IRI: %s", s[i+1:i+5])
+				}
+				if code >= 0xD800 && code <= 0xDFFF {
+					return "", p.errorf("invalid surrogate in IRI escape: %s", s[i+1:i+5])
+				}
+				sb.WriteRune(rune(code))
+				i += 5
+			case 'U':
+				if i+9 > len(s) {
+					return "", p.errorf("truncated \\U escape in IRI")
+				}
+				code, err := strconv.ParseUint(s[i+1:i+9], 16, 32)
+				if err != nil {
+					return "", p.errorf("invalid \\U escape in IRI: %s", s[i+1:i+9])
+				}
+				if code >= 0xD800 && code <= 0xDFFF {
+					return "", p.errorf("invalid surrogate in IRI escape: %s", s[i+1:i+9])
+				}
+				sb.WriteRune(rune(code))
+				i += 9
+			default:
+				return "", p.errorf("unknown escape \\%c in IRI", s[i])
+			}
+		} else {
+			sb.WriteByte(s[i])
+			i++
+		}
+	}
+	return sb.String(), nil
+}
+
+func (p *turtleParser) errorf(format string, args ...any) error {
+	return fmt.Errorf("turtle parse error at line %d: "+format, append([]any{p.line}, args...)...)
+}
+
+// isDelimiter returns true for characters that terminate a prefixed name or keyword.
+// ')' added for triple term <<(...true)>> parsing; '~' added for RDF 1.2 reifier syntax.
+func isDelimiter(ch byte) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '<' || ch == '>' || ch == '"' || ch == '\'' || ch == '{' || ch == '}' || ch == '|' || ch == '^' || ch == '`' || ch == ')' || ch == '~'
+}
+
+// isBoolTerminator returns true for characters that terminate a boolean keyword (true/false).
+// Includes all delimiters plus '.', ';', ',' which are Turtle statement separators.
+func isBoolTerminator(ch byte) bool {
+	return isDelimiter(ch) || ch == '.' || ch == ';' || ch == ','
+}
+
+func isWhitespace(ch byte) bool {
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+// isPNChar matches PN_CHARS (PN_CHARS_U | '-' | digit | combining marks).
+func isPNChar(r rune) bool {
+	return isPNCharsU(r) ||
+		r == '-' ||
+		(r >= '0' && r <= '9') ||
+		r == 0x00B7 ||
+		(r >= 0x0300 && r <= 0x036F) ||
+		(r >= 0x203F && r <= 0x2040)
+}
+
+func isHexDigit(ch byte) bool {
+	return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+}
+
+// validateIRI checks that the unescaped IRI doesn't contain characters
+// forbidden by the Turtle grammar (space, <, >, {, }, |, ^, `, controls).
+func validateIRI(s string) error {
+	for _, r := range s {
+		if r <= 0x20 || r == '<' || r == '>' || r == '{' || r == '}' || r == '|' || r == '^' || r == '`' {
+			return fmt.Errorf("invalid character U+%04X in IRI", r)
+		}
+	}
+	return nil
+}
+
+func isAbsoluteIRI(s string) bool {
+	// Has scheme: starts with letter followed by letters/digits/+/-./:
+	colon := strings.Index(s, ":")
+	if colon <= 0 {
+		return false
+	}
+	for i := 0; i < colon; i++ {
+		ch := s[i]
+		if i == 0 {
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+				return false
+			}
+		} else {
+			if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '+' || ch == '-' || ch == '.') {
+				return false
+			}
+		}
+	}
+	return true
+}

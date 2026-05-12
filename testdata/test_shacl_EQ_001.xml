@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- EquipmentContainer referenced by ACLineSegments -->
+  <cim:Line rdf:ID="Line.REF">
+    <cim:IdentifiedObject.mRID>Line.REF</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>Line-REF</cim:IdentifiedObject.name>
+  </cim:Line>
+  <!-- ACLineSegment.length must be >= 0 (sh:minInclusive 0) -->
+  <cim:ACLineSegment rdf:ID="ACLineSegment.OK">
+    <cim:IdentifiedObject.mRID>ACLineSegment.OK</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>Line-OK</cim:IdentifiedObject.name>
+    <cim:Equipment.EquipmentContainer rdf:resource="#Line.REF"/>
+    <cim:ConductingEquipment.BaseVoltage rdf:resource="#BaseVoltage.OK"/>
+    <cim:Conductor.length>5.0</cim:Conductor.length>
+    <cim:ACLineSegment.r>0.1</cim:ACLineSegment.r>
+    <cim:ACLineSegment.x>0.2</cim:ACLineSegment.x>
+    <cim:ACLineSegment.bch>0.001</cim:ACLineSegment.bch>
+  </cim:ACLineSegment>
+  <!-- length=-1 violates sh:minInclusive 0 -->
+  <cim:ACLineSegment rdf:ID="ACLineSegment.BAD">
+    <cim:IdentifiedObject.mRID>ACLineSegment.BAD</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>Line-BAD</cim:IdentifiedObject.name>
+    <cim:Equipment.EquipmentContainer rdf:resource="#Line.REF"/>
+    <cim:ConductingEquipment.BaseVoltage rdf:resource="#BaseVoltage.OK"/>
+    <cim:Conductor.length>-1.0</cim:Conductor.length>
+    <cim:ACLineSegment.r>0.1</cim:ACLineSegment.r>
+    <cim:ACLineSegment.x>0.2</cim:ACLineSegment.x>
+    <cim:ACLineSegment.bch>0.001</cim:ACLineSegment.bch>
+  </cim:ACLineSegment>
+  <!-- BaseVoltage.nominalVoltage must be > 0 (sh:minExclusive 0) -->
+  <cim:BaseVoltage rdf:ID="BaseVoltage.OK">
+    <cim:IdentifiedObject.mRID>BaseVoltage.OK</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>BV-110kV</cim:IdentifiedObject.name>
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+  <!-- nominalVoltage=-1 violates sh:minExclusive 0 -->
+  <cim:BaseVoltage rdf:ID="BaseVoltage.BAD">
+    <cim:IdentifiedObject.mRID>BaseVoltage.BAD</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>BV-NEG</cim:IdentifiedObject.name>
+    <cim:BaseVoltage.nominalVoltage>-1.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+</rdf:RDF>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:BaseVoltage rdf:ID="BV.110">
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+  <cim:VoltageLevel rdf:ID="VL.1">
+    <cim:VoltageLevel.BaseVoltage rdf:resource="#BV.110" />
+  </cim:VoltageLevel>
+  <cim:ConnectivityNode rdf:ID="CN.1">
+    <cim:ConnectivityNode.ConnectivityNodeContainer rdf:resource="#VL.1" />
+  </cim:ConnectivityNode>
+  <cim:Terminal rdf:ID="Term.1">
+    <cim:Terminal.ConnectivityNode rdf:resource="#CN.1" />
+  </cim:Terminal>
+
+  <!-- TapChanger: low=1, high=10, neut=5, incr=1% -->
+  <!-- Range: 1 - 0.01*(5-1) = 0.96 to 1 + 0.01*(10-5) = 1.05 -->
+  <cim:RatioTapChanger rdf:ID="RTC.1">
+    <cim:TapChanger.TapChangerControl rdf:resource="#TCC.OK" />
+    <cim:TapChanger.controlEnabled>true</cim:TapChanger.controlEnabled>
+    <cim:TapChanger.lowStep>1</cim:TapChanger.lowStep>
+    <cim:TapChanger.highStep>10</cim:TapChanger.highStep>
+    <cim:TapChanger.neutralStep>5</cim:TapChanger.neutralStep>
+    <cim:RatioTapChanger.stepVoltageIncrement>1.0</cim:RatioTapChanger.stepVoltageIncrement>
+  </cim:RatioTapChanger>
+
+  <cim:TapChangerControl rdf:ID="TCC.OK">
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+    <cim:RegulatingControl.targetValue>110.0</cim:RegulatingControl.targetValue> <!-- 1.0 PU: OK -->
+  </cim:TapChangerControl>
+
+  <cim:RatioTapChanger rdf:ID="RTC.BAD">
+    <cim:TapChanger.TapChangerControl rdf:resource="#TCC.BAD" />
+    <cim:TapChanger.controlEnabled>true</cim:TapChanger.controlEnabled>
+    <cim:TapChanger.lowStep>1</cim:TapChanger.lowStep>
+    <cim:TapChanger.highStep>10</cim:TapChanger.highStep>
+    <cim:TapChanger.neutralStep>5</cim:TapChanger.neutralStep>
+    <cim:RatioTapChanger.stepVoltageIncrement>1.0</cim:RatioTapChanger.stepVoltageIncrement>
+  </cim:RatioTapChanger>
+
+  <cim:TapChangerControl rdf:ID="TCC.BAD">
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+    <cim:RegulatingControl.targetValue>121.0</cim:RegulatingControl.targetValue> <!-- 1.1 PU: BAD (> 1.05) -->
+  </cim:TapChangerControl>
+</rdf:RDF>

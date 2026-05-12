@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:ACLineSegment rdf:ID="Line.1">
+    <cim:IdentifiedObject.name>Line 1</cim:IdentifiedObject.name>
+  </cim:ACLineSegment>
+  <cim:Terminal rdf:ID="Term.1.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#Line.1" />
+  </cim:Terminal>
+
+  <cim:ACLineSegment rdf:ID="Line.2">
+    <cim:IdentifiedObject.name>Line 2</cim:IdentifiedObject.name>
+  </cim:ACLineSegment>
+  <cim:Terminal rdf:ID="Term.2.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#Line.2" />
+  </cim:Terminal>
+
+  <cim:SynchronousMachine rdf:ID="SM.1">
+    <cim:IdentifiedObject.name>SM 1</cim:IdentifiedObject.name>
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.SM.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.1" />
+  </cim:Terminal>
+
+  <!-- OK: different ACLineSegments -->
+  <cim:MutualCoupling rdf:ID="MC.OK">
+    <cim:MutualCoupling.First_Terminal rdf:resource="#Term.1.1" />
+    <cim:MutualCoupling.Second_Terminal rdf:resource="#Term.2.1" />
+  </cim:MutualCoupling>
+
+  <!-- BAD: same ACLineSegment -->
+  <cim:MutualCoupling rdf:ID="MC.BAD.SAME">
+    <cim:MutualCoupling.First_Terminal rdf:resource="#Term.1.1" />
+    <cim:MutualCoupling.Second_Terminal rdf:resource="#Term.1.1" />
+  </cim:MutualCoupling>
+
+  <!-- BAD: not ACLineSegment (SynchronousMachine) -->
+  <cim:MutualCoupling rdf:ID="MC.BAD.TYPE">
+    <cim:MutualCoupling.First_Terminal rdf:resource="#Term.1.1" />
+    <cim:MutualCoupling.Second_Terminal rdf:resource="#Term.SM.1" />
+  </cim:MutualCoupling>
+</rdf:RDF>

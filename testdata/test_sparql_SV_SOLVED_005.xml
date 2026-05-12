@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- Infrastructure -->
+  <cim:TopologicalNode rdf:ID="TN.1" />
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.1" />
+  </cim:TopologicalIsland>
+  <cim:Terminal rdf:ID="Term.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+
+  <cim:TopologicalNode rdf:ID="TN.2" />
+  <cim:TopologicalIsland rdf:ID="TI.2">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.2" />
+  </cim:TopologicalIsland>
+  <cim:Terminal rdf:ID="Term.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
+  </cim:Terminal>
+
+  <!-- 1. Contradictory target values -->
+  <cim:RegulatingControl rdf:ID="RC.V.1">
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.targetValue>110.0</cim:RegulatingControl.targetValue>
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+  </cim:RegulatingControl>
+  <cim:RegulatingControl rdf:ID="RC.V.2">
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.targetValue>115.0</cim:RegulatingControl.targetValue> <!-- Contradictory -->
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+  </cim:RegulatingControl>
+
+  <!-- 2. Same Island check: SynchronousMachine -->
+  <cim:SynchronousMachine rdf:ID="SM.ISLAND.BAD">
+    <cim:RegulatingCondEq.RegulatingControl rdf:resource="#RC.V.1" /> <!-- Controlling Term.1 in TI.1 -->
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.SM.BAD">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.ISLAND.BAD" />
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" /> <!-- SM in TI.2 -->
+  </cim:Terminal>
+
+  <!-- 3. Same Island check: RatioTapChanger -->
+  <cim:RatioTapChanger rdf:ID="RTC.ISLAND.BAD">
+    <cim:TapChanger.TapChangerControl rdf:resource="#RC.V.1" /> <!-- Controlling Term.1 in TI.1 -->
+    <cim:RatioTapChanger.TransformerEnd rdf:resource="#PTE.BAD" />
+  </cim:RatioTapChanger>
+  <cim:PowerTransformerEnd rdf:ID="PTE.BAD">
+    <cim:TransformerEnd.Terminal rdf:resource="#Term.PTE.BAD" />
+  </cim:PowerTransformerEnd>
+  <cim:Terminal rdf:ID="Term.PTE.BAD">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" /> <!-- TC in TI.2 -->
+  </cim:Terminal>
+</rdf:RDF>

@@ -1,0 +1,49 @@
+name: Build Release Assets
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build cimval Binaries
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+
+    - name: Install protocol buffer compiler
+      run: |
+        sudo apt-get install -y protobuf-compiler
+    
+    - name: Install Tools
+      run: |
+        go install google.golang.org/protobuf/cmd/protoc-gen-go
+        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+    - name: Generate code
+      run: go generate ./...
+
+    - name: Build Linux
+      run: |
+        GOOS=linux GOARCH=amd64 go build -o cimval-linux-amd64 ./cmd/cimval
+
+    - name: Build Windows
+      run: |
+        GOOS=windows GOARCH=amd64 go build -o cimval-windows-amd64.exe ./cmd/cimval
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: cimval-binaries
+        path: |
+          cimval-linux-amd64
+          cimval-windows-amd64.exe

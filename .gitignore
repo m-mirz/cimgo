@@ -1,7 +1,10 @@
 .vscode/*
 tests/
-encoding/cimgostructs
+cimgostructs
 proto
 *.log
 *.out.xml
 *_test.json
+*.zip
+docs
+shaclgen/generated*

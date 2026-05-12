@@ -18,6 +18,8 @@ const (
 	CGMESVersion_2_4_15 = "2.4.15"
 )
 
+const DefaultRDFSPattern = "application-profiles-library/CGMES/CurrentRelease/RDFS/61970-600-2_*-AP-Voc-RDFS2020.rdf"
+
 // enum to determine primitve types
 const (
 	DataTypeString   = "String"

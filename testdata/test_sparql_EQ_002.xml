@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. Substation Count Check (reported on global) -->
+  <cim:Substation rdf:ID="S1">
+    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
+  </cim:Substation>
+  <cim:VoltageLevel rdf:ID="VL1">
+    <cim:VoltageLevel.BaseVoltage rdf:resource="#BV1" />
+  </cim:VoltageLevel>
+  <!-- 1 substation, 1 voltage level -> should warn -->
+
+  <!-- 2. ReactiveCapabilityCurve units -->
+  <cim:SynchronousMachine rdf:ID="SM1">
+    <cim:SynchronousMachine.InitialReactiveCapabilityCurve rdf:resource="#RCC1" />
+  </cim:SynchronousMachine>
+  <cim:ReactiveCapabilityCurve rdf:ID="RCC1">
+    <cim:Curve.xUnit rdf:resource="http://iec.ch/TC57/CIM100#UnitSymbol.W" />
+    <cim:Curve.y1Unit rdf:resource="http://iec.ch/TC57/CIM100#UnitSymbol.V" /> <!-- BAD: should be VAr -->
+    <cim:Curve.y2Unit rdf:resource="http://iec.ch/TC57/CIM100#UnitSymbol.VAr" />
+  </cim:ReactiveCapabilityCurve>
+
+  <!-- 3. TapChanger neutralU sync -->
+  <cim:RatioTapChanger rdf:ID="RTC1">
+    <cim:TapChanger.neutralU>100.0</cim:TapChanger.neutralU>
+    <cim:RatioTapChanger.TransformerEnd rdf:resource="#PTE1" />
+  </cim:RatioTapChanger>
+  <cim:PowerTransformerEnd rdf:ID="PTE1">
+    <cim:PowerTransformerEnd.ratedU>110.0</cim:PowerTransformerEnd.ratedU> <!-- BAD: 100 != 110 -->
+  </cim:PowerTransformerEnd>
+
+  <cim:BaseVoltage rdf:ID="BV1">
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+</rdf:RDF>

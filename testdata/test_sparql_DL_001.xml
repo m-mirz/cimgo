@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:Diagram rdf:ID="Diagram.D1">
+    <cim:IdentifiedObject.name>D1</cim:IdentifiedObject.name>
+  </cim:Diagram>
+  <cim:Substation rdf:ID="Substation.S1">
+    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
+  </cim:Substation>
+
+  <!-- OK: points to Substation -->
+  <cim:DiagramObject rdf:ID="DiagramObject.OK">
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#Substation.S1" />
+  </cim:DiagramObject>
+
+  <!-- BAD: points to Diagram -->
+  <cim:DiagramObject rdf:ID="DiagramObject.BAD">
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#Diagram.D1" />
+  </cim:DiagramObject>
+
+  <!-- BAD: TextDiagramObject points to Diagram -->
+  <cim:TextDiagramObject rdf:ID="TextDiagramObject.BAD">
+    <cim:DiagramObject.IdentifiedObject rdf:resource="#Diagram.D1" />
+  </cim:TextDiagramObject>
+</rdf:RDF>

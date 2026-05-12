@@ -2,6 +2,69 @@
 
 CIMgo processes CGMES/CIM XML/RDF files in Go and protobuf.
 
+## cimval — CGMES Validation CLI
+
+`cimval` validates CGMES XML instance files against the CGMES SHACL and SPARQL rules.
+
+### Download
+
+Pre-built binaries are attached to each [GitHub release](https://github.com/m-mirz/cimgo/releases/latest):
+
+| Platform | File |
+|----------|------|
+| Linux (x86-64) | `cimval-linux-amd64` |
+| Windows (x86-64) | `cimval-windows-amd64.exe` |
+
+**Linux** — make the binary executable after downloading:
+
+```bash
+chmod +x cimval-linux-amd64
+```
+
+**Windows** — the `.exe` can be run directly from PowerShell or CMD.
+
+### Usage
+
+Pass one or more CGMES XML files. Profiles, solved/not-solved state, and
+EQBD base voltage IDs are detected automatically from the file headers:
+
+```bash
+# Linux
+./cimval-linux-amd64 EQ.xml SSH.xml TP.xml SV.xml
+
+# Windows
+cimval-windows-amd64.exe EQ.xml SSH.xml TP.xml SV.xml
+```
+
+**Options:**
+
+```
+-profile  Comma-separated list of profiles to check (EQ,SSH,TP,SV,DY,SC,DL,GL,OP,EQBD).
+          Default: auto-detected from file headers.
+-solved   Enable SolvedMAS checks (default: auto-detected from SV profile presence).
+-notsolved Enable NotSolvedMAS checks (default: auto-detected).
+-common   Enable Common/AllProfiles rules (default: true).
+-quality  Enable CIMdesk-style modeling quality checks (default: false).
+-silence  Comma-separated list of rule IDs to suppress.
+-json     Output violations as JSON instead of plain text.
+```
+
+Exit code is `0` when no `sh:Violation`-severity findings are present, `1` otherwise.
+
+### Example
+
+Validate a MicroGrid MAS dataset and show violations as JSON:
+
+```bash
+./cimval-linux-amd64 -json \
+  20210401T1730Z_1D_BE_EQ_1.xml \
+  20210401T1730Z_1D_BE_SSH_1.xml \
+  20210401T1730Z_1D_BE_TP_1.xml \
+  20210401T1730Z_1D_BE_SV_1.xml
+```
+
+---
+
 ## How to Build and Run
 
 Make sure that you have cloned the repo recursively to include the CGMES schema files from ENTSO-E
@@ -59,23 +122,6 @@ wired into per-profile orchestrators and aggregated by
 
 For a complete validation pass including both generated and hand-written SPARQL
 rules, use `validation.ValidateAllProfiles`.
-
-> **TODO:** Auto-detect profiles and MAS type from the loaded dataset.
-> Currently `RunValidation` runs all selected profile checks regardless of
-> whether matching profile data is present, and the `Solved`/`NotSolved` flags
-> must be set by the caller. The intended improvement is:
->
-> 1. Inspect the `FullModel`/`DifferenceModel` headers in the loaded dataset
->    to determine which CGMES profiles are actually present (e.g. EQ, SSH, SC,
->    DY, …).
-> 2. Skip profile validators whose profile is absent — e.g. do not run
->    `sc:PowerTransformerEnd.phaseAngleClock-cardinality` when no SC file was
->    loaded, avoiding false positives on missing-but-optional fields.
-> 3. Auto-detect solved vs. not-solved MAS by checking whether a State
->    Variables (SV) profile is present and whether it references a solved
->    Topology: run `SolvedMAS` checks only when SV data is present, and
->    `NotSolvedMAS` checks only when it is absent, rather than relying on the
->    caller to pass the correct boolean flags.
 
 Across 73 profiles there are 9153 constraints total. Of these, 4184 generate
 code and 4969 are skipped: 4933 are structurally satisfied by the Go type

@@ -119,12 +119,21 @@ type Config struct {
 	Common             bool
 	Quality            bool              // enables CIMdesk-style modeling quality checks
 	SilencedRules      []string
-	EQBDBaseVoltageIDs map[string]struct{} // enables EQBD2 check when non-nil
+	EQBDBaseVoltageIDs map[string]struct{}                     // enables EQBD2 check when non-nil
+	PerProfileDatasets map[string]*cimgostructs.CIMElementList // isolated per-profile data; nil = use merged
 }
 
 func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmodel.Violation {
 	profileSelected := func(p string) bool {
 		return len(cfg.Profiles) == 0 || slices.Contains(cfg.Profiles, p)
+	}
+	profileDS := func(name string) *cimgostructs.CIMElementList {
+		if cfg.PerProfileDatasets != nil {
+			if ds, ok := cfg.PerProfileDatasets[name]; ok {
+				return ds
+			}
+		}
+		return dataset
 	}
 
 	type fn func() []shaclmodel.Violation
@@ -134,54 +143,63 @@ func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmode
 		validators = append(validators, func() []shaclmodel.Violation { return ValidateCommonRulesSPARQL(dataset) })
 	}
 	if profileSelected("EQ") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQProfile(dataset) })
+		ds := profileDS("EQ")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQProfile(ds) })
 		if cfg.NotSolved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateEQNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("SSH") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateSSHProfile(dataset) })
+		ds := profileDS("SSH")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSSHProfile(ds) })
 		if cfg.NotSolved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateSSHNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("TP") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateTPProfile(dataset) })
+		ds := profileDS("TP")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateTPProfile(ds) })
 		if cfg.NotSolved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateTPNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("DY") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateDYProfile(dataset) })
+		ds := profileDS("DY")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateDYProfile(ds) })
 	}
 	if profileSelected("SC") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateSCProfile(dataset) })
+		ds := profileDS("SC")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSCProfile(ds) })
 		if cfg.NotSolved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateSCNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("SV") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateSVProfile(dataset) })
+		ds := profileDS("SV")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSVProfile(ds) })
 		if cfg.Solved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateSVSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("DL") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateDLProfile(dataset) })
+		ds := profileDS("DL")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateDLProfile(ds) })
 		if cfg.NotSolved {
 			validators = append(validators, func() []shaclmodel.Violation { return ValidateDLNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("EQBD") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQBDProfile(dataset) })
+		ds := profileDS("EQBD")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQBDProfile(ds) })
 		if cfg.EQBDBaseVoltageIDs != nil {
 			validators = append(validators, func() []shaclmodel.Violation {
-				return CheckBaseVoltageInEQBD(dataset, cfg.EQBDBaseVoltageIDs)
+				return CheckBaseVoltageInEQBD(ds, cfg.EQBDBaseVoltageIDs)
 			})
 		}
 	}
 	if profileSelected("OP") {
-		validators = append(validators, func() []shaclmodel.Violation { return ValidateOPProfile(dataset) })
+		ds := profileDS("OP")
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateOPProfile(ds) })
 	}
 	if cfg.Quality {
 		validators = append(validators, func() []shaclmodel.Violation { return ValidateCIMdeskQualityChecks(dataset) })

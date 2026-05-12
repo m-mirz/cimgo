@@ -612,6 +612,36 @@ func readRealGridFiles(b *testing.B) [][]byte {
 	return blobs
 }
 
+// BenchmarkRealGridValidation measures RunValidation on RealGrid (~115 MB, 4 files) with
+// all profile validators running in parallel. Dataset loading is excluded from the timer.
+func BenchmarkRealGridValidation(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	cfg := Config{
+		Profiles: []string{"EQ", "SSH", "TP", "SV"},
+		Common:   true,
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_ = RunValidation(dataset, cfg)
+	}
+}
+
+// BenchmarkSmallGridValidation measures RunValidation on SmallGrid (7 profiles, ~14 MB),
+// which has more parallelism headroom than RealGrid and is closer to a typical dataset.
+func BenchmarkSmallGridValidation(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/SmallGrid/SmallGrid-Merged/")
+	cfg := Config{
+		Profiles: []string{"EQ", "SSH", "TP", "SV", "DL", "GL", "EQBD"},
+		Common:   true,
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_ = RunValidation(dataset, cfg)
+	}
+}
+
 // BenchmarkRealGridLoadSequential measures loading RealGrid (~115 MB, 4 files) with
 // the original sequential DecodeProfile approach.
 func BenchmarkRealGridLoadSequential(b *testing.B) {
@@ -643,4 +673,30 @@ func BenchmarkRealGridLoadParallel(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func BenchmarkRealGridValidateEQ(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateEQProfile(dataset) }
+}
+func BenchmarkRealGridValidateSSH(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateSSHProfile(dataset) }
+}
+func BenchmarkRealGridValidateTP(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateTPProfile(dataset) }
+}
+func BenchmarkRealGridValidateSV(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateSVProfile(dataset) }
+}
+func BenchmarkRealGridValidateCommon(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() { _ = ValidateCommonRulesSPARQL(dataset) }
 }

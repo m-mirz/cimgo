@@ -3,6 +3,8 @@ package validation
 import (
 	"cimgo/cimgostructs"
 	"cimgo/shaclmodel"
+	"slices"
+	"sync"
 )
 
 func ValidateCommonRules(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
@@ -121,75 +123,84 @@ type Config struct {
 }
 
 func RunValidation(dataset *cimgostructs.CIMElementList, cfg Config) []shaclmodel.Violation {
-	var violations []shaclmodel.Violation
-
 	profileSelected := func(p string) bool {
-		if len(cfg.Profiles) == 0 {
-			return true
-		}
-		for _, sp := range cfg.Profiles {
-			if sp == p {
-				return true
-			}
-		}
-		return false
+		return len(cfg.Profiles) == 0 || slices.Contains(cfg.Profiles, p)
 	}
+
+	type fn func() []shaclmodel.Violation
+	var validators []fn
 
 	if cfg.Common {
-		violations = append(violations, ValidateCommonRulesSPARQL(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateCommonRulesSPARQL(dataset) })
 	}
-
 	if profileSelected("EQ") {
-		violations = append(violations, ValidateEQProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQProfile(dataset) })
 		if cfg.NotSolved {
-			violations = append(violations, ValidateEQNotSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateEQNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("SSH") {
-		violations = append(violations, ValidateSSHProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSSHProfile(dataset) })
 		if cfg.NotSolved {
-			violations = append(violations, ValidateSSHNotSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateSSHNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("TP") {
-		violations = append(violations, ValidateTPProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateTPProfile(dataset) })
 		if cfg.NotSolved {
-			violations = append(violations, ValidateTPNotSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateTPNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("DY") {
-		violations = append(violations, ValidateDYProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateDYProfile(dataset) })
 	}
 	if profileSelected("SC") {
-		violations = append(violations, ValidateSCProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSCProfile(dataset) })
 		if cfg.NotSolved {
-			violations = append(violations, ValidateSCNotSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateSCNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("SV") {
-		violations = append(violations, ValidateSVProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateSVProfile(dataset) })
 		if cfg.Solved {
-			violations = append(violations, ValidateSVSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateSVSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("DL") {
-		violations = append(violations, ValidateDLProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateDLProfile(dataset) })
 		if cfg.NotSolved {
-			violations = append(violations, ValidateDLNotSolvedMASProfile(dataset)...)
+			validators = append(validators, func() []shaclmodel.Violation { return ValidateDLNotSolvedMASProfile(dataset) })
 		}
 	}
 	if profileSelected("EQBD") {
-		violations = append(violations, ValidateEQBDProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateEQBDProfile(dataset) })
 		if cfg.EQBDBaseVoltageIDs != nil {
-			violations = append(violations, CheckBaseVoltageInEQBD(dataset, cfg.EQBDBaseVoltageIDs)...)
+			validators = append(validators, func() []shaclmodel.Violation {
+				return CheckBaseVoltageInEQBD(dataset, cfg.EQBDBaseVoltageIDs)
+			})
 		}
 	}
 	if profileSelected("OP") {
-		violations = append(violations, ValidateOPProfile(dataset)...)
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateOPProfile(dataset) })
+	}
+	if cfg.Quality {
+		validators = append(validators, func() []shaclmodel.Violation { return ValidateCIMdeskQualityChecks(dataset) })
 	}
 
-	if cfg.Quality {
-		violations = append(violations, ValidateCIMdeskQualityChecks(dataset)...)
+	results := make([][]shaclmodel.Violation, len(validators))
+	var wg sync.WaitGroup
+	wg.Add(len(validators))
+	for i, v := range validators {
+		go func(i int, v fn) {
+			defer wg.Done()
+			results[i] = v()
+		}(i, v)
+	}
+	wg.Wait()
+
+	var violations []shaclmodel.Violation
+	for _, r := range results {
+		violations = append(violations, r...)
 	}
 
 	if len(cfg.SilencedRules) > 0 {

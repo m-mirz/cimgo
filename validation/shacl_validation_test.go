@@ -53,23 +53,23 @@ func indexByID(violations []Violation) map[string][]Violation {
 	return out
 }
 
-func loadDataset(t *testing.T, path string) *cimgostructs.CIMElementList {
-	t.Helper()
+func loadDataset(tb testing.TB, path string) *cimgostructs.CIMElementList {
+	tb.Helper()
 	dataset := cimgostructs.NewCIMElementList()
 	b, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("Failed to read %s: %v", path, err)
+		tb.Fatalf("Failed to read %s: %v", path, err)
 	}
 	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
-	t.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
+	tb.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
 
-func loadDirectory(t *testing.T, path string) *cimgostructs.CIMElementList {
-	t.Helper()
+func loadDirectory(tb testing.TB, path string) *cimgostructs.CIMElementList {
+	tb.Helper()
 	files, err := os.ReadDir(path)
 	if err != nil {
-		t.Fatalf("Failed to read directory %s: %v", path, err)
+		tb.Fatalf("Failed to read directory %s: %v", path, err)
 	}
 
 	var readers []io.Reader
@@ -77,7 +77,7 @@ func loadDirectory(t *testing.T, path string) *cimgostructs.CIMElementList {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".xml") {
 			b, err := os.ReadFile(filepath.Join(path, f.Name()))
 			if err != nil {
-				t.Fatalf("Failed to read %s: %v", f.Name(), err)
+				tb.Fatalf("Failed to read %s: %v", f.Name(), err)
 			}
 			readers = append(readers, bytes.NewReader(b))
 		}
@@ -85,9 +85,9 @@ func loadDirectory(t *testing.T, path string) *cimgostructs.CIMElementList {
 
 	dataset, err := cimprofiles.DecodeProfiles(readers, nil)
 	if err != nil {
-		t.Fatalf("Failed to decode profiles in %s: %v", path, err)
+		tb.Fatalf("Failed to decode profiles in %s: %v", path, err)
 	}
-	t.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
+	tb.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
 

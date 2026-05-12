@@ -33,9 +33,9 @@ func main() {
 
 	flag.Parse()
 
-	if profStr != "" {
-		cfg.Profiles = strings.Split(strings.ToUpper(profStr), ",")
-	}
+	explicitFlags := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { explicitFlags[f.Name] = true })
+
 	if silenceStr != "" {
 		cfg.SilencedRules = strings.Split(silenceStr, ",")
 	}
@@ -69,6 +69,17 @@ func main() {
 		}
 	}
 	cfg.EQBDBaseVoltageIDs = eqbdBVIDs
+
+	detected := validation.DetectConfig(dataset)
+	if profStr != "" {
+		cfg.Profiles = strings.Split(strings.ToUpper(profStr), ",")
+	} else {
+		cfg.Profiles = detected.Profiles
+	}
+	if !explicitFlags["solved"] && !explicitFlags["notsolved"] {
+		cfg.Solved = detected.Solved
+		cfg.NotSolved = detected.NotSolved
+	}
 
 	if !jsonOutput {
 		fmt.Printf("Loaded %d elements from %d files\n", len(dataset.Elements), len(files))

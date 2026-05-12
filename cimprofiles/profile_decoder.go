@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"io"
 	"strings"
+	"sync"
 )
 
 type CIMProfile struct {
@@ -24,6 +25,51 @@ type CIMProfile struct {
 type CIMDataset struct {
 	Profiles []*CIMProfile
 	Elements cimgostructs.CIMElementList
+}
+
+// DecodeProfiles decodes each reader concurrently into a separate CIMElementList,
+// then merges them into cimData in input order. Callers control merge precedence
+// by ordering the readers slice (earlier entries win on field conflicts).
+func DecodeProfiles(readers []io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostructs.CIMElementList, error) {
+	results := make([]*cimgostructs.CIMElementList, len(readers))
+	errs := make([]error, len(readers))
+
+	var wg sync.WaitGroup
+	wg.Add(len(readers))
+	for i, r := range readers {
+		go func(i int, r io.Reader) {
+			defer wg.Done()
+			results[i], errs[i] = DecodeProfile(r, nil)
+		}(i, r)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if cimData == nil {
+		cimData = cimgostructs.NewCIMElementList()
+	}
+	for _, r := range results {
+		if err := MergeInto(cimData, r); err != nil {
+			return nil, err
+		}
+	}
+	return cimData, nil
+}
+
+// MergeInto adds all elements from src into dst, merging any objects with
+// matching mRIDs via DeepMerge.
+func MergeInto(dst, src *cimgostructs.CIMElementList) error {
+	for _, elem := range src.Elements {
+		if err := dst.AddElement(elem); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func DecodeProfile(r io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostructs.CIMElementList, error) {

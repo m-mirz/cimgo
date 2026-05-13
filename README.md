@@ -1,8 +1,104 @@
 # CIMgo
 
-CIMgo processes CGMES/CIM XML/RDF files in Go and protobuf.
+CIMgo is a Go library and CLI for working with CGMES/CIM electrical grid data. It parses CGMES XML instance files, validates them against SHACL and SPARQL based rules, and generates typed Go structs and Protobuf definitions from CIM RDF schemas.
+
+## cimcli — CIM CGMES CLI
+
+`cimcli` is a command-line tool for working with CGMES (Common Grid Model Exchange Standard) XML files.
+
+### Download
+
+Pre-built binaries are attached to each [GitHub release](https://github.com/m-mirz/cimgo/releases/latest):
+
+| Platform | File |
+|----------|------|
+| Linux (x86-64) | `cimcli-linux-amd64` |
+| Windows (x86-64) | `cimcli-windows-amd64.exe` |
+
+**Linux** — make the binary executable after downloading:
+
+```bash
+chmod +x cimcli-linux-amd64
+```
+
+**Windows** — the `.exe` can be run directly from PowerShell or CMD.
+
+### Commands
+
+#### validate
+
+Validates CGMES XML instance files against CGMES SHACL and SPARQL rules. Profiles, solved/not-solved state, and EQBD base voltage IDs are detected automatically from the file headers.
+
+- Runs over 4,000 generated checks derived from standard ENTSO-E SHACL files.
+- Supports EQ, SSH, TP, SV, DL, DY, SC, GL, OP, and EQBD profiles.
+- Rule silencing: `dl:DiagramObject.IdentifiedObject-valueType` and `sv:SvStatus.ConductingEquipment-valueType` are silenced by default; additional rules can be suppressed via `-silence`.
+- Human-readable text and JSON output formats.
+
+```bash
+cimcli validate [options] <xml-file1> [<xml-file2> ...]
+```
+
+| Flag | Description |
+| :--- | :--- |
+| `-profile` | Comma-separated list of profiles to check (e.g., `EQ,SSH,TP`). Default: auto-detected. |
+| `-silence` | Comma-separated list of additional Rule IDs to ignore. |
+| `-json` | Output violations in structured JSON format. |
+| `-solved` | Enable SolvedMAS checks (default: auto-detected). |
+| `-notsolved` | Enable NotSolvedMAS checks (default: auto-detected). |
+| `-common` | Enable Common/AllProfiles rules (default: true). |
+| `-quality` | Enable CIMdesk-style modeling quality checks (default: false). |
+
+Exit code is `0` when no `sh:Violation`-severity findings are present, `1` otherwise.
+
+#### convert
+
+Merges one or more CGMES XML files and outputs the combined dataset as JSON.
+
+```bash
+cimcli convert <xml-file1> [<xml-file2> ...]
+```
+
+### Examples
+
+**Validate a full model:**
+```bash
+# Linux
+./cimcli-linux-amd64 validate EQ.xml SSH.xml TP.xml SV.xml
+
+# Windows
+cimcli-windows-amd64.exe validate EQ.xml SSH.xml TP.xml SV.xml
+```
+
+**Validate specific profiles:**
+```bash
+./cimcli-linux-amd64 validate -profile EQ,SSH,TP,SV,DL PST_Type1_*.xml
+```
+
+**Validate ENTSO-E test configurations:**
+```bash
+./cimcli-linux-amd64 validate -profile EQ,SSH,TP,SV,DL \
+  CGMES-Test-Configurations/v3.0/PST/PST_PhaseTapChangerLinear_Type1/*.xml
+```
+
+**Output violations as JSON:**
+```bash
+./cimcli-linux-amd64 validate -json \
+  20210401T1730Z_1D_BE_EQ_1.xml \
+  20210401T1730Z_1D_BE_SSH_1.xml \
+  20210401T1730Z_1D_BE_TP_1.xml \
+  20210401T1730Z_1D_BE_SV_1.xml
+```
+
+**Convert files to JSON:**
+```bash
+./cimcli-linux-amd64 convert EQ.xml SSH.xml > dataset.json
+```
+
+---
 
 ## How to Build and Run
+
+### Setup
 
 Make sure that you have cloned the repo recursively to include the CGMES schema files from ENTSO-E
 
@@ -20,35 +116,29 @@ For the protobuf code generation, you also require the proto compiler
     # install tools from mod file
     go get tool
 
-First, you need to generate the cim based code to be able to build the entire package.
+### Commands
 
 ```bash
+# Generate all code (must run before build after schema changes)
 go generate ./...
+
+# Build
+go build -v ./...
+
+# Run all tests
+go test -v ./...
+
+# Run a single test
+go test -v ./path/to/package -run TestName
 ```
-
-## How to Test
-
-Run the test suite using the `go test` command. The `-v` flag provides verbose output.
-
-    go test -v ./...
-
 
 ## Architecture
 
 The code generation process follows these main steps:
 
-1.  **Schema Loading:** The tool begins by finding and parsing the relevant CIM RDF schema files based on the specified version and profiles.
-2.  **Schema Processing:** It processes the parsed RDF data into an internal, language-agnostic representation of CIM classes, properties, datatypes, and their relationships.
+1.  **Schema Loading:** The tool begins by finding and parsing the relevant CIM RDF schema or TTL SHACL files based on the specified version and profiles.
+2.  **Schema Processing:** It processes the parsed RDF or SHACL data into an internal, language-agnostic representation of CIM classes, properties, datatypes, their relationships and rules.
 3.  **Code Generation:** Using Go's `text/template` engine, it feeds the internal representation into language-specific templates (`lang-templates/*.tmpl`) to generate the final source code files.
-
-## Key Go Files
-
-*   `cmd/cimgen/main.go`: The main entry point for the CLI tool. It parses command-line arguments and orchestrates the code generation process.
-*   `cim_generate.go`: Contains the core logic for driving the generation process for a specific language.
-*   `cim_schema_import.go`: Handles the discovery and parsing of the CIM RDF schema files.
-*   `cim_schema_processing.go`: Responsible for transforming the raw parsed schema into the internal representation used by the generators.
-*   `generator_*.go`: A set of files (e.g., `generator_go.go`, `generator_cpp.go`) that implement the generation logic for each target language.
-*   `templates.go`: Manages the embedded template files.
 
 ## SHACL Validation
 
@@ -59,23 +149,6 @@ wired into per-profile orchestrators and aggregated by
 
 For a complete validation pass including both generated and hand-written SPARQL
 rules, use `validation.ValidateAllProfiles`.
-
-> **TODO:** Auto-detect profiles and MAS type from the loaded dataset.
-> Currently `RunValidation` runs all selected profile checks regardless of
-> whether matching profile data is present, and the `Solved`/`NotSolved` flags
-> must be set by the caller. The intended improvement is:
->
-> 1. Inspect the `FullModel`/`DifferenceModel` headers in the loaded dataset
->    to determine which CGMES profiles are actually present (e.g. EQ, SSH, SC,
->    DY, …).
-> 2. Skip profile validators whose profile is absent — e.g. do not run
->    `sc:PowerTransformerEnd.phaseAngleClock-cardinality` when no SC file was
->    loaded, avoiding false positives on missing-but-optional fields.
-> 3. Auto-detect solved vs. not-solved MAS by checking whether a State
->    Variables (SV) profile is present and whether it references a solved
->    Topology: run `SolvedMAS` checks only when SV data is present, and
->    `NotSolvedMAS` checks only when it is absent, rather than relying on the
->    caller to pass the correct boolean flags.
 
 Across 73 profiles there are 9153 constraints total. Of these, 4184 generate
 code and 4969 are skipped: 4933 are structurally satisfied by the Go type

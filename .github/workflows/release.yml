@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build cimval Binaries
+    name: Build cimcli Binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,19 +36,19 @@ jobs:
 
     - name: Build Linux
       run: |
-        GOOS=linux GOARCH=amd64 go build -o cimval-linux-amd64 ./cmd/cimval
+        GOOS=linux GOARCH=amd64 go build -o cimcli-linux-amd64 ./cmd/cimcli
 
     - name: Build Windows
       run: |
-        GOOS=windows GOARCH=amd64 go build -o cimval-windows-amd64.exe ./cmd/cimval
+        GOOS=windows GOARCH=amd64 go build -o cimcli-windows-amd64.exe ./cmd/cimcli
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: cimval-binaries
+        name: cimcli-binaries
         path: |
-          cimval-linux-amd64
-          cimval-windows-amd64.exe
+          cimcli-linux-amd64
+          cimcli-windows-amd64.exe
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -58,5 +58,5 @@ jobs:
         gh release create "${{ github.ref_name }}" \
           --title "Release ${{ github.ref_name }}" \
           --generate-notes \
-          cimval-linux-amd64 \
-          cimval-windows-amd64.exe
+          cimcli-linux-amd64 \
+          cimcli-windows-amd64.exe

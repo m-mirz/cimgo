@@ -14,35 +14,58 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 2 || os.Args[1] == "-h" || os.Args[1] == "--help" {
+		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Merge CGMES XML files and output the dataset as JSON\n")
+		os.Exit(1)
+	}
+
+	switch os.Args[1] {
+	case "validate":
+		runValidate(os.Args[2:])
+	case "convert":
+		runConvert(os.Args[2:])
+	default:
+		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Merge CGMES XML files and output the dataset as JSON\n\nunknown command: %s\n", os.Args[1])
+		os.Exit(1)
+	}
+}
+
+func runValidate(args []string) {
+	fs := flag.NewFlagSet("validate", flag.ExitOnError)
+
 	var cfg validation.Config
 	var profStr, silenceStr string
 	var jsonOutput bool
 
-	flag.StringVar(&profStr, "profile", "", "Comma-separated list of profiles to check (EQ, SSH, TP, DY, SC, SV, DL, GL, OP, EQBD). Default: all.")
-	flag.StringVar(&silenceStr, "silence", "", "Comma-separated list of rule IDs to silence.")
-	flag.BoolVar(&cfg.Solved, "solved", false, "Enable SolvedMAS checks.")
-	flag.BoolVar(&cfg.NotSolved, "notsolved", true, "Enable NotSolvedMAS checks.")
-	flag.BoolVar(&cfg.Common, "common", true, "Enable Common/AllProfiles rules.")
-	flag.BoolVar(&cfg.Quality, "quality", false, "Enable CIMdesk-style modeling quality checks.")
-	flag.BoolVar(&jsonOutput, "json", false, "Output results in JSON format.")
+	fs.StringVar(&profStr, "profile", "", "Comma-separated list of profiles to check (EQ, SSH, TP, DY, SC, SV, DL, GL, OP, EQBD). Default: all.")
+	fs.StringVar(&silenceStr, "silence", "", "Comma-separated list of rule IDs to silence.")
+	fs.BoolVar(&cfg.Solved, "solved", false, "Enable SolvedMAS checks.")
+	fs.BoolVar(&cfg.NotSolved, "notsolved", true, "Enable NotSolvedMAS checks.")
+	fs.BoolVar(&cfg.Common, "common", true, "Enable Common/AllProfiles rules.")
+	fs.BoolVar(&cfg.Quality, "quality", false, "Enable CIMdesk-style modeling quality checks.")
+	fs.BoolVar(&jsonOutput, "json", false, "Output results in JSON format.")
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: cimval [options] <xml-file1> [<xml-file2> ...]\n\nOptions:\n")
-		flag.PrintDefaults()
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: cimcli validate [options] <xml-file1> [<xml-file2> ...]\n\nOptions:\n")
+		fs.PrintDefaults()
 	}
 
-	flag.Parse()
+	fs.Parse(args)
 
 	explicitFlags := make(map[string]bool)
-	flag.Visit(func(f *flag.Flag) { explicitFlags[f.Name] = true })
+	fs.Visit(func(f *flag.Flag) { explicitFlags[f.Name] = true })
 
+	cfg.SilencedRules = []string{
+		"dl:DiagramObject.IdentifiedObject-valueType",
+		"sv:SvStatus.ConductingEquipment-valueType",
+	}
 	if silenceStr != "" {
-		cfg.SilencedRules = strings.Split(silenceStr, ",")
+		cfg.SilencedRules = append(cfg.SilencedRules, strings.Split(silenceStr, ",")...)
 	}
 
-	files := flag.Args()
+	files := fs.Args()
 	if len(files) == 0 {
-		flag.Usage()
+		fs.Usage()
 		os.Exit(1)
 	}
 
@@ -104,7 +127,6 @@ func main() {
 			fmt.Println("No violations found.")
 		} else {
 			fmt.Printf("Found %d violations:\n\n", len(violations))
-			// Sort violations for stable output
 			sort.Slice(violations, func(i, j int) bool {
 				if violations[i].ObjectID != violations[j].ObjectID {
 					return violations[i].ObjectID < violations[j].ObjectID
@@ -140,4 +162,43 @@ func main() {
 	if hasViolations {
 		os.Exit(1)
 	}
+}
+
+func runConvert(args []string) {
+	fs := flag.NewFlagSet("convert", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: cimcli convert <xml-file1> [<xml-file2> ...]\n")
+	}
+	fs.Parse(args)
+
+	files := fs.Args()
+	if len(files) == 0 {
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	dataset := cimgostructs.NewCIMElementList()
+	for _, file := range files {
+		b, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
+			os.Exit(1)
+		}
+		isolated, err := cimprofiles.DecodeProfile(bytes.NewReader(b), nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
+			os.Exit(1)
+		}
+		if err := cimprofiles.MergeInto(dataset, isolated); err != nil {
+			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
+			os.Exit(1)
+		}
+	}
+
+	data, err := json.MarshalIndent(dataset.Elements, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marshalling JSON: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println(string(data))
 }

@@ -19,12 +19,7 @@ func ValidateSCProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sc, ok := obj.(*cimgostructs.SeriesCompensator)
-		if !ok {
-			continue
-		}
-
+	for id, sc := range dataset.SeriesCompensators {
 		if !sc.VaristorPresent {
 			if sc.VaristorRatedCurrent != 0 {
 				violations = append(violations, Violation{

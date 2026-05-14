@@ -79,9 +79,8 @@ func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimgostruc
 func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachineTimeConstantReactance)
-		if !ok || sm.ModelType == nil || sm.RotorType == nil {
+	for id, sm := range dataset.SynchronousMachineTimeConstantReactances {
+		if sm.ModelType == nil || sm.RotorType == nil {
 			continue
 		}
 
@@ -204,49 +203,50 @@ func CheckTurbineGovernorMbaseEquation(dataset *cimgostructs.CIMElementList) []V
 func CheckExcitationSystemGains(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		switch v := obj.(type) {
-		case *cimgostructs.ExcAC8B:
-			if v.Kir == 0 && v.Kpr <= 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcAC8B", Property: "ExcAC8B.kpr",
-					Message: "The value negative or zero when ExcAC8B.kir = 0.", Severity: "sh:Violation",
-				})
-			}
-		case *cimgostructs.ExcIEEEAC8B:
-			if v.Kir == 0 && v.Kpr <= 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcIEEEAC8B", Property: "ExcIEEEAC8B.kpr",
-					Message: "The value negative or zero when ExcIEEEAC8B.kir = 0.", Severity: "sh:Violation",
-				})
-			}
-		case *cimgostructs.ExcIEEEAC7B:
-			if v.Kia == 0 && v.Kpa <= 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpa",
-					Message: "The value negative or zero when ExcIEEEAC7B.kia = 0.", Severity: "sh:Violation",
-				})
-			}
-			if v.Kir == 0 && v.Kpr <= 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpr",
-					Message: "The value negative or zero when ExcIEEEAC7B.kir = 0.", Severity: "sh:Violation",
-				})
-			}
-		case *cimgostructs.ExcBBC:
-			if v.K == 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcBBC", Property: "ExcBBC.k",
-					Message: "The value is 0.", Severity: "sh:Violation",
-				})
-			}
-		case *cimgostructs.ExcIEEEDC4B:
-			if v.Kd > 0 && v.Td <= 0 {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "ExcIEEEDC4B", Property: "ExcIEEEDC4B.td",
-					Message: "The value negative or zero when ExcIEEEDC4B.kd > 0.", Severity: "sh:Violation",
-				})
-			}
+	for id, v := range dataset.ExcAC8Bs {
+		if v.Kir == 0 && v.Kpr <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcAC8B", Property: "ExcAC8B.kpr",
+				Message: "The value negative or zero when ExcAC8B.kir = 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.ExcIEEEAC8Bs {
+		if v.Kir == 0 && v.Kpr <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcIEEEAC8B", Property: "ExcIEEEAC8B.kpr",
+				Message: "The value negative or zero when ExcIEEEAC8B.kir = 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.ExcIEEEAC7Bs {
+		if v.Kia == 0 && v.Kpa <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpa",
+				Message: "The value negative or zero when ExcIEEEAC7B.kia = 0.", Severity: "sh:Violation",
+			})
+		}
+		if v.Kir == 0 && v.Kpr <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcIEEEAC7B", Property: "ExcIEEEAC7B.kpr",
+				Message: "The value negative or zero when ExcIEEEAC7B.kir = 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.ExcBBCs {
+		if v.K == 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcBBC", Property: "ExcBBC.k",
+				Message: "The value is 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.ExcIEEEDC4Bs {
+		if v.Kd > 0 && v.Td <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "ExcIEEEDC4B", Property: "ExcIEEEDC4B.td",
+				Message: "The value negative or zero when ExcIEEEDC4B.kd > 0.", Severity: "sh:Violation",
+			})
 		}
 	}
 	return violations
@@ -259,22 +259,20 @@ func CheckExcitationSystemGains(dataset *cimgostructs.CIMElementList) []Violatio
 func CheckPssInputSignals(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		switch v := obj.(type) {
-		case *cimgostructs.Pss2ST:
-			if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "Pss2ST", Property: "Pss2ST.inputSignal1Type",
-					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
-				})
-			}
-		case *cimgostructs.PssWECC:
-			if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
-				violations = append(violations, Violation{
-					ObjectID: id, Class: "PssWECC", Property: "PssWECC.inputSignal1Type",
-					Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
-				})
-			}
+	for id, v := range dataset.Pss2STs {
+		if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "Pss2ST", Property: "Pss2ST.inputSignal1Type",
+				Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.PssWECCs {
+		if v.InputSignal1Type != nil && v.InputSignal2Type != nil && v.InputSignal1Type.URI == v.InputSignal2Type.URI {
+			violations = append(violations, Violation{
+				ObjectID: id, Class: "PssWECC", Property: "PssWECC.inputSignal1Type",
+				Message: "Input signal #1 and input signal #2 are not different.", Severity: "sh:Violation",
+			})
 		}
 	}
 	return violations
@@ -287,9 +285,8 @@ func CheckPssInputSignals(dataset *cimgostructs.CIMElementList) []Violation {
 func CheckGovHydro4GainPoints(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		v, ok := obj.(*cimgostructs.GovHydro4)
-		if !ok || v.Model == nil {
+	for id, v := range dataset.GovHydro4s {
+		if v.Model == nil {
 			continue
 		}
 
@@ -370,9 +367,8 @@ func CheckGovHydro4GainPoints(dataset *cimgostructs.CIMElementList) []Violation 
 func CheckLoadStaticModelAttributes(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		v, ok := obj.(*cimgostructs.LoadStatic)
-		if !ok || v.StaticLoadModelType == nil {
+	for id, v := range dataset.LoadStatics {
+		if v.StaticLoadModelType == nil {
 			continue
 		}
 

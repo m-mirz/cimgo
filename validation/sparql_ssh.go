@@ -31,12 +31,7 @@ func ValidateSSHProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation 
 func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		es, ok := obj.(*cimgostructs.EnergySource)
-		if !ok {
-			continue
-		}
-
+	for id, es := range dataset.EnergySources {
 		if es.ActivePower > 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -58,30 +53,22 @@ func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) 
 func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		rc, ok := obj.(*cimgostructs.RegulatingControl)
-		if !ok {
-			// Also check TapChangerControl if it's separate or if it inherits
-			tcc, ok := obj.(*cimgostructs.TapChangerControl)
-			if !ok {
-				continue
-			}
-			if (tcc.TargetDeadband != 0 && !tcc.Discrete) || (tcc.TargetDeadband == 0 && tcc.Discrete) {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					Class:    "TapChangerControl",
-					Property: "RegulatingControl.discrete",
-					Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
-					Severity: "sh:Violation",
-				})
-			}
-			continue
-		}
-
+	for id, rc := range dataset.RegulatingControls {
 		if (rc.TargetDeadband != 0 && !rc.Discrete) || (rc.TargetDeadband == 0 && rc.Discrete) {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				Class:    "RegulatingControl",
+				Property: "RegulatingControl.discrete",
+				Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
+				Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, tcc := range dataset.TapChangerControls {
+		if (tcc.TargetDeadband != 0 && !tcc.Discrete) || (tcc.TargetDeadband == 0 && tcc.Discrete) {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "TapChangerControl",
 				Property: "RegulatingControl.discrete",
 				Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
 				Severity: "sh:Violation",
@@ -99,9 +86,8 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIM
 func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		csc, ok := obj.(*cimgostructs.CsConverter)
-		if !ok || csc.OperatingMode == nil {
+	for id, csc := range dataset.CsConverters {
+		if csc.OperatingMode == nil {
 			continue
 		}
 
@@ -160,9 +146,8 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		csc, ok := obj.(*cimgostructs.CsConverter)
-		if !ok || csc.PPccControl == nil {
+	for id, csc := range dataset.CsConverters {
+		if csc.PPccControl == nil {
 			continue
 		}
 
@@ -208,9 +193,8 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		vsc, ok := obj.(*cimgostructs.VsConverter)
-		if !ok || vsc.PPccControl == nil {
+	for id, vsc := range dataset.VsConverters {
+		if vsc.PPccControl == nil {
 			continue
 		}
 
@@ -291,9 +275,8 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		vsc, ok := obj.(*cimgostructs.VsConverter)
-		if !ok || vsc.QPccControl == nil {
+	for id, vsc := range dataset.VsConverters {
+		if vsc.QPccControl == nil {
 			continue
 		}
 
@@ -354,12 +337,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 func CheckEnergySourcePQ(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		es, ok := obj.(*cimgostructs.EnergySource)
-		if !ok {
-			continue
-		}
-
+	for id, es := range dataset.EnergySources {
 		if es.VoltageAngle != 0 || es.VoltageMagnitude != 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,

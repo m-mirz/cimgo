@@ -132,6 +132,41 @@ go test -v ./...
 go test -v ./path/to/package -run TestName
 ```
 
+## Profiling validation performance
+
+Benchmarks covering end-to-end validation and per-profile breakdown live in
+`validation/cgmes_config_test.go`.
+
+**Rank profiles by wall time** (quick, no pprof overhead):
+
+```bash
+go test -run='^$' \
+    -bench='BenchmarkRealGridValidate(EQ|SSH|TP|SV|Common)$' \
+    -benchtime=3x ./validation/
+```
+
+**Full pipeline with CPU and memory profiles** (RealGrid, ~115 MB, 4 profiles):
+
+```bash
+go test -run='^$' \
+    -bench=BenchmarkRealGridValidation \
+    -benchtime=3x \
+    -cpuprofile=cpu.prof \
+    -memprofile=mem.prof \
+    ./validation/
+```
+
+**Inspect results:**
+
+```bash
+go tool pprof -http=:6060 cpu.prof   # flame graph + top + source view
+go tool pprof -http=:6061 mem.prof   # set Sample dropdown to alloc_space
+```
+
+In the flame graph, the widest bands are the hottest call stacks. The **Top**
+view's `flat` column shows a function's own time; `cum` includes its callees.
+Click any function in **Top** to open the annotated **Source** view.
+
 ## Architecture
 
 The code generation process follows these main steps:

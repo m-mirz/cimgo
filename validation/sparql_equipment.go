@@ -275,12 +275,10 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimgostructs.CIMElementList) 
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimgostructs.PowerTransformerEnd)
-	for _, obj := range dataset.Elements {
-		if end, ok := obj.(*cimgostructs.PowerTransformerEnd); ok {
-			if end.PowerTransformer != nil {
-				ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-				transformerEnds[ptID] = append(transformerEnds[ptID], end)
-			}
+	for _, end := range dataset.PowerTransformerEnds {
+		if end.PowerTransformer != nil {
+			ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
+			transformerEnds[ptID] = append(transformerEnds[ptID], end)
 		}
 	}
 
@@ -341,9 +339,8 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimgostructs.CIMElementList) 
 func CheckPowerTransformerEndTerminalConsistency(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		end, ok := obj.(*cimgostructs.PowerTransformerEnd)
-		if !ok || end.Terminal == nil || end.PowerTransformer == nil {
+	for id, end := range dataset.PowerTransformerEnds {
+		if end.Terminal == nil || end.PowerTransformer == nil {
 			continue
 		}
 
@@ -382,12 +379,7 @@ func CheckPowerTransformerEndTerminalConsistency(dataset *cimgostructs.CIMElemen
 func CheckOperationalLimitTypeDuration(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		olt, ok := obj.(*cimgostructs.OperationalLimitType)
-		if !ok {
-			continue
-		}
-
+	for id, olt := range dataset.OperationalLimitTypes {
 		// eqc.OperationalLimitType.acceptableDuration-usage
 		// The attribute has meaning only if the flag isInfiniteDuration is set to false, hence it shall not be exchanged when isInfiniteDuration is set to true.
 		if olt.IsInfiniteDuration && olt.AcceptableDuration != 0 {
@@ -424,12 +416,10 @@ func CheckPowerTransformerTwoWindingEndValues(dataset *cimgostructs.CIMElementLi
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimgostructs.PowerTransformerEnd)
-	for _, obj := range dataset.Elements {
-		if end, ok := obj.(*cimgostructs.PowerTransformerEnd); ok {
-			if end.PowerTransformer != nil {
-				ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-				transformerEnds[ptID] = append(transformerEnds[ptID], end)
-			}
+	for _, end := range dataset.PowerTransformerEnds {
+		if end.PowerTransformer != nil {
+			ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
+			transformerEnds[ptID] = append(transformerEnds[ptID], end)
 		}
 	}
 
@@ -463,9 +453,8 @@ func CheckPowerTransformerTwoWindingEndValues(dataset *cimgostructs.CIMElementLi
 func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		ptcl, ok := obj.(*cimgostructs.PhaseTapChangerLinear)
-		if !ok || ptcl.TransformerEnd == nil {
+	for id, ptcl := range dataset.PhaseTapChangerLinears {
+		if ptcl.TransformerEnd == nil {
 			continue
 		}
 
@@ -528,12 +517,10 @@ func CheckPowerTransformerEndRatedS2Winding(dataset *cimgostructs.CIMElementList
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimgostructs.PowerTransformerEnd)
-	for _, obj := range dataset.Elements {
-		if end, ok := obj.(*cimgostructs.PowerTransformerEnd); ok {
-			if end.PowerTransformer != nil {
-				ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-				transformerEnds[ptID] = append(transformerEnds[ptID], end)
-			}
+	for _, end := range dataset.PowerTransformerEnds {
+		if end.PowerTransformer != nil {
+			ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
+			transformerEnds[ptID] = append(transformerEnds[ptID], end)
 		}
 	}
 
@@ -563,12 +550,7 @@ func CheckPowerTransformerEndRatedS2Winding(dataset *cimgostructs.CIMElementList
 func CheckPowerTransformerBaseVoltageAssociation(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		pt, ok := obj.(*cimgostructs.PowerTransformer)
-		if !ok {
-			continue
-		}
-
+	for id, pt := range dataset.PowerTransformers {
 		if pt.BaseVoltage != nil {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -590,9 +572,8 @@ func CheckPowerTransformerBaseVoltageAssociation(dataset *cimgostructs.CIMElemen
 func CheckPowerTransformerEndRValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		end, ok := obj.(*cimgostructs.PowerTransformerEnd)
-		if !ok || end.PowerTransformer == nil {
+	for id, end := range dataset.PowerTransformerEnds {
+		if end.PowerTransformer == nil {
 			continue
 		}
 
@@ -622,9 +603,8 @@ func CheckPowerTransformerEndRValueRange(dataset *cimgostructs.CIMElementList) [
 func CheckRegulatingControlTerminalConnectivityNode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		rc, ok := obj.(*cimgostructs.RegulatingControl)
-		if !ok || rc.Terminal == nil {
+	for id, rc := range dataset.RegulatingControls {
+		if rc.Terminal == nil {
 			continue
 		}
 
@@ -682,12 +662,7 @@ func CheckTapChangerLtcFlagControl(dataset *cimgostructs.CIMElementList) []Viola
 func CheckLoadResponseCharacteristicExponentModel(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		lrc, ok := obj.(*cimgostructs.LoadResponseCharacteristic)
-		if !ok {
-			continue
-		}
-
+	for id, lrc := range dataset.LoadResponseCharacteristics {
 		// Exponent model attributes (active/reactive voltage/frequency exponents)
 		// Note: In cimgostructs, these are typically float64, so we check if they are provided (non-zero).
 		// However, 0 is a valid value for an exponent.
@@ -743,12 +718,10 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimgostructs.CIMElementLi
 	var violations []Violation
 
 	nscPoints := make(map[string]int)
-	for _, obj := range dataset.Elements {
-		if point, ok := obj.(*cimgostructs.NonlinearShuntCompensatorPoint); ok {
-			if point.NonlinearShuntCompensator != nil {
-				nscID := strings.TrimPrefix(point.NonlinearShuntCompensator.MRID, "#")
-				nscPoints[nscID]++
-			}
+	for _, point := range dataset.NonlinearShuntCompensatorPoints {
+		if point.NonlinearShuntCompensator != nil {
+			nscID := strings.TrimPrefix(point.NonlinearShuntCompensator.MRID, "#")
+			nscPoints[nscID]++
 		}
 	}
 
@@ -816,12 +789,7 @@ func CheckShuntCompensatorNomU(dataset *cimgostructs.CIMElementList) []Violation
 func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		ptca, ok := obj.(*cimgostructs.PhaseTapChangerAsymmetrical)
-		if !ok {
-			continue
-		}
-
+	for id, ptca := range dataset.PhaseTapChangerAsymmetricals {
 		val := ptca.WindingConnectionAngle
 		isMultipleOf30 := int(val)%30 == 0 && val == float64(int(val))
 		inRange := val >= -150 && val <= 150 && val != 0
@@ -848,12 +816,10 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimgostructs.CIMElementLi
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimgostructs.PowerTransformerEnd)
-	for _, obj := range dataset.Elements {
-		if end, ok := obj.(*cimgostructs.PowerTransformerEnd); ok {
-			if end.PowerTransformer != nil {
-				ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-				transformerEnds[ptID] = append(transformerEnds[ptID], end)
-			}
+	for _, end := range dataset.PowerTransformerEnds {
+		if end.PowerTransformer != nil {
+			ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
+			transformerEnds[ptID] = append(transformerEnds[ptID], end)
 		}
 	}
 
@@ -900,9 +866,8 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimgostructs.CIMElementLi
 func CheckVoltageLimitPATL(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		vl, ok := obj.(*cimgostructs.VoltageLimit)
-		if !ok || vl.OperationalLimitType == nil {
+	for id, vl := range dataset.VoltageLimits {
+		if vl.OperationalLimitType == nil {
 			continue
 		}
 
@@ -1054,23 +1019,33 @@ func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimgostructs.CIMEle
 func CheckEquipmentAggregateNotUsed(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		var class string
-		var aggregate bool
-		switch v := obj.(type) {
-		case *cimgostructs.EquivalentBranch:
-			class, aggregate = "EquivalentBranch", v.Aggregate
-		case *cimgostructs.EquivalentShunt:
-			class, aggregate = "EquivalentShunt", v.Aggregate
-		case *cimgostructs.EquivalentInjection:
-			class, aggregate = "EquivalentInjection", v.Aggregate
-		default:
-			continue
-		}
-		if aggregate {
+	for id, v := range dataset.EquivalentBranchs {
+		if v.Aggregate {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				Class:    class,
+				Class:    "EquivalentBranch",
+				Property: "Equipment.aggregate",
+				Message:  "Not allowed property (attribute).",
+				Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.EquivalentShunts {
+		if v.Aggregate {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "EquivalentShunt",
+				Property: "Equipment.aggregate",
+				Message:  "Not allowed property (attribute).",
+				Severity: "sh:Violation",
+			})
+		}
+	}
+	for id, v := range dataset.EquivalentInjections {
+		if v.Aggregate {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "EquivalentInjection",
 				Property: "Equipment.aggregate",
 				Message:  "Not allowed property (attribute).",
 				Severity: "sh:Violation",
@@ -1088,11 +1063,7 @@ func CheckEquipmentAggregateNotUsed(dataset *cimgostructs.CIMElementList) []Viol
 func CheckEquivalentBranchR21Usage(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		eb, ok := obj.(*cimgostructs.EquivalentBranch)
-		if !ok {
-			continue
-		}
+	for id, eb := range dataset.EquivalentBranchs {
 		if eb.R21 != 0 && eb.R21 != eb.R {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -1114,11 +1085,7 @@ func CheckEquivalentBranchR21Usage(dataset *cimgostructs.CIMElementList) []Viola
 func CheckEquivalentBranchX21Usage(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		eb, ok := obj.(*cimgostructs.EquivalentBranch)
-		if !ok {
-			continue
-		}
+	for id, eb := range dataset.EquivalentBranchs {
 		if eb.X21 != 0 && eb.X21 != eb.X {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -1140,11 +1107,7 @@ func CheckEquivalentBranchX21Usage(dataset *cimgostructs.CIMElementList) []Viola
 func CheckEquivalentInjectionRegulationCapability(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		ei, ok := obj.(*cimgostructs.EquivalentInjection)
-		if !ok {
-			continue
-		}
+	for id, ei := range dataset.EquivalentInjections {
 		if ei.ReactiveCapabilityCurve != nil && !ei.RegulationCapability {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -1242,9 +1205,8 @@ func CheckControlAreaGeneratingUnitInstance(dataset *cimgostructs.CIMElementList
 	seen := make(map[pair]bool)
 	duplicates := make(map[string]bool)
 
-	for _, obj := range dataset.Elements {
-		cagu, ok := obj.(*cimgostructs.ControlAreaGeneratingUnit)
-		if !ok || cagu.ControlArea == nil || cagu.GeneratingUnit == nil {
+	for _, cagu := range dataset.ControlAreaGeneratingUnits {
+		if cagu.ControlArea == nil || cagu.GeneratingUnit == nil {
 			continue
 		}
 		key := pair{
@@ -1278,18 +1240,16 @@ func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimgostructs.CIMEl
 	var violations []Violation
 
 	containerHasPowerTransformer := make(map[string]bool)
-	for _, obj := range dataset.Elements {
-		pt, ok := obj.(*cimgostructs.PowerTransformer)
-		if !ok || pt.EquipmentContainer == nil {
+	for _, pt := range dataset.PowerTransformers {
+		if pt.EquipmentContainer == nil {
 			continue
 		}
 		containerHasPowerTransformer[strings.TrimPrefix(pt.EquipmentContainer.MRID, "#")] = true
 	}
 
 	reported := make(map[string]bool)
-	for _, obj := range dataset.Elements {
-		csc, ok := obj.(*cimgostructs.CsConverter)
-		if !ok || csc.EquipmentContainer == nil {
+	for _, csc := range dataset.CsConverters {
+		if csc.EquipmentContainer == nil {
 			continue
 		}
 		ecID := strings.TrimPrefix(csc.EquipmentContainer.MRID, "#")
@@ -1333,9 +1293,8 @@ func CheckLimitKindPATLNumberOfLimitType(dataset *cimgostructs.CIMElementList) [
 	patlLimitsBySet := make(map[string]map[pair]int)
 	infDurByOLT := make(map[string]bool)
 
-	for id, obj := range dataset.Elements {
-		olt, ok := obj.(*cimgostructs.OperationalLimitType)
-		if !ok || olt.Kind == nil || olt.Kind.URI != patlURI {
+	for id, olt := range dataset.OperationalLimitTypes {
+		if olt.Kind == nil || olt.Kind.URI != patlURI {
 			continue
 		}
 		patlLimitsBySet[id] = make(map[pair]int)
@@ -1362,12 +1321,27 @@ func CheckLimitKindPATLNumberOfLimitType(dataset *cimgostructs.CIMElementList) [
 		return oltID, setID, goTypeName(obj), true
 	}
 
-	for _, obj := range dataset.Elements {
-		switch obj.(type) {
-		case *cimgostructs.ApparentPowerLimit, *cimgostructs.ActivePowerLimit, *cimgostructs.CurrentLimit:
-		default:
+	for _, obj := range dataset.ApparentPowerLimits {
+		oltID, setID, cls, ok := limitOLTAndSet(obj)
+		if !ok {
 			continue
 		}
+		if _, isPATL := patlLimitsBySet[oltID]; !isPATL {
+			continue
+		}
+		patlLimitsBySet[oltID][pair{set: setID, limitCls: cls}]++
+	}
+	for _, obj := range dataset.ActivePowerLimits {
+		oltID, setID, cls, ok := limitOLTAndSet(obj)
+		if !ok {
+			continue
+		}
+		if _, isPATL := patlLimitsBySet[oltID]; !isPATL {
+			continue
+		}
+		patlLimitsBySet[oltID][pair{set: setID, limitCls: cls}]++
+	}
+	for _, obj := range dataset.CurrentLimits {
 		oltID, setID, cls, ok := limitOLTAndSet(obj)
 		if !ok {
 			continue
@@ -1410,9 +1384,8 @@ func CheckLimitKindTCDuration(dataset *cimgostructs.CIMElementList) []Violation 
 	tcURI := "http://iec.ch/TC57/CIM100-European#LimitKind.tc"
 
 	tcOLTs := make(map[string]float64)
-	for id, obj := range dataset.Elements {
-		olt, ok := obj.(*cimgostructs.OperationalLimitType)
-		if !ok || olt.Kind == nil || olt.Kind.URI != tcURI {
+	for id, olt := range dataset.OperationalLimitTypes {
+		if olt.Kind == nil || olt.Kind.URI != tcURI {
 			continue
 		}
 		tcOLTs[id] = olt.AcceptableDuration
@@ -1422,30 +1395,31 @@ func CheckLimitKindTCDuration(dataset *cimgostructs.CIMElementList) []Violation 
 	}
 
 	limitsPerOLTSet := make(map[string]map[string]int)
-	for _, obj := range dataset.Elements {
-		switch obj.(type) {
-		case *cimgostructs.ApparentPowerLimit, *cimgostructs.ActivePowerLimit,
-			*cimgostructs.CurrentLimit, *cimgostructs.VoltageLimit:
-		default:
-			continue
+	addTCLimit := func(oltPtr, setPtr *struct{ MRID string `xml:"resource,attr"` }) {
+		if oltPtr == nil || setPtr == nil {
+			return
 		}
-		val := reflect.ValueOf(obj).Elem()
-		oltField := val.FieldByName("OperationalLimitType")
-		setField := val.FieldByName("OperationalLimitSet")
-		if !oltField.IsValid() || !setField.IsValid() ||
-			oltField.Kind() != reflect.Ptr || oltField.IsNil() ||
-			setField.Kind() != reflect.Ptr || setField.IsNil() {
-			continue
-		}
-		oltID := strings.TrimPrefix(oltField.Elem().FieldByName("MRID").String(), "#")
-		setID := strings.TrimPrefix(setField.Elem().FieldByName("MRID").String(), "#")
+		oltID := strings.TrimPrefix(oltPtr.MRID, "#")
+		setID := strings.TrimPrefix(setPtr.MRID, "#")
 		if _, isTC := tcOLTs[oltID]; !isTC {
-			continue
+			return
 		}
 		if _, ok := limitsPerOLTSet[oltID]; !ok {
 			limitsPerOLTSet[oltID] = make(map[string]int)
 		}
 		limitsPerOLTSet[oltID][setID]++
+	}
+	for _, obj := range dataset.ApparentPowerLimits {
+		addTCLimit(obj.OperationalLimitType, obj.OperationalLimitSet)
+	}
+	for _, obj := range dataset.ActivePowerLimits {
+		addTCLimit(obj.OperationalLimitType, obj.OperationalLimitSet)
+	}
+	for _, obj := range dataset.CurrentLimits {
+		addTCLimit(obj.OperationalLimitType, obj.OperationalLimitSet)
+	}
+	for _, obj := range dataset.VoltageLimits {
+		addTCLimit(obj.OperationalLimitType, obj.OperationalLimitSet)
 	}
 
 	for oltID, dur := range tcOLTs {
@@ -1476,11 +1450,7 @@ func CheckLimitKindTCDuration(dataset *cimgostructs.CIMElementList) []Violation 
 // Description: acceptableDuration must be present when isInfiniteDuration is false.
 func CheckOperationalLimitTypeInfiniteDuration(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
-		olt, ok := obj.(*cimgostructs.OperationalLimitType)
-		if !ok {
-			continue
-		}
+	for id, olt := range dataset.OperationalLimitTypes {
 		if !olt.IsInfiniteDuration && olt.AcceptableDuration == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -1504,12 +1474,10 @@ func CheckSynchronousMachineAggregate(dataset *cimgostructs.CIMElementList) []Vi
 
 	// Map GeneratingUnit to its SynchronousMachines
 	guToSMs := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if sm, ok := obj.(*cimgostructs.SynchronousMachine); ok {
-			if sm.GeneratingUnit != nil {
-				guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
-				guToSMs[guID] = append(guToSMs[guID], id)
-			}
+	for id, sm := range dataset.SynchronousMachines {
+		if sm.GeneratingUnit != nil {
+			guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
+			guToSMs[guID] = append(guToSMs[guID], id)
 		}
 	}
 
@@ -1547,12 +1515,10 @@ func CheckAsynchronousMachineAggregate(dataset *cimgostructs.CIMElementList) []V
 	var violations []Violation
 
 	guToAMs := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if am, ok := obj.(*cimgostructs.AsynchronousMachine); ok {
-			if am.GeneratingUnit != nil {
-				guID := strings.TrimPrefix(am.GeneratingUnit.MRID, "#")
-				guToAMs[guID] = append(guToAMs[guID], id)
-			}
+	for id, am := range dataset.AsynchronousMachines {
+		if am.GeneratingUnit != nil {
+			guID := strings.TrimPrefix(am.GeneratingUnit.MRID, "#")
+			guToAMs[guID] = append(guToAMs[guID], id)
 		}
 	}
 
@@ -1588,9 +1554,8 @@ func CheckAsynchronousMachineAggregate(dataset *cimgostructs.CIMElementList) []V
 func CheckSynchronousMachineControlMode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachine)
-		if !ok || sm.RegulatingControl == nil {
+	for id, sm := range dataset.SynchronousMachines {
+		if sm.RegulatingControl == nil {
 			continue
 		}
 
@@ -1623,12 +1588,7 @@ func CheckSynchronousMachineControlMode(dataset *cimgostructs.CIMElementList) []
 func CheckStaticVarCompensatorControlMode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		svc, ok := obj.(*cimgostructs.StaticVarCompensator)
-		if !ok {
-			continue
-		}
-
+	for id, svc := range dataset.StaticVarCompensators {
 		if svc.RegulatingControl != nil {
 			rcID := strings.TrimPrefix(svc.RegulatingControl.MRID, "#")
 			rc, ok := dataset.Elements[rcID].(*cimgostructs.RegulatingControl)
@@ -1677,32 +1637,11 @@ func CheckStaticVarCompensatorControlMode(dataset *cimgostructs.CIMElementList) 
 func CheckPhaseTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		var tccID string
-		var class string
-		if ptc, ok := obj.(*cimgostructs.PhaseTapChangerAsymmetrical); ok && ptc.TapChangerControl != nil {
-			tccID = strings.TrimPrefix(ptc.TapChangerControl.MRID, "#")
-			class = "PhaseTapChangerAsymmetrical"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerLinear); ok && ptc.TapChangerControl != nil {
-			tccID = strings.TrimPrefix(ptc.TapChangerControl.MRID, "#")
-			class = "PhaseTapChangerLinear"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerSymmetrical); ok && ptc.TapChangerControl != nil {
-			tccID = strings.TrimPrefix(ptc.TapChangerControl.MRID, "#")
-			class = "PhaseTapChangerSymmetrical"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerTabular); ok && ptc.TapChangerControl != nil {
-			tccID = strings.TrimPrefix(ptc.TapChangerControl.MRID, "#")
-			class = "PhaseTapChangerTabular"
-		}
-
-		if tccID == "" {
-			continue
-		}
-
+	checkPTCMode := func(id, tccID, class string) {
 		rc, ok := dataset.Elements[tccID].(*cimgostructs.TapChangerControl)
 		if !ok || rc.Mode == nil {
-			continue
+			return
 		}
-
 		uri := rc.Mode.URI
 		if !strings.HasSuffix(uri, "activePower") && !strings.HasSuffix(uri, "voltage") {
 			violations = append(violations, Violation{
@@ -1712,6 +1651,26 @@ func CheckPhaseTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Vio
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a PhaseTapChanger.", uri),
 				Severity: "sh:Violation",
 			})
+		}
+	}
+	for id, ptc := range dataset.PhaseTapChangerAsymmetricals {
+		if ptc.TapChangerControl != nil {
+			checkPTCMode(id, strings.TrimPrefix(ptc.TapChangerControl.MRID, "#"), "PhaseTapChangerAsymmetrical")
+		}
+	}
+	for id, ptc := range dataset.PhaseTapChangerLinears {
+		if ptc.TapChangerControl != nil {
+			checkPTCMode(id, strings.TrimPrefix(ptc.TapChangerControl.MRID, "#"), "PhaseTapChangerLinear")
+		}
+	}
+	for id, ptc := range dataset.PhaseTapChangerSymmetricals {
+		if ptc.TapChangerControl != nil {
+			checkPTCMode(id, strings.TrimPrefix(ptc.TapChangerControl.MRID, "#"), "PhaseTapChangerSymmetrical")
+		}
+	}
+	for id, ptc := range dataset.PhaseTapChangerTabulars {
+		if ptc.TapChangerControl != nil {
+			checkPTCMode(id, strings.TrimPrefix(ptc.TapChangerControl.MRID, "#"), "PhaseTapChangerTabular")
 		}
 	}
 
@@ -1725,9 +1684,8 @@ func CheckPhaseTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Vio
 func CheckRatioTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		rtc, ok := obj.(*cimgostructs.RatioTapChanger)
-		if !ok || rtc.TapChangerControl == nil {
+	for id, rtc := range dataset.RatioTapChangers {
+		if rtc.TapChangerControl == nil {
 			continue
 		}
 
@@ -1759,26 +1717,11 @@ func CheckRatioTapChangerControlMode(dataset *cimgostructs.CIMElementList) []Vio
 func CheckShuntCompensatorControlMode(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		var rcID string
-		var class string
-		if sc, ok := obj.(*cimgostructs.LinearShuntCompensator); ok && sc.RegulatingControl != nil {
-			rcID = strings.TrimPrefix(sc.RegulatingControl.MRID, "#")
-			class = "LinearShuntCompensator"
-		} else if sc, ok := obj.(*cimgostructs.NonlinearShuntCompensator); ok && sc.RegulatingControl != nil {
-			rcID = strings.TrimPrefix(sc.RegulatingControl.MRID, "#")
-			class = "NonlinearShuntCompensator"
-		}
-
-		if rcID == "" {
-			continue
-		}
-
+	checkSCMode := func(id, rcID, class string) {
 		rc, ok := dataset.Elements[rcID].(*cimgostructs.RegulatingControl)
 		if !ok || rc.Mode == nil {
-			continue
+			return
 		}
-
 		uri := rc.Mode.URI
 		if !strings.HasSuffix(uri, "voltage") && !strings.HasSuffix(uri, "reactivePower") && !strings.HasSuffix(uri, "powerFactor") {
 			violations = append(violations, Violation{
@@ -1788,6 +1731,16 @@ func CheckShuntCompensatorControlMode(dataset *cimgostructs.CIMElementList) []Vi
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a ShuntCompensator.", uri),
 				Severity: "sh:Violation",
 			})
+		}
+	}
+	for id, sc := range dataset.LinearShuntCompensators {
+		if sc.RegulatingControl != nil {
+			checkSCMode(id, strings.TrimPrefix(sc.RegulatingControl.MRID, "#"), "LinearShuntCompensator")
+		}
+	}
+	for id, sc := range dataset.NonlinearShuntCompensators {
+		if sc.RegulatingControl != nil {
+			checkSCMode(id, strings.TrimPrefix(sc.RegulatingControl.MRID, "#"), "NonlinearShuntCompensator")
 		}
 	}
 
@@ -1802,23 +1755,16 @@ func CheckShuntCompensatorControlMode(dataset *cimgostructs.CIMElementList) []Vi
 func CheckSynchronousMachineReactiveLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachine)
-		if !ok {
-			continue
-		}
-
+	for id, sm := range dataset.SynchronousMachines {
 		hasCurve := sm.InitialReactiveCapabilityCurve != nil
 		if hasCurve {
 			rccID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
 			// Find all CurveData for this curve
 			var y1vals, y2vals []float64
-			for _, cdObj := range dataset.Elements {
-				if cd, ok := cdObj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
-					if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
-						y1vals = append(y1vals, cd.Y1value)
-						y2vals = append(y2vals, cd.Y2value)
-					}
+			for _, cd := range dataset.CurveDatas {
+				if cd.Curve != nil && strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
+					y1vals = append(y1vals, cd.Y1value)
+					y2vals = append(y2vals, cd.Y2value)
 				}
 			}
 
@@ -1869,12 +1815,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimgostructs.CIMElementList)
 func CheckSynchronousMachineTypeCondenser(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachine)
-		if !ok {
-			continue
-		}
-
+	for id, sm := range dataset.SynchronousMachines {
 		if sm.Type != nil && strings.HasSuffix(sm.Type.URI, "condenser") && sm.GeneratingUnit != nil {
 			violations = append(violations, Violation{
 				ObjectID: id,
@@ -1897,24 +1838,22 @@ func CheckVsCapabilityCurveCount(dataset *cimgostructs.CIMElementList) []Violati
 	var violations []Violation
 
 	curveCount := make(map[string]int)
-	for _, obj := range dataset.Elements {
-		if cd, ok := obj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
+	for _, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
 			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
 			curveCount[cID]++
 		}
 	}
 
-	for id, obj := range dataset.Elements {
-		if _, ok := obj.(*cimgostructs.VsCapabilityCurve); ok {
-			if count, ok := curveCount[id]; !ok || count < 2 {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					Class:    "VsCapabilityCurve",
-					Property: "rdf:type",
-					Message:  fmt.Sprintf("Less than two instances of CurveData are associated (%v found).", count),
-					Severity: "sh:Violation",
-				})
-			}
+	for id := range dataset.VsCapabilityCurves {
+		if count, ok := curveCount[id]; !ok || count < 2 {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "VsCapabilityCurve",
+				Property: "rdf:type",
+				Message:  fmt.Sprintf("Less than two instances of CurveData are associated (%v found).", count),
+				Severity: "sh:Violation",
+			})
 		}
 	}
 
@@ -1928,10 +1867,10 @@ func CheckVsCapabilityCurveCount(dataset *cimgostructs.CIMElementList) []Violati
 func CheckVsCapabilityCurveYValues(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		if cd, ok := obj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
+	for id, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
 			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
-			if _, ok := dataset.Elements[cID].(*cimgostructs.VsCapabilityCurve); ok {
+			if _, ok := dataset.VsCapabilityCurves[cID]; ok {
 				if cd.Y2value <= cd.Y1value {
 					violations = append(violations, Violation{
 						ObjectID: id,
@@ -1955,9 +1894,8 @@ func CheckVsCapabilityCurveYValues(dataset *cimgostructs.CIMElementList) []Viola
 func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachine)
-		if !ok || sm.GeneratingUnit == nil || sm.Type == nil {
+	for id, sm := range dataset.SynchronousMachines {
+		if sm.GeneratingUnit == nil || sm.Type == nil {
 			continue
 		}
 
@@ -2024,29 +1962,26 @@ func CheckGeneratingUnitTypeDependency(dataset *cimgostructs.CIMElementList) []V
 func CheckCurveDataReactiveCapabilityLimits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		cd, ok := obj.(*cimgostructs.CurveData)
-		if !ok || cd.Curve == nil {
+	// Pre-build: reactive capability curve ID → ratedS of its SynchronousMachine
+	curveRatedS := make(map[string]float64)
+	for _, sm := range dataset.SynchronousMachines {
+		if sm.InitialReactiveCapabilityCurve != nil {
+			cID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
+			curveRatedS[cID] = sm.RatedS
+		}
+	}
+
+	for id, cd := range dataset.CurveDatas {
+		if cd.Curve == nil {
 			continue
 		}
 
 		cID := strings.TrimPrefix(cd.Curve.MRID, "#")
-		if _, ok := dataset.Elements[cID].(*cimgostructs.ReactiveCapabilityCurve); !ok {
+		if _, ok := dataset.ReactiveCapabilityCurves[cID]; !ok {
 			continue
 		}
 
-		// Find the SynchronousMachine associated with this curve
-		var ratedS float64
-		found := false
-		for _, smObj := range dataset.Elements {
-			if sm, ok := smObj.(*cimgostructs.SynchronousMachine); ok && sm.InitialReactiveCapabilityCurve != nil {
-				if strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#") == cID {
-					ratedS = sm.RatedS
-					found = true
-					break
-				}
-			}
-		}
+		ratedS, found := curveRatedS[cID]
 
 		if !found || ratedS == 0 {
 			continue
@@ -2087,10 +2022,10 @@ func CheckCurveDataReactiveConsistency(dataset *cimgostructs.CIMElementList) []V
 	var violations []Violation
 
 	curvePoints := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if cd, ok := obj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
+	for id, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
 			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
-			if _, ok := dataset.Elements[cID].(*cimgostructs.ReactiveCapabilityCurve); ok {
+			if _, ok := dataset.ReactiveCapabilityCurves[cID]; ok {
 				curvePoints[cID] = append(curvePoints[cID], id)
 			}
 		}
@@ -2134,9 +2069,17 @@ func CheckCurveDataReactiveConsistency(dataset *cimgostructs.CIMElementList) []V
 func CheckSynchronousMachineCurveXValueConsistency(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		sm, ok := obj.(*cimgostructs.SynchronousMachine)
-		if !ok || sm.GeneratingUnit == nil || sm.InitialReactiveCapabilityCurve == nil {
+	// Pre-build: curve ID → x values
+	curveXvals := make(map[string][]float64)
+	for _, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
+			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
+			curveXvals[cID] = append(curveXvals[cID], cd.Xvalue)
+		}
+	}
+
+	for id, sm := range dataset.SynchronousMachines {
+		if sm.GeneratingUnit == nil || sm.InitialReactiveCapabilityCurve == nil {
 			continue
 		}
 
@@ -2147,14 +2090,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimgostructs.CIMElem
 		}
 
 		rccID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
-		var xvals []float64
-		for _, cdObj := range dataset.Elements {
-			if cd, ok := cdObj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
-				if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
-					xvals = append(xvals, cd.Xvalue)
-				}
-			}
-		}
+		xvals := curveXvals[rccID]
 
 		if len(xvals) > 0 {
 			minX := xvals[0]
@@ -2202,8 +2138,8 @@ func CheckSwitchConnection(dataset *cimgostructs.CIMElementList) []Violation {
 
 	// Find all Switches and their terminals
 	switchTerminals := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if t, ok := obj.(*cimgostructs.Terminal); ok && t.ConductingEquipment != nil {
+	for id, t := range dataset.Terminals {
+		if t.ConductingEquipment != nil {
 			eqID := strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
 			// Check if ConductingEquipment is a Switch
 			eq := dataset.Elements[eqID]
@@ -2271,29 +2207,30 @@ func CheckSwitchConnection(dataset *cimgostructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates OperationalLimitSet associations.
 func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Violation {
-	var violations []Violation
+	// Index 1: terminal IDs that belong to AuxiliaryEquipment (CurrentTransformer etc.)
+	auxTerminalIDs := make(map[string]bool)
+	for _, aux := range dataset.CurrentTransformers {
+		if aux.Terminal != nil {
+			auxTerminalIDs[strings.TrimPrefix(aux.Terminal.MRID, "#")] = true
+		}
+	}
+	// Index 2: terminal ID → conducting equipment ID (for O(1) membership check)
+	terminalEquipment := make(map[string]string)
+	for _, t := range dataset.Terminals {
+		if t.ConductingEquipment != nil {
+			terminalEquipment[t.Id] = strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
+		}
+	}
 
-	for id, obj := range dataset.Elements {
-		ols, ok := obj.(*cimgostructs.OperationalLimitSet)
-		if !ok || ols.Terminal == nil {
+	var violations []Violation
+	for id, ols := range dataset.OperationalLimitSets {
+		if ols.Terminal == nil {
 			continue
 		}
 
 		tID := strings.TrimPrefix(ols.Terminal.MRID, "#")
 
-		// Check if it's for AuxiliaryEquipment
-		isAux := false
-		for _, auxObj := range dataset.Elements {
-			if aux, ok := auxObj.(*cimgostructs.CurrentTransformer); ok && aux.Terminal != nil {
-				if strings.TrimPrefix(aux.Terminal.MRID, "#") == tID {
-					isAux = true
-					break
-				}
-			}
-			// ... other aux eq
-		}
-
-		if isAux && ols.Equipment == nil {
+		if auxTerminalIDs[tID] && ols.Equipment == nil {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				Class:    "OperationalLimitSet",
@@ -2305,17 +2242,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 
 		if ols.Equipment != nil {
 			eqID := strings.TrimPrefix(ols.Equipment.MRID, "#")
-			// Check if Terminal belongs to Equipment
-			found := false
-			for _, tObj := range dataset.Elements {
-				if t, ok := tObj.(*cimgostructs.Terminal); ok && t.ConductingEquipment != nil {
-					if strings.TrimPrefix(t.ConductingEquipment.MRID, "#") == eqID && t.Id == tID {
-						found = true
-						break
-					}
-				}
-			}
-			if !found {
+			if terminalEquipment[tID] != eqID {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					Class:    "OperationalLimitSet",
@@ -2337,43 +2264,39 @@ func CheckOperationalLimitSetTerminal(dataset *cimgostructs.CIMElementList) []Vi
 func CheckTapChangerControlRemoteQControl(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		tcc, ok := obj.(*cimgostructs.TapChangerControl)
-		if !ok || tcc.Mode == nil || !strings.HasSuffix(tcc.Mode.URI, "reactivePower") || tcc.Terminal == nil {
+	// Pre-build: TapChangerControl ID → transformer end IDs
+	tccToTE := make(map[string][]string)
+	for _, rtc := range dataset.RatioTapChangers {
+		if rtc.TapChangerControl != nil && rtc.TransformerEnd != nil {
+			tccID := strings.TrimPrefix(rtc.TapChangerControl.MRID, "#")
+			tccToTE[tccID] = append(tccToTE[tccID], strings.TrimPrefix(rtc.TransformerEnd.MRID, "#"))
+		}
+	}
+	for _, ptc := range dataset.PhaseTapChangerAsymmetricals {
+		if ptc.TapChangerControl != nil && ptc.TransformerEnd != nil {
+			tccID := strings.TrimPrefix(ptc.TapChangerControl.MRID, "#")
+			tccToTE[tccID] = append(tccToTE[tccID], strings.TrimPrefix(ptc.TransformerEnd.MRID, "#"))
+		}
+	}
+
+	for id, tcc := range dataset.TapChangerControls {
+		if tcc.Mode == nil || !strings.HasSuffix(tcc.Mode.URI, "reactivePower") || tcc.Terminal == nil {
 			continue
 		}
 
 		rcTermID := strings.TrimPrefix(tcc.Terminal.MRID, "#")
 
-		// Find the TapChanger(s) associated with this control
-		for _, tcObj := range dataset.Elements {
-			var teID string
-			if rtc, ok := tcObj.(*cimgostructs.RatioTapChanger); ok && rtc.TapChangerControl != nil {
-				if strings.TrimPrefix(rtc.TapChangerControl.MRID, "#") == id {
-					if rtc.TransformerEnd != nil {
-						teID = strings.TrimPrefix(rtc.TransformerEnd.MRID, "#")
-					}
-				}
-			} else if ptc, ok := tcObj.(*cimgostructs.PhaseTapChangerAsymmetrical); ok && ptc.TapChangerControl != nil {
-				if strings.TrimPrefix(ptc.TapChangerControl.MRID, "#") == id {
-					if ptc.TransformerEnd != nil {
-						teID = strings.TrimPrefix(ptc.TransformerEnd.MRID, "#")
-					}
-				}
-			} // ... other ptc types
-
-			if teID != "" {
-				te, ok := dataset.Elements[teID].(*cimgostructs.PowerTransformerEnd)
-				if ok && te.Terminal != nil {
-					if strings.TrimPrefix(te.Terminal.MRID, "#") != rcTermID {
-						violations = append(violations, Violation{
-							ObjectID: id,
-							Class:    "TapChangerControl",
-							Property: "RegulatingControl.Terminal",
-							Message:  "TapChangerControl in reactivePower mode controls a Terminal not associated with its PowerTransformerEnd.",
-							Severity: "sh:Violation",
-						})
-					}
+		for _, teID := range tccToTE[id] {
+			te, ok := dataset.Elements[teID].(*cimgostructs.PowerTransformerEnd)
+			if ok && te.Terminal != nil {
+				if strings.TrimPrefix(te.Terminal.MRID, "#") != rcTermID {
+					violations = append(violations, Violation{
+						ObjectID: id,
+						Class:    "TapChangerControl",
+						Property: "RegulatingControl.Terminal",
+						Message:  "TapChangerControl in reactivePower mode controls a Terminal not associated with its PowerTransformerEnd.",
+						Severity: "sh:Violation",
+					})
 				}
 			}
 		}
@@ -2389,28 +2312,29 @@ func CheckTapChangerControlRemoteQControl(dataset *cimgostructs.CIMElementList) 
 func CheckReactiveCapabilityCurveXValueUnique(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		if _, ok := obj.(*cimgostructs.ReactiveCapabilityCurve); !ok {
-			continue
+	// Pre-build: curve ID → list of x values
+	curveXvals := make(map[string][]float64)
+	for _, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
+			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
+			curveXvals[cID] = append(curveXvals[cID], cd.Xvalue)
 		}
+	}
 
+	for id := range dataset.ReactiveCapabilityCurves {
 		xvals := make(map[float64]bool)
-		for _, cdObj := range dataset.Elements {
-			if cd, ok := cdObj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
-				if strings.TrimPrefix(cd.Curve.MRID, "#") == id {
-					if xvals[cd.Xvalue] {
-						violations = append(violations, Violation{
-							ObjectID: id,
-							Class:    "ReactiveCapabilityCurve",
-							Property: "rdf:type",
-							Message:  fmt.Sprintf("CurveData.xvalue (%v) for ReactiveCapabilityCurve is not unique.", cd.Xvalue),
-							Severity: "sh:Violation",
-						})
-						break // Only report once per curve
-					}
-					xvals[cd.Xvalue] = true
-				}
+		for _, xv := range curveXvals[id] {
+			if xvals[xv] {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "ReactiveCapabilityCurve",
+					Property: "rdf:type",
+					Message:  fmt.Sprintf("CurveData.xvalue (%v) for ReactiveCapabilityCurve is not unique.", xv),
+					Severity: "sh:Violation",
+				})
+				break
 			}
+			xvals[xv] = true
 		}
 	}
 
@@ -2426,8 +2350,8 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimgostructs.CIMElementLi
 
 	// Group ends by transformer
 	ptToEnds := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if te, ok := obj.(*cimgostructs.PowerTransformerEnd); ok && te.PowerTransformer != nil {
+	for id, te := range dataset.PowerTransformerEnds {
+		if te.PowerTransformer != nil {
 			ptID := strings.TrimPrefix(te.PowerTransformer.MRID, "#")
 			ptToEnds[ptID] = append(ptToEnds[ptID], id)
 		}
@@ -2476,31 +2400,29 @@ func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimgostructs.CIMElementList
 	var violations []Violation
 
 	guToRatedSSum := make(map[string]float64)
-	for _, obj := range dataset.Elements {
-		if rm, ok := obj.(*cimgostructs.RotatingMachine); ok && rm.GeneratingUnit != nil {
-			guID := strings.TrimPrefix(rm.GeneratingUnit.MRID, "#")
-			guToRatedSSum[guID] += rm.RatedS
-		} else if sm, ok := obj.(*cimgostructs.SynchronousMachine); ok && sm.GeneratingUnit != nil {
+	for _, sm := range dataset.SynchronousMachines {
+		if sm.GeneratingUnit != nil {
 			guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
 			guToRatedSSum[guID] += sm.RatedS
-		} else if am, ok := obj.(*cimgostructs.AsynchronousMachine); ok && am.GeneratingUnit != nil {
+		}
+	}
+	for _, am := range dataset.AsynchronousMachines {
+		if am.GeneratingUnit != nil {
 			guID := strings.TrimPrefix(am.GeneratingUnit.MRID, "#")
 			guToRatedSSum[guID] += am.RatedS
 		}
 	}
 
-	for id, obj := range dataset.Elements {
-		if gu, ok := obj.(*cimgostructs.GeneratingUnit); ok {
-			sumRS := guToRatedSSum[id]
-			if gu.MaxOperatingP > sumRS {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					Class:    "GeneratingUnit",
-					Property: "GeneratingUnit.maxOperatingP",
-					Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is greater than sum of RotatingMachine.ratedS (%v).", gu.MaxOperatingP, sumRS),
-					Severity: "sh:Violation",
-				})
-			}
+	for id, gu := range dataset.GeneratingUnits {
+		sumRS := guToRatedSSum[id]
+		if gu.MaxOperatingP > sumRS {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				Class:    "GeneratingUnit",
+				Property: "GeneratingUnit.maxOperatingP",
+				Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is greater than sum of RotatingMachine.ratedS (%v).", gu.MaxOperatingP, sumRS),
+				Severity: "sh:Violation",
+			})
 		}
 	}
 
@@ -2514,43 +2436,45 @@ func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimgostructs.CIMElementList
 func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		hgu, ok := obj.(*cimgostructs.HydroGeneratingUnit)
-		if !ok || hgu.EnergyConversionCapability == nil {
+	// Pre-build: generating unit ID → synchronous machine
+	guToSM := make(map[string]*cimgostructs.SynchronousMachine)
+	for _, sm := range dataset.SynchronousMachines {
+		if sm.GeneratingUnit != nil {
+			guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
+			guToSM[guID] = sm
+		}
+	}
+
+	for id, hgu := range dataset.HydroGeneratingUnits {
+		if hgu.EnergyConversionCapability == nil {
 			continue
 		}
 
 		uriHGU := hgu.EnergyConversionCapability.URI
-		// Find associated SynchronousMachine
-		for _, smObj := range dataset.Elements {
-			if sm, ok := smObj.(*cimgostructs.SynchronousMachine); ok && sm.GeneratingUnit != nil {
-				if strings.TrimPrefix(sm.GeneratingUnit.MRID, "#") == id {
-					if sm.Type == nil {
-						continue
-					}
-					uriSM := sm.Type.URI
-					if strings.HasSuffix(uriHGU, "generator") {
-						if !strings.HasSuffix(uriSM, "generator") && !strings.HasSuffix(uriSM, "generatorOrCondenser") {
-							violations = append(violations, Violation{
-								ObjectID: id,
-								Class:    "HydroGeneratingUnit",
-								Property: "HydroGeneratingUnit.energyConversionCapability",
-								Message:  fmt.Sprintf("HydroGeneratingUnit as generator but associated SynchronousMachine type is '%v'.", uriSM),
-								Severity: "sh:Violation",
-							})
-						}
-					} else if strings.HasSuffix(uriHGU, "pumpAndGenerator") {
-						if !strings.HasSuffix(uriSM, "motor") && !strings.HasSuffix(uriSM, "generatorOrMotor") && !strings.HasSuffix(uriSM, "generatorOrCondenserOrMotor") {
-							violations = append(violations, Violation{
-								ObjectID: id,
-								Class:    "HydroGeneratingUnit",
-								Property: "HydroGeneratingUnit.energyConversionCapability",
-								Message:  fmt.Sprintf("HydroGeneratingUnit as pumpAndGenerator but associated SynchronousMachine type is '%v'.", uriSM),
-								Severity: "sh:Violation",
-							})
-						}
-					}
-				}
+		sm, ok := guToSM[id]
+		if !ok || sm.Type == nil {
+			continue
+		}
+		uriSM := sm.Type.URI
+		if strings.HasSuffix(uriHGU, "generator") {
+			if !strings.HasSuffix(uriSM, "generator") && !strings.HasSuffix(uriSM, "generatorOrCondenser") {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "HydroGeneratingUnit",
+					Property: "HydroGeneratingUnit.energyConversionCapability",
+					Message:  fmt.Sprintf("HydroGeneratingUnit as generator but associated SynchronousMachine type is '%v'.", uriSM),
+					Severity: "sh:Violation",
+				})
+			}
+		} else if strings.HasSuffix(uriHGU, "pumpAndGenerator") {
+			if !strings.HasSuffix(uriSM, "motor") && !strings.HasSuffix(uriSM, "generatorOrMotor") && !strings.HasSuffix(uriSM, "generatorOrCondenserOrMotor") {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    "HydroGeneratingUnit",
+					Property: "HydroGeneratingUnit.energyConversionCapability",
+					Message:  fmt.Sprintf("HydroGeneratingUnit as pumpAndGenerator but associated SynchronousMachine type is '%v'.", uriSM),
+					Severity: "sh:Violation",
+				})
 			}
 		}
 	}
@@ -2567,8 +2491,8 @@ func CheckTerminalConnectionSameNode(dataset *cimgostructs.CIMElementList) []Vio
 
 	// Find two-terminal equipment and their terminals
 	eqToTerminals := make(map[string][]string)
-	for id, obj := range dataset.Elements {
-		if t, ok := obj.(*cimgostructs.Terminal); ok && t.ConductingEquipment != nil {
+	for id, t := range dataset.Terminals {
+		if t.ConductingEquipment != nil {
 			eqID := strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
 			eqToTerminals[eqID] = append(eqToTerminals[eqID], id)
 		}
@@ -2602,34 +2526,30 @@ func CheckTerminalConnectionSameNode(dataset *cimgostructs.CIMElementList) []Vio
 func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		if _, ok := obj.(*cimgostructs.ReactiveCapabilityCurve); !ok {
-			continue
+	// Pre-build: curve ID → SynchronousMachine
+	curveSM := make(map[string]*cimgostructs.SynchronousMachine)
+	for _, sm := range dataset.SynchronousMachines {
+		if sm.InitialReactiveCapabilityCurve != nil {
+			cID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
+			curveSM[cID] = sm
 		}
-
-		// Find SynchronousMachine
-		var sm *cimgostructs.SynchronousMachine
-		for _, smObj := range dataset.Elements {
-			if s, ok := smObj.(*cimgostructs.SynchronousMachine); ok && s.InitialReactiveCapabilityCurve != nil {
-				if strings.TrimPrefix(s.InitialReactiveCapabilityCurve.MRID, "#") == id {
-					sm = s
-					break
-				}
-			}
+	}
+	// Pre-build: curve ID → x values
+	curveXvals := make(map[string][]float64)
+	for _, cd := range dataset.CurveDatas {
+		if cd.Curve != nil {
+			cID := strings.TrimPrefix(cd.Curve.MRID, "#")
+			curveXvals[cID] = append(curveXvals[cID], cd.Xvalue)
 		}
+	}
 
+	for id := range dataset.ReactiveCapabilityCurves {
+		sm := curveSM[id]
 		if sm == nil || sm.Type == nil {
 			continue
 		}
 
-		var xvals []float64
-		for _, cdObj := range dataset.Elements {
-			if cd, ok := cdObj.(*cimgostructs.CurveData); ok && cd.Curve != nil {
-				if strings.TrimPrefix(cd.Curve.MRID, "#") == id {
-					xvals = append(xvals, cd.Xvalue)
-				}
-			}
-		}
+		xvals := curveXvals[id]
 
 		count := len(xvals)
 		uri := sm.Type.URI
@@ -2684,24 +2604,20 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimgostructs.CIMElement
 func CheckReactiveCapabilityCurveUnits(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		rcc, ok := obj.(*cimgostructs.ReactiveCapabilityCurve)
-		if !ok || rcc.XUnit == nil || rcc.Y1Unit == nil || rcc.Y2Unit == nil {
+	// Pre-build: set of curve IDs associated with a SynchronousMachine
+	smCurves := make(map[string]bool)
+	for _, sm := range dataset.SynchronousMachines {
+		if sm.InitialReactiveCapabilityCurve != nil {
+			smCurves[strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")] = true
+		}
+	}
+
+	for id, rcc := range dataset.ReactiveCapabilityCurves {
+		if rcc.XUnit == nil || rcc.Y1Unit == nil || rcc.Y2Unit == nil {
 			continue
 		}
 
-		// Check if it's associated with a SynchronousMachine
-		isSM := false
-		for _, smObj := range dataset.Elements {
-			if sm, ok := smObj.(*cimgostructs.SynchronousMachine); ok && sm.InitialReactiveCapabilityCurve != nil {
-				if strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#") == id {
-					isSM = true
-					break
-				}
-			}
-		}
-
-		if isSM {
+		if smCurves[id] {
 			if !strings.HasSuffix(rcc.XUnit.URI, "W") || !strings.HasSuffix(rcc.Y1Unit.URI, "VAr") || !strings.HasSuffix(rcc.Y2Unit.URI, "VAr") {
 				violations = append(violations, Violation{
 					ObjectID: id,
@@ -2722,15 +2638,8 @@ func CheckReactiveCapabilityCurveUnits(dataset *cimgostructs.CIMElementList) []V
 func CheckSubstationCount(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	substations := 0
-	voltageLevels := 0
-	for _, obj := range dataset.Elements {
-		if _, ok := obj.(*cimgostructs.Substation); ok {
-			substations++
-		} else if _, ok := obj.(*cimgostructs.VoltageLevel); ok {
-			voltageLevels++
-		}
-	}
+	substations := len(dataset.Substations)
+	voltageLevels := len(dataset.VoltageLevels)
 
 	if substations == 1 || (substations > 0 && substations == voltageLevels) {
 		violations = append(violations, Violation{
@@ -2752,59 +2661,40 @@ func CheckSubstationCount(dataset *cimgostructs.CIMElementList) []Violation {
 // Description: TapChanger.neutralU shall be the same as PowerTransformerEnd.ratedU.
 func CheckTapChangerNeutralUValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
+	const epsilon = 1e-6
 
-	for id, obj := range dataset.Elements {
-		var neutralU float64
-		var teID string
-		var class string
-
-		if rtc, ok := obj.(*cimgostructs.RatioTapChanger); ok {
-			neutralU = rtc.NeutralU
-			if rtc.TransformerEnd != nil {
-				teID = strings.TrimPrefix(rtc.TransformerEnd.MRID, "#")
-			}
-			class = "RatioTapChanger"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerAsymmetrical); ok {
-			neutralU = ptc.NeutralU
-			if ptc.TransformerEnd != nil {
-				teID = strings.TrimPrefix(ptc.TransformerEnd.MRID, "#")
-			}
-			class = "PhaseTapChangerAsymmetrical"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerLinear); ok {
-			neutralU = ptc.NeutralU
-			if ptc.TransformerEnd != nil {
-				teID = strings.TrimPrefix(ptc.TransformerEnd.MRID, "#")
-			}
-			class = "PhaseTapChangerLinear"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerSymmetrical); ok {
-			neutralU = ptc.NeutralU
-			if ptc.TransformerEnd != nil {
-				teID = strings.TrimPrefix(ptc.TransformerEnd.MRID, "#")
-			}
-			class = "PhaseTapChangerSymmetrical"
-		} else if ptc, ok := obj.(*cimgostructs.PhaseTapChangerTabular); ok {
-			neutralU = ptc.NeutralU
-			if ptc.TransformerEnd != nil {
-				teID = strings.TrimPrefix(ptc.TransformerEnd.MRID, "#")
-			}
-			class = "PhaseTapChangerTabular"
+	checkNeutralU := func(id string, neutralU float64, teRef *struct{ MRID string `xml:"resource,attr"` }, class string) {
+		if teRef == nil {
+			return
 		}
-
-		if teID != "" {
-			te, ok := dataset.Elements[teID].(*cimgostructs.PowerTransformerEnd)
-			if ok {
-				epsilon := 1e-6
-				if neutralU < te.RatedU-epsilon || neutralU > te.RatedU+epsilon {
-					violations = append(violations, Violation{
-						ObjectID: id,
-						Class:    class,
-						Property: "TapChanger.neutralU",
-						Message:  fmt.Sprintf("TapChanger.neutralU (%v) is not equal to PowerTransformerEnd.ratedU (%v).", neutralU, te.RatedU),
-						Severity: "sh:Violation",
-					})
-				}
+		teID := strings.TrimPrefix(teRef.MRID, "#")
+		if te, ok := dataset.PowerTransformerEnds[teID]; ok {
+			if neutralU < te.RatedU-epsilon || neutralU > te.RatedU+epsilon {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					Class:    class,
+					Property: "TapChanger.neutralU",
+					Message:  fmt.Sprintf("TapChanger.neutralU (%v) is not equal to PowerTransformerEnd.ratedU (%v).", neutralU, te.RatedU),
+					Severity: "sh:Violation",
+				})
 			}
 		}
+	}
+
+	for id, rtc := range dataset.RatioTapChangers {
+		checkNeutralU(id, rtc.NeutralU, rtc.TransformerEnd, "RatioTapChanger")
+	}
+	for id, ptc := range dataset.PhaseTapChangerAsymmetricals {
+		checkNeutralU(id, ptc.NeutralU, ptc.TransformerEnd, "PhaseTapChangerAsymmetrical")
+	}
+	for id, ptc := range dataset.PhaseTapChangerLinears {
+		checkNeutralU(id, ptc.NeutralU, ptc.TransformerEnd, "PhaseTapChangerLinear")
+	}
+	for id, ptc := range dataset.PhaseTapChangerSymmetricals {
+		checkNeutralU(id, ptc.NeutralU, ptc.TransformerEnd, "PhaseTapChangerSymmetrical")
+	}
+	for id, ptc := range dataset.PhaseTapChangerTabulars {
+		checkNeutralU(id, ptc.NeutralU, ptc.TransformerEnd, "PhaseTapChangerTabular")
 	}
 
 	return violations

@@ -19,9 +19,8 @@ func ValidateSVProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 func CheckCsConverterStateValueRange(dataset *cimgostructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
-		csc, ok := obj.(*cimgostructs.CsConverter)
-		if !ok || csc.OperatingMode == nil {
+	for id, csc := range dataset.CsConverters {
+		if csc.OperatingMode == nil {
 			continue
 		}
 

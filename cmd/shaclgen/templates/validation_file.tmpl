@@ -52,15 +52,11 @@ func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
 		})
 	}
 {{- else}}
-	for id, obj := range dataset.Elements {
 {{- if .NoV}}
-		_, ok := obj.(*cimgostructs.{{.Class}})
+	for id := range dataset.{{.Class}}s {
 {{- else}}
-		v, ok := obj.(*cimgostructs.{{.Class}})
+	for id, v := range dataset.{{.Class}}s {
 {{- end}}
-		if !ok {
-			continue
-		}
 {{- if .Guard}}
 {{.Guard}}
 {{- end}}

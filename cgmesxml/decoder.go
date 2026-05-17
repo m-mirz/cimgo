@@ -9,8 +9,23 @@ import (
 	"sync"
 )
 
+const rdfNS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+
+// normalizeRDFAbout converts rdf:about="#UUID" to rdf:ID="UUID" so both
+// identifier forms map to the same xml:"ID,attr" struct field on cimbase.Base.
+func normalizeRDFAbout(t *xml.StartElement) {
+	for i := range t.Attr {
+		if t.Attr[i].Name.Local == "about" && t.Attr[i].Name.Space == rdfNS {
+			t.Attr[i].Name.Local = "ID"
+			t.Attr[i].Name.Space = ""
+			t.Attr[i].Value = strings.TrimPrefix(t.Attr[i].Value, "#")
+			return
+		}
+	}
+}
+
 type CIMProfile struct {
-	ModelId          string `xml:"rdf:about,attr"`
+	ModelId          string `xml:"http://www.w3.org/1999/02/22-rdf-syntax-ns# about,attr"`
 	ModelDependentOn *struct {
 		MRID string `xml:"resource,attr"`
 	} `xml:"Model.DependentOn,omitempty"`
@@ -91,6 +106,7 @@ func DecodeProfile(r io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs
 
 		switch t := token.(type) {
 		case xml.StartElement:
+			normalizeRDFAbout(&t)
 			labelParts := strings.Split(t.Name.Local, ".")
 			labelEnd := labelParts[len(labelParts)-1]
 

@@ -51,7 +51,7 @@ func AddElementToProto(protoList *apiv1.CIMElementList, elem interface{}) error 
 	return nil
 }
 
-// MapFields copies fields from a cimgostructs struct to an apiv1 struct using reflection.
+// MapFields copies fields from a cimstructs struct to an apiv1 struct using reflection.
 // It handles embedded fields by flattening them and maps IDs to MRID.
 func MapFields(src, dst interface{}) {
 	srcVal := reflect.ValueOf(src)

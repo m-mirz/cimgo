@@ -664,11 +664,11 @@ func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMElement
 
 	for id, lrc := range dataset.LoadResponseCharacteristics {
 		// Exponent model attributes (active/reactive voltage/frequency exponents)
-		// Note: In cimgostructs, these are typically float64, so we check if they are provided (non-zero).
+		// Note: In cimstructs, these are typically float64, so we check if they are provided (non-zero).
 		// However, 0 is a valid value for an exponent.
 		// For simplicity in this implementation, we assume if they are part of the exchange, they are present.
 		// In a real RDF/XML dataset, "missing" would mean the tag is absent.
-		// Since cimgostructs is a flat structure from XML, we might need to check if they were actually in the XML.
+		// Since cimstructs is a flat structure from XML, we might need to check if they were actually in the XML.
 		// But here we'll follow the logic of the SPARQL which checks for existence.
 
 		// For the sake of the rule, we'll check if the model is consistent.
@@ -1395,7 +1395,9 @@ func CheckLimitKindTCDuration(dataset *cimstructs.CIMElementList) []Violation {
 	}
 
 	limitsPerOLTSet := make(map[string]map[string]int)
-	addTCLimit := func(oltPtr, setPtr *struct{ MRID string `xml:"resource,attr"` }) {
+	addTCLimit := func(oltPtr, setPtr *struct {
+		MRID string `xml:"resource,attr"`
+	}) {
 		if oltPtr == nil || setPtr == nil {
 			return
 		}
@@ -2663,7 +2665,9 @@ func CheckTapChangerNeutralUValueRange(dataset *cimstructs.CIMElementList) []Vio
 	var violations []Violation
 	const epsilon = 1e-6
 
-	checkNeutralU := func(id string, neutralU float64, teRef *struct{ MRID string `xml:"resource,attr"` }, class string) {
+	checkNeutralU := func(id string, neutralU float64, teRef *struct {
+		MRID string `xml:"resource,attr"`
+	}, class string) {
 		if teRef == nil {
 			return
 		}

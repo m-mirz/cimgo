@@ -16,7 +16,7 @@
 // Output is written into a sibling package (default cimgo/shaclgen) so the
 // generated code stays segregated from the hand-written validation package.
 // The generated code uses shaclmodel.Violation for its return type. The
-// generator depends only on shaclimport (parser) and cimgostructs, so
+// generator depends only on shaclimport (parser) and cimstructs, so
 // `go generate` can build it on a clean checkout even before any generated
 // code exists in cimgo/shaclgen.
 package main
@@ -268,7 +268,7 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 	used := map[string]int{}
 	importSet := map[string]struct{}{
 		"cimgo/cimstructs": {},
-		"cimgo/shaclmodel":   {},
+		"cimgo/shaclmodel": {},
 	}
 
 	var processShape func(shape shaclimport.ShapeInfo, currentClasses []string)
@@ -379,7 +379,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	// not on `structName` (the class whose constraints we're processing).
 	// Otherwise the field lives on structName.
 	//
-	// targetClasses is the list of concrete cimgostructs class names to
+	// targetClasses is the list of concrete cimstructs class names to
 	// dispatch over. For a class that's directly in StructMap it's
 	// {targetClass}; for an abstract base class (e.g. ExcitationSystemDynamics)
 	// we discover its concrete subclasses by walking StructMap and emit a
@@ -815,7 +815,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 //
 //   Won't fix — see README.md "Known limitations":
 //
-//     - Required on bool fields [413]: would need *bool in cimgostructs;
+//     - Required on bool fields [413]: would need *bool in cimstructs;
 //       wide refactor for callers, no detectable wins.
 //     - LessThan paired field xml tag not found [22]: 4 are upstream TTL
 //       typos, 18 are cross-class semantics that require shared-MRID
@@ -985,7 +985,7 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 // enum-as-IRI reference fields (pointer to struct{URI string}). Enum-URI
 // fields need a special path because the value lives one pointer hop deeper
 // than a plain string — comparing v.Field.URI against the matching
-// cimgostructs constant catches violations a generic string compare on
+// cimstructs constant catches violations a generic string compare on
 // v.Field would miss.
 func hasValueCondition(field reflect.StructField, payload any) (string, string, error) {
 	want, ok := payload.(string)
@@ -1145,9 +1145,9 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 
 // enumURIFieldConst inspects field for the enum-as-IRI shape (pointer to a
 // struct with a single string field named URI). When the shape matches, the
-// returned constIdent is the cimgostructs constant identifier corresponding
+// returned constIdent is the cimstructs constant identifier corresponding
 // to payload — derived by stripping the cim: prefix and dropping the dot
-// between enum name and member, since cimgostructs names enum constants
+// between enum name and member, since cimstructs names enum constants
 // `<EnumName><Member>` (e.g. cim:InputSignalKind.generatorElectricalPower →
 // InputSignalKindgeneratorElectricalPower). A missing constant turns into a
 // build error in the generated code, not a silent miscompare here.
@@ -1922,7 +1922,7 @@ func inverseHasEnumValueCheck(targetClasses []string, refField, valueField refle
 	return b.String(), cond
 }
 
-// concreteSubclassesEmbedding returns the sorted list of concrete cimgostructs
+// concreteSubclassesEmbedding returns the sorted list of concrete cimstructs
 // class names (those present in StructMap) whose Go type embeds — directly or
 // transitively — an anonymous struct named `abstract`. This is how the
 // generator handles SHACL inverse paths that target abstract base classes
@@ -2039,7 +2039,7 @@ func simpleClassName(s string) (string, bool) {
 // stripCIMPrefix removes a leading "cim:" or "cim<version>." (e.g. "cim100.")
 // segment from a SHACL identifier. Returns the remainder and true on match.
 // CGMES profiles intermix CIM 16/17 (no version suffix or "cim16") and CIM 100
-// (CGMES 3.0) names, but cimgostructs has a single Go struct per class
+// (CGMES 3.0) names, but cimstructs has a single Go struct per class
 // regardless of CIM version, so the prefix is irrelevant for code generation.
 func stripCIMPrefix(s string) (string, bool) {
 	if !strings.HasPrefix(s, "cim") {

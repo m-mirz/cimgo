@@ -231,12 +231,12 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 4 | Empty `sh:in` list | `sh:in ()` with no values in inverse-association profiles |
 | 4 | Non-`cim:` namespace | `mdc:FullModel`, `diff:DifferenceModel` — Header and AllProfiles shapes outside the CIM namespace |
 
-#### Fields or classes absent from `cimgostructs`
+#### Fields or classes absent from `cimstructs`
 
 | Count | Kind | Detail |
 |------:|------|--------|
 | 8 | Field missing from struct | `CrossCompoundTurbineGovernorDynamics.SynchronousMachineDynamics` (4), `AccumulatorValue.value`, `CSCDynamics.CsConverter`, `GenICompensationForGenJ.VCompIEEEType2`, `WindTurbineType3or4IEC.WindContQIEC` |
-| 2 | Class name capitalisation mismatch | SHACL uses `CSConverter`; `cimgostructs` generates `CsConverter` |
+| 2 | Class name capitalisation mismatch | SHACL uses `CSConverter`; `cimstructs` generates `CsConverter` |
 | 10 | Class not generated | `AllGeneratingUnit`, `AngleReference`, `DanglingReferences`, `FloatSpecialValues`, `GovHydroIEEE1`, `IDchecks`, `IDuniqueness`, `IdentifiedObjectStringLength`, `SubstationCount`, `TextDiagramObjectDiagramObject` |
 
 ### SPARQL Check Coverage

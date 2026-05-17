@@ -1,6 +1,6 @@
 package cimgostructs
 
-{{if not .SuperType}}import "cimgo/cimgobase"
+{{if not .SuperType}}import "cimgo/cimbase"
 {{end}}
 
 // {{.Comment}}
@@ -8,7 +8,7 @@ type {{.Id}} struct {
 {{- if .SuperType}}
     {{.SuperType}}
 {{- else}}
-    cimgobase.Base
+    cimbase.Base
 {{- end}}
 
 {{- range .Attributes}}

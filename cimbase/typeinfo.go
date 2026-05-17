@@ -1,4 +1,4 @@
-package cimgobase
+package cimbase
 
 type CIMTypeInfo struct {
 	Namespace string
@@ -7,8 +7,6 @@ type CIMTypeInfo struct {
 }
 
 type CIMAttributeInfo struct {
-	Id        string
-	Label     string
 	Namespace string
 	Origin    string
 	Origins   []string

@@ -1,7 +1,7 @@
 package cgmesxml
 
 import (
-	"cimgo/cimgobase"
+	"cimgo/cimbase"
 	"cimgo/cimgostructs"
 	"cimgo/cimxml"
 	"encoding/xml"
@@ -53,7 +53,7 @@ func containsOrigin(origins []string, code string) bool {
 
 // rdfAttr builds either rdf:ID or rdf:about depending on whether this profile
 // is the primary owner of the element.
-func rdfAttr(id, profileCode string, typeInfo cimgobase.CIMTypeInfo) xml.Attr {
+func rdfAttr(id, profileCode string, typeInfo cimbase.CIMTypeInfo) xml.Attr {
 	if typeInfo.Origin == profileCode {
 		return xml.Attr{Name: xml.Name{Local: "rdf:ID"}, Value: id}
 	}
@@ -67,7 +67,7 @@ func rdfAttr(id, profileCode string, typeInfo cimgobase.CIMTypeInfo) xml.Attr {
 // profileAttrBelongsToType reports whether attrInfo's attribute should be emitted
 // for profileCode given the concrete element's type origins.
 // An attribute A belongs to profile P for type T iff P ∈ A.Origins AND P ∈ typeOrigins.
-func profileAttrBelongsToType(attrInfo cimgobase.CIMAttributeInfo, profileCode string, typeOrigins []string) bool {
+func profileAttrBelongsToType(attrInfo cimbase.CIMAttributeInfo, profileCode string, typeOrigins []string) bool {
 	if !containsOrigin(attrInfo.Origins, profileCode) {
 		return false
 	}
@@ -93,7 +93,7 @@ func hasStrictProfileField(v reflect.Value, profileCode string) bool {
 		field := t.Field(i)
 		fv := v.Field(i)
 		if field.Anonymous {
-			if field.Type == reflect.TypeOf(cimgobase.Base{}) {
+			if field.Type == reflect.TypeOf(cimbase.Base{}) {
 				continue
 			}
 			if hasStrictProfileField(fv, profileCode) {
@@ -137,7 +137,7 @@ func hasProfileFields(v reflect.Value, profileCode string, typeOrigins []string)
 		field := t.Field(i)
 		fv := v.Field(i)
 		if field.Anonymous {
-			if field.Type == reflect.TypeOf(cimgobase.Base{}) {
+			if field.Type == reflect.TypeOf(cimbase.Base{}) {
 				continue
 			}
 			if hasProfileFields(fv, profileCode, typeOrigins) {
@@ -181,10 +181,10 @@ func encodeFields(enc *cimxml.Encoder, v reflect.Value, profileCode string, type
 		field := t.Field(i)
 		fv := v.Field(i)
 
-		// Recurse into anonymous (embedded) structs, but skip cimgobase.Base
+		// Recurse into anonymous (embedded) structs, but skip cimbase.Base
 		// which only holds the rdf:ID attribute (already emitted).
 		if field.Anonymous {
-			if field.Type == reflect.TypeOf(cimgobase.Base{}) {
+			if field.Type == reflect.TypeOf(cimbase.Base{}) {
 				continue
 			}
 			if err := encodeFields(enc, fv, profileCode, typeOrigins); err != nil {
@@ -214,7 +214,7 @@ func encodeFields(enc *cimxml.Encoder, v reflect.Value, profileCode string, type
 	return nil
 }
 
-func encodeField(enc *cimxml.Encoder, fv reflect.Value, tagName string, attrInfo cimgobase.CIMAttributeInfo, profileCode string) error {
+func encodeField(enc *cimxml.Encoder, fv reflect.Value, tagName string, attrInfo cimbase.CIMAttributeInfo, profileCode string) error {
 	prefix := nsPrefix(attrInfo.Namespace)
 	localName := prefix + ":" + tagName
 
@@ -349,7 +349,7 @@ func EncodeForProfile(w io.Writer, cimData *cimgostructs.CIMElementList, profile
 			continue
 		}
 
-		id := element.(cimgobase.CIMElement).GetId()
+		id := element.(cimbase.CIMElement).GetId()
 		elemPrefix := nsPrefix(typeInfo.Namespace)
 		startLocal := elemPrefix + ":" + typeName
 

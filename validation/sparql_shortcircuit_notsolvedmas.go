@@ -1,14 +1,14 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"fmt"
 	"strings"
 )
 
 // ValidateSCNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	return CheckMutualCouplingTerminalsAssignment(dataset)
 }
 
@@ -17,7 +17,7 @@ func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) [
 // Origin: Derived from a SPARQL constraint.
 // Description: The first and second terminals of a mutual coupling should point to different
 // ACLineSegments (or generic Equipment).
-func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	conductingEquipmentOf := func(termRef *struct {
@@ -31,7 +31,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList
 		if !ok {
 			return "", nil, false
 		}
-		term, ok := termObj.(*cimgostructs.Terminal)
+		term, ok := termObj.(*cimstructs.Terminal)
 		if !ok || term.ConductingEquipment == nil {
 			return "", nil, false
 		}
@@ -44,7 +44,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList
 	}
 
 	for id, obj := range dataset.Elements {
-		mc, ok := obj.(*cimgostructs.MutualCoupling)
+		mc, ok := obj.(*cimstructs.MutualCoupling)
 		if !ok {
 			continue
 		}
@@ -59,7 +59,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimgostructs.CIMElementList
 				return false
 			}
 			switch o.(type) {
-			case *cimgostructs.ACLineSegment, *cimgostructs.Equipment:
+			case *cimstructs.ACLineSegment, *cimstructs.Equipment:
 				return true
 			}
 			return false

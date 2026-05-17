@@ -2,7 +2,7 @@ package validation
 
 import (
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
 	"io"
 	"os"
@@ -649,7 +649,7 @@ func BenchmarkRealGridLoadSequential(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		dataset := cimgostructs.NewCIMElementList()
+		dataset := cimstructs.NewCIMElementList()
 		for _, blob := range blobs {
 			if _, err := cgmesxml.DecodeProfile(bytes.NewReader(blob), dataset); err != nil {
 				b.Fatal(err)

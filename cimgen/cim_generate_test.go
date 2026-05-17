@@ -29,7 +29,7 @@ func TestGenerate(t *testing.T) {
 	t.Logf("Directory Hash: %s\n", hash)
 
 	// Test directory hash
-	expectedHash := "h1:Z+Hzo5hxx4KyGZXU+AWXE5Q9TBKD6hs9SnpUHIcw4YM="
+	expectedHash := "h1:8bcVcESfNYa58E/QHNiBWUV6OF1pJrwaGysNZXAmUsk="
 	if hash != expectedHash {
 		t.Error("decoder tests failed, output file hash does not match expected hash")
 	}

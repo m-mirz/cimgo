@@ -1,14 +1,14 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"fmt"
 	"reflect"
 	"strings"
 )
 
 // ValidateOPProfileSPARQL runs hand-written checks for 61970-301_Operation.
-func ValidateOPProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateOPProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	return CheckMeasurementTerminalRequiredCases(dataset)
 }
 
@@ -17,7 +17,7 @@ func ValidateOPProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: Measurement.Terminal must reference a Terminal of the Equipment referenced by
 // Measurement.PowerSystemResource, unless measurementType is TapPosition or SwitchPosition.
-func CheckMeasurementTerminalRequiredCases(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {

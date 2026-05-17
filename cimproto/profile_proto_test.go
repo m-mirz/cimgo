@@ -2,7 +2,7 @@ package cimproto
 
 import (
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
 	apiv1 "cimgo/proto/api/v1"
 	"encoding/json"
@@ -28,7 +28,7 @@ func TestProfileToProto(t *testing.T) {
 		t.Fatalf("Failed to decode CIM profile: %v", err)
 	}
 
-	// 1. Convert cimgostructs.CIMElementList to apiv1.CIMElementList using exported function
+	// 1. Convert cimstructs.CIMElementList to apiv1.CIMElementList using exported function
 	protoList, err := ToProto(cimData)
 	if err != nil {
 		t.Fatalf("Failed to convert to proto: %v", err)
@@ -65,7 +65,7 @@ func TestMergedProfileToProto(t *testing.T) {
 		t.Fatalf("Failed to glob test files: %v", err)
 	}
 
-	mergedCIMData := cimgostructs.NewCIMElementList()
+	mergedCIMData := cimstructs.NewCIMElementList()
 	for _, entry := range entries {
 		b, err := os.ReadFile(entry)
 		if err != nil {
@@ -78,7 +78,7 @@ func TestMergedProfileToProto(t *testing.T) {
 		}
 	}
 
-	// 1. Convert cimgostructs.CIMElementList to apiv1.CIMElementList
+	// 1. Convert cimstructs.CIMElementList to apiv1.CIMElementList
 	protoList, err := ToProto(mergedCIMData)
 	if err != nil {
 		t.Fatalf("Failed to convert merged data to proto: %v", err)

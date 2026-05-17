@@ -3,7 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
 	"cimgo/cimproto"
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 )
 
 // Global map to store CIM specifications in memory, keyed by ID.
-var cimDataset = make(map[string]*cimgostructs.CIMElementList)
+var cimDataset = make(map[string]*cimstructs.CIMElementList)
 var protoDataset = make(map[string][]byte)
 var mu sync.RWMutex
 

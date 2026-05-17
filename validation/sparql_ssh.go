@@ -1,11 +1,11 @@
 package validation
 
-import "cimgo/cimgostructs"
+import "cimgo/cimstructs"
 
 // ValidateSSHProfileSPARQL runs hand-written checks for
 // 61970-301_SteadyStateHypothesis-AP-Con-Complex-SHACL and
 // 61970-456_SteadyStateHypothesis-AP-Con-Complex-SHACL.
-func ValidateSSHProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSSHProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckEnergySourceActivePowerConsumer(dataset)...)
 	violations = append(violations, CheckRegulatingControlTargetDeadbandApplicability(dataset)...)
@@ -28,7 +28,7 @@ func ValidateSSHProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation 
 // Origin: Derived from a SPARQL constraint.
 // Description: Load sign convention is used, i.e. positive sign means flow out from a node.
 // Warning if EnergySource is a consumer (activePower > 0).
-func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckEnergySourceActivePowerConsumer(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, es := range dataset.EnergySources {
@@ -50,7 +50,7 @@ func CheckEnergySourceActivePowerConsumer(dataset *cimgostructs.CIMElementList) 
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.
-func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, rc := range dataset.RegulatingControls {
@@ -83,7 +83,7 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimgostructs.CIM
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates that CsConverter firing and extinction angles are within typical ranges.
-func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckCsConverterValueRange(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, csc := range dataset.CsConverters {
@@ -143,7 +143,7 @@ func CheckCsConverterValueRange(dataset *cimgostructs.CIMElementList) []Violatio
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates required target values for CsConverter.pPccControl based on the selected control mode.
-func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckCsConverterPPccControl(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, csc := range dataset.CsConverters {
@@ -190,7 +190,7 @@ func CheckCsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates required target values for VsConverter.pPccControl based on the selected control mode.
-func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckVsConverterPPccControl(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, vsc := range dataset.VsConverters {
@@ -272,7 +272,7 @@ func CheckVsConverterPPccControl(dataset *cimgostructs.CIMElementList) []Violati
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates required target values for VsConverter.qPccControl based on the selected control mode.
-func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckVsConverterQPccControl(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, vsc := range dataset.VsConverters {
@@ -334,7 +334,7 @@ func CheckVsConverterQPccControl(dataset *cimgostructs.CIMElementList) []Violati
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex
 // Origin: Derived from a manual complex constraint (described as textual condition in SHACL).
 // Description: voltageAngle and voltageMagnitude shall only be used when modeling a voltage source.
-func CheckEnergySourcePQ(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckEnergySourcePQ(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, es := range dataset.EnergySources {

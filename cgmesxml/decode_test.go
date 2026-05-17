@@ -2,7 +2,7 @@ package cgmesxml
 
 import (
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"os"
 	"testing"
 )
@@ -21,7 +21,7 @@ func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
 		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
 	}
 
-	vl, ok := cimData.Elements["VoltageLevel.98"].(*cimgostructs.VoltageLevel)
+	vl, ok := cimData.Elements["VoltageLevel.98"].(*cimstructs.VoltageLevel)
 	if !ok {
 		t.Fatal("VoltageLevel.98 not found or wrong type")
 	}
@@ -32,7 +32,7 @@ func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
 		t.Errorf("VoltageLevel.BaseVoltage: got %v, want MRID=#BaseVoltage.20", vl.BaseVoltage)
 	}
 
-	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimgostructs.BaseVoltage)
+	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimstructs.BaseVoltage)
 	if !ok {
 		t.Fatal("BaseVoltage.20 not found or wrong type")
 	}
@@ -58,7 +58,7 @@ func TestDecodeRDFAbout(t *testing.T) {
 		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
 	}
 
-	a, ok := cimData.Elements["Analog.N0.Voltage"].(*cimgostructs.Analog)
+	a, ok := cimData.Elements["Analog.N0.Voltage"].(*cimstructs.Analog)
 	if !ok {
 		t.Fatal("Analog.N0.Voltage not found or wrong type")
 	}
@@ -69,7 +69,7 @@ func TestDecodeRDFAbout(t *testing.T) {
 		t.Errorf("Analog.MeasurementType: got %q, want %q", a.MeasurementType, "Voltage")
 	}
 
-	av, ok := cimData.Elements["AnalogValue.N0.Voltage"].(*cimgostructs.AnalogValue)
+	av, ok := cimData.Elements["AnalogValue.N0.Voltage"].(*cimstructs.AnalogValue)
 	if !ok {
 		t.Fatal("AnalogValue.N0.Voltage not found or wrong type")
 	}
@@ -92,7 +92,7 @@ func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
 		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
 	}
 
-	tn, ok := cimData.Elements["N0"].(*cimgostructs.TopologicalNode)
+	tn, ok := cimData.Elements["N0"].(*cimstructs.TopologicalNode)
 	if !ok {
 		t.Fatal("TopologicalNode N0 not found or wrong type")
 	}
@@ -100,7 +100,7 @@ func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
 		t.Errorf("TopologicalNode.Name: got %q, want %q", tn.Name, "N0")
 	}
 
-	term, ok := cimData.Elements["Terminal.N0"].(*cimgostructs.Terminal)
+	term, ok := cimData.Elements["Terminal.N0"].(*cimstructs.Terminal)
 	if !ok {
 		t.Fatal("Terminal.N0 not found or wrong type")
 	}
@@ -126,7 +126,7 @@ func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
 		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
 	}
 
-	fm, ok := cimData.Elements["test004"].(*cimgostructs.FullModel)
+	fm, ok := cimData.Elements["test004"].(*cimstructs.FullModel)
 	if !ok {
 		t.Fatal("FullModel test004 not found or wrong type")
 	}
@@ -134,7 +134,7 @@ func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
 		t.Errorf("FullModel.Profile: got %v, want [http://iec.ch/TC57/ns/CIM/CoreEquipment-EU/3.0]", fm.Profile)
 	}
 
-	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimgostructs.BaseVoltage)
+	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimstructs.BaseVoltage)
 	if !ok {
 		t.Fatal("BaseVoltage.20 not found or wrong type")
 	}
@@ -162,7 +162,7 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
 	}
 
-	cn, ok := cimData.Elements["N0"].(*cimgostructs.ConnectivityNode)
+	cn, ok := cimData.Elements["N0"].(*cimstructs.ConnectivityNode)
 	if !ok {
 		t.Fatal("ConnectivityNode N0 not found or wrong type")
 	}
@@ -170,7 +170,7 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 		t.Errorf("ConnectivityNode.Name: got %q, want %q", cn.Name, "N0")
 	}
 
-	bp, ok := cimData.Elements["N0_BP"].(*cimgostructs.BoundaryPoint)
+	bp, ok := cimData.Elements["N0_BP"].(*cimstructs.BoundaryPoint)
 	if !ok {
 		t.Fatal("BoundaryPoint N0_BP not found or wrong type")
 	}
@@ -185,7 +185,7 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 // with a TopologicalNode reference. After merging both files the terminal must
 // carry both the name and the reference.
 func TestMergeProfiles(t *testing.T) {
-	merged := cimgostructs.NewCIMElementList()
+	merged := cimstructs.NewCIMElementList()
 
 	for _, file := range []string{
 		"../testdata/test_009_EQ.xml",
@@ -204,7 +204,7 @@ func TestMergeProfiles(t *testing.T) {
 		t.Fatalf("expected 2 elements after merge, got %d", len(merged.Elements))
 	}
 
-	tn, ok := merged.Elements["N0"].(*cimgostructs.TopologicalNode)
+	tn, ok := merged.Elements["N0"].(*cimstructs.TopologicalNode)
 	if !ok {
 		t.Fatal("TopologicalNode N0 not found or wrong type after merge")
 	}
@@ -212,7 +212,7 @@ func TestMergeProfiles(t *testing.T) {
 		t.Errorf("TopologicalNode.Name: got %q, want %q", tn.Name, "N0")
 	}
 
-	term, ok := merged.Elements["Terminal.N0"].(*cimgostructs.Terminal)
+	term, ok := merged.Elements["Terminal.N0"].(*cimstructs.Terminal)
 	if !ok {
 		t.Fatal("Terminal.N0 not found or wrong type after merge")
 	}

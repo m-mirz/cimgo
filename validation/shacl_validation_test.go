@@ -2,7 +2,7 @@ package validation
 
 import (
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
 	"io"
 	"os"
@@ -32,7 +32,7 @@ func loadEQBDBaseVoltageIDs(t *testing.T, path string) map[string]struct{} {
 		if !bytes.Contains(b, []byte("EquipmentBoundary-EU/3.0")) {
 			continue
 		}
-		temp := cimgostructs.NewCIMElementList()
+		temp := cimstructs.NewCIMElementList()
 		if _, err := cgmesxml.DecodeProfile(bytes.NewReader(b), temp); err != nil {
 			t.Fatalf("Failed to decode EQBD file %s: %v", f.Name(), err)
 		}
@@ -53,9 +53,9 @@ func indexByID(violations []Violation) map[string][]Violation {
 	return out
 }
 
-func loadDataset(tb testing.TB, path string) *cimgostructs.CIMElementList {
+func loadDataset(tb testing.TB, path string) *cimstructs.CIMElementList {
 	tb.Helper()
-	dataset := cimgostructs.NewCIMElementList()
+	dataset := cimstructs.NewCIMElementList()
 	b, err := os.ReadFile(path)
 	if err != nil {
 		tb.Fatalf("Failed to read %s: %v", path, err)
@@ -65,7 +65,7 @@ func loadDataset(tb testing.TB, path string) *cimgostructs.CIMElementList {
 	return dataset
 }
 
-func loadDirectory(tb testing.TB, path string) *cimgostructs.CIMElementList {
+func loadDirectory(tb testing.TB, path string) *cimstructs.CIMElementList {
 	tb.Helper()
 	files, err := os.ReadDir(path)
 	if err != nil {

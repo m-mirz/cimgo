@@ -1,12 +1,12 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"strings"
 )
 
 // ValidateDLProfileSPARQL runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
-func ValidateDLProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateDLProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	return CheckDiagramObjectIdentifiedObjectType(dataset)
 }
 
@@ -15,17 +15,17 @@ func ValidateDLProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: DiagramObject.IdentifiedObject must be an IRI and must NOT point to one of:
 // Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
-func CheckDiagramObjectIdentifiedObjectType(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	disallowed := func(o interface{}) bool {
 		switch o.(type) {
-		case *cimgostructs.Diagram,
-			*cimgostructs.DiagramObject,
-			*cimgostructs.VisibilityLayer,
-			*cimgostructs.DiagramStyle,
-			*cimgostructs.DiagramObjectStyle,
-			*cimgostructs.TextDiagramObject:
+		case *cimstructs.Diagram,
+			*cimstructs.DiagramObject,
+			*cimstructs.VisibilityLayer,
+			*cimstructs.DiagramStyle,
+			*cimstructs.DiagramObjectStyle,
+			*cimstructs.TextDiagramObject:
 			return true
 		}
 		return false
@@ -37,9 +37,9 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimgostructs.CIMElementList
 		}
 
 		switch v := obj.(type) {
-		case *cimgostructs.DiagramObject:
+		case *cimstructs.DiagramObject:
 			identifiedObject = v.IdentifiedObject_
-		case *cimgostructs.TextDiagramObject:
+		case *cimstructs.TextDiagramObject:
 			identifiedObject = v.IdentifiedObject_
 		default:
 			continue

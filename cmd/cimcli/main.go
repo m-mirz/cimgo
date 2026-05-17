@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
 	"cimgo/validation"
 	"encoding/json"
@@ -69,8 +69,8 @@ func runValidate(args []string) {
 		os.Exit(1)
 	}
 
-	dataset := cimgostructs.NewCIMElementList()
-	profileDatasets := make(map[string]*cimgostructs.CIMElementList)
+	dataset := cimstructs.NewCIMElementList()
+	profileDatasets := make(map[string]*cimstructs.CIMElementList)
 	eqbdBVIDs := make(map[string]struct{})
 	for _, file := range files {
 		b, err := os.ReadFile(file)
@@ -177,7 +177,7 @@ func runConvert(args []string) {
 		os.Exit(1)
 	}
 
-	dataset := cimgostructs.NewCIMElementList()
+	dataset := cimstructs.NewCIMElementList()
 	for _, file := range files {
 		b, err := os.ReadFile(file)
 		if err != nil {

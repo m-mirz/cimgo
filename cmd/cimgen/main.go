@@ -42,7 +42,7 @@ func run(logger *log.Logger, schemaPattern, language, cgmesVersion string) error
 		return fmt.Errorf("failed to import CIM schema files: %w", err)
 	}
 
-	outputDir := "cimgostructs"
+	outputDir := "cimstructs"
 	if language == "proto" {
 		outputDir = "proto/definitions"
 	}

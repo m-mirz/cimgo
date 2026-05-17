@@ -2,7 +2,7 @@ package cgmesxml
 
 import (
 	"cimgo/cimbase"
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cimxml"
 	"encoding/xml"
 	"fmt"
@@ -13,8 +13,8 @@ import (
 
 // reverseNamespaces maps namespace URI → xmlns prefix (e.g. "cim", "eu", "md").
 var reverseNamespaces = func() map[string]string {
-	m := make(map[string]string, len(cimgostructs.CIMNamespaces))
-	for prefix, uri := range cimgostructs.CIMNamespaces {
+	m := make(map[string]string, len(cimstructs.CIMNamespaces))
+	for prefix, uri := range cimstructs.CIMNamespaces {
 		m[uri] = prefix
 	}
 	return m
@@ -109,7 +109,7 @@ func hasStrictProfileField(v reflect.Value, profileCode string) bool {
 		if tagName == "ID" {
 			continue
 		}
-		attrInfo, ok := cimgostructs.AttributeInfoMap[tagName]
+		attrInfo, ok := cimstructs.AttributeInfoMap[tagName]
 		if !ok || len(attrInfo.Origins) != 1 || attrInfo.Origins[0] != profileCode {
 			continue
 		}
@@ -153,7 +153,7 @@ func hasProfileFields(v reflect.Value, profileCode string, typeOrigins []string)
 		if tagName == "ID" {
 			continue
 		}
-		attrInfo, ok := cimgostructs.AttributeInfoMap[tagName]
+		attrInfo, ok := cimstructs.AttributeInfoMap[tagName]
 		if !ok || !profileAttrBelongsToType(attrInfo, profileCode, typeOrigins) {
 			continue
 		}
@@ -202,7 +202,7 @@ func encodeFields(enc *cimxml.Encoder, v reflect.Value, profileCode string, type
 			continue
 		}
 
-		attrInfo, ok := cimgostructs.AttributeInfoMap[tagName]
+		attrInfo, ok := cimstructs.AttributeInfoMap[tagName]
 		if !ok || !profileAttrBelongsToType(attrInfo, profileCode, typeOrigins) {
 			continue
 		}
@@ -314,7 +314,7 @@ func emitCharData(enc *cimxml.Encoder, localName, value string) error {
 // EncodeForProfile encodes only the elements and attributes that belong to
 // profileCode into w, using rdf:ID for primary-profile elements and rdf:about
 // for secondary-profile references, with correct namespace prefixes.
-func EncodeForProfile(w io.Writer, cimData *cimgostructs.CIMElementList, profileCode string) error {
+func EncodeForProfile(w io.Writer, cimData *cimstructs.CIMElementList, profileCode string) error {
 	if _, err := w.Write([]byte("<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n")); err != nil {
 		return err
 	}
@@ -325,10 +325,10 @@ func EncodeForProfile(w io.Writer, cimData *cimgostructs.CIMElementList, profile
 	root := xml.StartElement{
 		Name: xml.Name{Local: "rdf:RDF"},
 		Attr: []xml.Attr{
-			{Name: xml.Name{Local: "xmlns:rdf"}, Value: cimgostructs.CIMNamespaces["rdf"]},
-			{Name: xml.Name{Local: "xmlns:cim"}, Value: cimgostructs.CIMNamespaces["cim"]},
-			{Name: xml.Name{Local: "xmlns:eu"}, Value: cimgostructs.CIMNamespaces["eu"]},
-			{Name: xml.Name{Local: "xmlns:md"}, Value: cimgostructs.CIMNamespaces["md"]},
+			{Name: xml.Name{Local: "xmlns:rdf"}, Value: cimstructs.CIMNamespaces["rdf"]},
+			{Name: xml.Name{Local: "xmlns:cim"}, Value: cimstructs.CIMNamespaces["cim"]},
+			{Name: xml.Name{Local: "xmlns:eu"}, Value: cimstructs.CIMNamespaces["eu"]},
+			{Name: xml.Name{Local: "xmlns:md"}, Value: cimstructs.CIMNamespaces["md"]},
 		},
 	}
 	if err := enc.EncodeToken(root); err != nil {
@@ -344,7 +344,7 @@ func EncodeForProfile(w io.Writer, cimData *cimgostructs.CIMElementList, profile
 		}
 		typeName := rv.Name()
 
-		typeInfo, ok := cimgostructs.TypeInfoMap[typeName]
+		typeInfo, ok := cimstructs.TypeInfoMap[typeName]
 		if !ok {
 			continue
 		}

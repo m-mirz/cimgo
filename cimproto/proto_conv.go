@@ -1,15 +1,15 @@
 package cimproto
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	apiv1 "cimgo/proto/api/v1"
 	"fmt"
 	"reflect"
 	"strings"
 )
 
-// ToProto converts a cimgostructs.CIMElementList to its Protobuf equivalent apiv1.CIMElementList.
-func ToProto(cimData *cimgostructs.CIMElementList) (*apiv1.CIMElementList, error) {
+// ToProto converts a cimstructs.CIMElementList to its Protobuf equivalent apiv1.CIMElementList.
+func ToProto(cimData *cimstructs.CIMElementList) (*apiv1.CIMElementList, error) {
 	protoList := &apiv1.CIMElementList{}
 	for id, elem := range cimData.Elements {
 		err := AddElementToProto(protoList, elem)

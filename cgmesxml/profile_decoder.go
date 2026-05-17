@@ -1,4 +1,4 @@
-package cimprofiles
+package cgmesxml
 
 import (
 	"cimgo/cimgostructs"

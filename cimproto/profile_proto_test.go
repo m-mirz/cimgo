@@ -3,7 +3,7 @@ package cimproto
 import (
 	"bytes"
 	"cimgo/cimgostructs"
-	"cimgo/cimprofiles"
+	"cimgo/cgmesxml"
 	apiv1 "cimgo/proto/api/v1"
 	"encoding/json"
 	"os"
@@ -23,7 +23,7 @@ func TestProfileToProto(t *testing.T) {
 		t.Fatalf("Failed to read test file: %v", err)
 	}
 
-	cimData, err := cimprofiles.DecodeProfile(bytes.NewReader(b), nil)
+	cimData, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
 	if err != nil {
 		t.Fatalf("Failed to decode CIM profile: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestMergedProfileToProto(t *testing.T) {
 			t.Fatalf("Failed to read test file %s: %v", entry, err)
 		}
 
-		_, err = cimprofiles.DecodeProfile(bytes.NewReader(b), mergedCIMData)
+		_, err = cgmesxml.DecodeProfile(bytes.NewReader(b), mergedCIMData)
 		if err != nil {
 			t.Fatalf("Failed to decode CIM profile %s: %v", entry, err)
 		}

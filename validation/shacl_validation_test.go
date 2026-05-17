@@ -3,7 +3,7 @@ package validation
 import (
 	"bytes"
 	"cimgo/cimgostructs"
-	"cimgo/cimprofiles"
+	"cimgo/cgmesxml"
 	"io"
 	"os"
 	"path/filepath"
@@ -33,7 +33,7 @@ func loadEQBDBaseVoltageIDs(t *testing.T, path string) map[string]struct{} {
 			continue
 		}
 		temp := cimgostructs.NewCIMElementList()
-		if _, err := cimprofiles.DecodeProfile(bytes.NewReader(b), temp); err != nil {
+		if _, err := cgmesxml.DecodeProfile(bytes.NewReader(b), temp); err != nil {
 			t.Fatalf("Failed to decode EQBD file %s: %v", f.Name(), err)
 		}
 		for id := range temp.BaseVoltages {
@@ -60,7 +60,7 @@ func loadDataset(tb testing.TB, path string) *cimgostructs.CIMElementList {
 	if err != nil {
 		tb.Fatalf("Failed to read %s: %v", path, err)
 	}
-	cimprofiles.DecodeProfile(bytes.NewReader(b), dataset)
+	cgmesxml.DecodeProfile(bytes.NewReader(b), dataset)
 	tb.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
 	return dataset
 }
@@ -83,7 +83,7 @@ func loadDirectory(tb testing.TB, path string) *cimgostructs.CIMElementList {
 		}
 	}
 
-	dataset, err := cimprofiles.DecodeProfiles(readers, nil)
+	dataset, err := cgmesxml.DecodeProfiles(readers, nil)
 	if err != nil {
 		tb.Fatalf("Failed to decode profiles in %s: %v", path, err)
 	}

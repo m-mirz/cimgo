@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"cimgo/cimgostructs"
-	"cimgo/cimprofiles"
+	"cimgo/cgmesxml"
 	"cimgo/validation"
 	"encoding/json"
 	"flag"
@@ -78,7 +78,7 @@ func runValidate(args []string) {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		isolated, err := cimprofiles.DecodeProfile(bytes.NewReader(b), nil)
+		isolated, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
 			os.Exit(1)
@@ -93,7 +93,7 @@ func runValidate(args []string) {
 				}
 			}
 		}
-		if err := cimprofiles.MergeInto(dataset, isolated); err != nil {
+		if err := cgmesxml.MergeInto(dataset, isolated); err != nil {
 			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
 			os.Exit(1)
 		}
@@ -184,12 +184,12 @@ func runConvert(args []string) {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		isolated, err := cimprofiles.DecodeProfile(bytes.NewReader(b), nil)
+		isolated, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		if err := cimprofiles.MergeInto(dataset, isolated); err != nil {
+		if err := cgmesxml.MergeInto(dataset, isolated); err != nil {
 			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
 			os.Exit(1)
 		}

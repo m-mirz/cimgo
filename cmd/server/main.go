@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"cimgo/cimgostructs"
-	"cimgo/cimprofiles"
+	"cimgo/cgmesxml"
 	"cimgo/cimproto"
 	"encoding/json"
 	"fmt"
@@ -175,7 +175,7 @@ func processCIMFiles(id string) error {
 		readers = append(readers, bytes.NewReader(b))
 	}
 
-	mergedCIMData, err := cimprofiles.DecodeProfiles(readers, nil)
+	mergedCIMData, err := cgmesxml.DecodeProfiles(readers, nil)
 	if err != nil {
 		return fmt.Errorf("failed to decode profiles: %w", err)
 	}

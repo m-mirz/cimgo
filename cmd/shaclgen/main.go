@@ -636,6 +636,16 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			}
 			return checkSpec{}, nil, err
 		}
+		// A required-field check whose terminal path segment is in the rdf:
+		// namespace (e.g. rdf:Statements.subject/predicate/object) is
+		// structurally satisfied: the RDF spec mandates that every rdf:Statement
+		// resource has subject, predicate, and object predicates.
+		if c.Component == "sh:RequiredConstraintComponent" {
+			lastSeg := c.Path[len(c.Path)-1]
+			if strings.HasPrefix(lastSeg, "rdf:") {
+				return checkSpec{}, nil, fmt.Errorf("multi-segment Required path ending in rdf: segment %q is structurally satisfied: RDF spec mandates rdf:Statement has subject/predicate/object", lastSeg)
+			}
+		}
 		if c.Component != "sh:OrConstraintComponent" {
 			return checkSpec{}, nil, fmt.Errorf("multi-segment path %v not supported for %s", c.Path, c.Component)
 		}
@@ -824,17 +834,15 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 //
 //   Long-tail (won't fix without upstream changes):
 //
-//     - SPARQL-driven targetNode shapes [10]: "Class X has no Go struct"
-//       cases like cim:IDchecks, cim:FloatSpecialValues, cim:DanglingReferences,
-//       cim:AllGeneratingUnit, cim:TextDiagramObjectDiagramObject,
-//       cim:SubstationCount, cim:IdentifiedObjectStringLength,
-//       cim:AngleReference. These use sh:targetNode <sentinel> + sh:sparql
-//       to define their target via a SPARQL query rather than a class —
-//       out of shaclgen's static-field-check scope.
+//     - SPARQL-driven targetNode shapes [9]: cim:IDchecks,
+//       cim:FloatSpecialValues, cim:DanglingReferences, cim:AllGeneratingUnit,
+//       cim:TextDiagramObjectDiagramObject, cim:SubstationCount,
+//       cim:IdentifiedObjectStringLength, cim:AngleReference,
+//       cim:IDuniqueness. These use sh:targetNode <sentinel> + sh:sparql
+//       to define their target — out of shaclgen's static-field-check scope.
+//       All nine have hand-written implementations in validation/.
 //     - sh:In payload empty [4]: TTL bug — empty `sh:in ()` lists in
 //       Operation profile (would imply "no value acceptable"). Skip.
-//     - non-CIM target classes [4]: diff.DifferenceModel and mdc.FullModel
-//       — model-metadata classes, out of scope.
 //     - Upstream TTL typos [≈10]: CSConverter (vs CsConverter), GovHydroIEEE1
 //       (no such class), CrossCompoundTurbineGovernorDyanmics (Dynamics
 //       misspelled), missing fields like CrossCompoundTurbineGovernorDynamics
@@ -910,7 +918,7 @@ func numericCompare(field reflect.StructField, op string, payload any) (string, 
 
 func requiredCondition(field reflect.StructField) (string, error) {
 	switch field.Type.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return fmt.Sprintf("v.%s == nil", field.Name), nil
 	case reflect.Slice:
 		return fmt.Sprintf("len(v.%s) == 0", field.Name), nil
@@ -946,7 +954,7 @@ func minCountCondition(field reflect.StructField, payload any) (string, string, 
 	switch field.Type.Kind() {
 	case reflect.Slice:
 		return "", fmt.Sprintf("len(v.%s) < %d", field.Name, min), nil
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if min <= 1 {
 			return "", fmt.Sprintf("v.%s == nil", field.Name), nil
 		}
@@ -964,7 +972,7 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 	switch field.Type.Kind() {
 	case reflect.Slice:
 		return "", fmt.Sprintf("len(v.%s) > %d", field.Name, max), nil
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if max == 0 {
 			return "", fmt.Sprintf("v.%s != nil", field.Name), nil
 		}
@@ -1152,7 +1160,7 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 // InputSignalKindgeneratorElectricalPower). A missing constant turns into a
 // build error in the generated code, not a silent miscompare here.
 func enumURIFieldConst(field reflect.StructField, payload string) (string, bool, error) {
-	if field.Type.Kind() != reflect.Ptr {
+	if field.Type.Kind() != reflect.Pointer {
 		return "", false, nil
 	}
 	elem := field.Type.Elem()
@@ -1167,11 +1175,11 @@ func enumURIFieldConst(field reflect.StructField, payload string) (string, bool,
 	if !ok {
 		return "", true, fmt.Errorf("enum payload %q not in cim namespace", payload)
 	}
-	dot := strings.IndexByte(rest, '.')
-	if dot < 0 {
+	class, member, ok2 := strings.Cut(rest, ".")
+	if !ok2 {
 		return "", true, fmt.Errorf("enum payload %q missing '.member' segment", payload)
 	}
-	return rest[:dot] + rest[dot+1:], true, nil
+	return class + member, true, nil
 }
 
 // minLengthCondition handles sh:MinLength on string fields. Skip absent
@@ -1305,7 +1313,7 @@ func classCondition(field reflect.StructField, payload any) (string, string, err
 	if !ok {
 		return "", "", fmt.Errorf("Class %q not in cim namespace", want)
 	}
-	if field.Type.Kind() != reflect.Ptr {
+	if field.Type.Kind() != reflect.Pointer {
 		return "", "", fmt.Errorf("Class on non-pointer field (%s) not supported", field.Type.Kind())
 	}
 	var classes []string
@@ -1374,6 +1382,9 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 		_, parseErr1 := time.Parse("--01-02", v.%s)
 		_, parseErr2 := time.Parse("01-02", v.%s)`, field.Name, field.Name, field.Name)
 		return guard, "parseErr1 != nil && parseErr2 != nil", []string{"time"}, nil
+	case "xsd:anyURI":
+		guard := fmt.Sprintf("\t\tif v.%s == \"\" {\n\t\t\tcontinue\n\t\t}\n\t\t_, parseErr := url.ParseRequestURI(v.%s)", field.Name, field.Name)
+		return guard, "parseErr != nil", []string{"net/url"}, nil
 	}
 	return "", "", nil, fmt.Errorf("Datatype %q not supported on string field", dt)
 }
@@ -1521,6 +1532,10 @@ func multiSegDatatypeCheck(c shaclimport.ConstraintInfo, structType reflect.Type
 		fmt.Fprintf(&b, "\t\t_, parseErr2 := time.Parse(\"01-02\", parent.%s)", field.Name)
 		cond = "parseErr1 != nil && parseErr2 != nil"
 		extraImports = []string{"time", "strings"}
+	case "xsd:anyURI":
+		fmt.Fprintf(&b, "\t\t_, parseErr := url.ParseRequestURI(parent.%s)", field.Name)
+		cond = "parseErr != nil"
+		extraImports = []string{"net/url", "strings"}
 	default:
 		return checkSpec{}, nil, fmt.Errorf("Datatype %q not supported on multi-segment chain", dt)
 	}
@@ -1557,7 +1572,7 @@ func walkForwardRefChain(pathSegs []string, startType reflect.Type, startVar str
 		if !ok {
 			return "", "", fmt.Errorf("chain step %d: no field %q on %s", i, seg, currentType.Name())
 		}
-		if field.Type.Kind() != reflect.Ptr {
+		if field.Type.Kind() != reflect.Pointer {
 			return "", "", fmt.Errorf("chain step %d: field %q is %s, expected pointer", i, seg, field.Type.Kind())
 		}
 		fmt.Fprintf(&b, "\t\tif %s.%s == nil {\n\t\t\tcontinue\n\t\t}\n", currentVar, field.Name)
@@ -1606,6 +1621,12 @@ func refClassEqualCondition(refSegs []string, startType reflect.Type, payload an
 		return "", "", fmt.Errorf("HasValue payload not a string")
 	}
 	want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
+	// rdf:-namespace types (e.g. rdf:Statements) cannot be resolved to a Go
+	// struct, but CGMES format guarantees these collections only ever contain
+	// elements of the named RDF type, so the constraint is structurally satisfied.
+	if strings.HasPrefix(want, "rdf:") {
+		return "", "", fmt.Errorf("HasValue rdf:type %q is structurally satisfied: CGMES format guarantees rdf: type", want)
+	}
 	wantClass, ok := stripCIMPrefix(want)
 	if !ok {
 		return "", "", fmt.Errorf("HasValue rdf:type %q not in cim namespace", want)
@@ -2036,33 +2057,42 @@ func simpleClassName(s string) (string, bool) {
 	return name, true
 }
 
-// stripCIMPrefix removes a leading "cim:" or "cim<version>." (e.g. "cim100.")
-// segment from a SHACL identifier. Returns the remainder and true on match.
-// CGMES profiles intermix CIM 16/17 (no version suffix or "cim16") and CIM 100
-// (CGMES 3.0) names, but cimstructs has a single Go struct per class
-// regardless of CIM version, so the prefix is irrelevant for code generation.
+// stripCIMPrefix removes a leading namespace prefix from a simplified SHACL
+// identifier and returns the local name. Handles:
+//   - cim: / cim<version>. (e.g. cim100.) — the main CIM namespace variants
+//   - mdc: — ModelDescription (md:) classes such as FullModel
+//   - diff: — DifferenceModel (dm:) classes such as DifferenceModel
 func stripCIMPrefix(s string) (string, bool) {
-	if !strings.HasPrefix(s, "cim") {
-		return "", false
+	if strings.HasPrefix(s, "cim") {
+		rest := s[len("cim"):]
+		for len(rest) > 0 && rest[0] >= '0' && rest[0] <= '9' {
+			rest = rest[1:]
+		}
+		if len(rest) == 0 || (rest[0] != '.' && rest[0] != ':') {
+			return "", false
+		}
+		return rest[1:], true
 	}
-	rest := s[len("cim"):]
-	for len(rest) > 0 && rest[0] >= '0' && rest[0] <= '9' {
-		rest = rest[1:]
+	for _, prefix := range []string{"mdc:", "diff:"} {
+		if strings.HasPrefix(s, prefix) {
+			return s[len(prefix):], true
+		}
 	}
-	if len(rest) == 0 || (rest[0] != '.' && rest[0] != ':') {
-		return "", false
-	}
-	return rest[1:], true
+	return "", false
 }
 
 // cimNamespaceFromPrefix maps a simplified IRI prefix to the full namespace URI.
-// "cim:X.Y" → "http://iec.ch/TC57/CIM100#"
-// "cim100.X.Y" → "http://iec.ch/TC57/CIM100-European#"
 func cimNamespaceFromPrefix(simplified string) string {
-	if strings.HasPrefix(simplified, "cim100.") || strings.HasPrefix(simplified, "cim100:") {
+	switch {
+	case strings.HasPrefix(simplified, "cim100.") || strings.HasPrefix(simplified, "cim100:"):
 		return "http://iec.ch/TC57/CIM100-European#"
+	case strings.HasPrefix(simplified, "mdc:"):
+		return "http://iec.ch/TC57/61970-552/ModelDescription/1#"
+	case strings.HasPrefix(simplified, "diff:"):
+		return "http://iec.ch/TC57/61970-552/DifferenceModel/1#"
+	default:
+		return "http://iec.ch/TC57/CIM100#"
 	}
-	return "http://iec.ch/TC57/CIM100#"
 }
 
 // xmlTagExistsOnAnyStruct returns true if any concrete struct in StructMap has

@@ -64,3 +64,30 @@ var StructMap = map[string]func() interface{}{
 	{{- end}}
 	{{- end}}
 }
+
+// TypeInfoMap maps CIM type name to its type info (all types, including abstract).
+var TypeInfoMap = map[string]cimgobase.CIMTypeInfo{
+	{{- range .Types}}
+	"{{.Id}}": {
+		Namespace: "{{.Namespace}}",
+		Origin:    "{{.Origin}}",
+		Origins:   []string{ {{- range .Origins}}"{{.}}", {{- end}} },
+	},
+	{{- end}}
+}
+
+// AttributeInfoMap maps xml element name (e.g. "TapChanger.step") to its attribute info.
+var AttributeInfoMap = map[string]cimgobase.CIMAttributeInfo{
+	{{- range .Types}}
+	{{- range .Attributes}}
+	{{- if .IsAssociationUsed}}
+	"{{.Id}}": {
+		Label:     "{{.Label}}",
+		Namespace: "{{.Namespace}}",
+		Origin:    "{{.Origin}}",
+		Origins:   []string{ {{- range .Origins}}"{{.}}", {{- end}} },
+	},
+	{{- end}}
+	{{- end}}
+	{{- end}}
+}

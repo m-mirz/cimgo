@@ -1,12 +1,9 @@
 package cimgobase
 
 type CIMTypeInfo struct {
-	Id         string
-	Label      string
-	Namespace  string
-	Origin     string
-	Origins    []string
-	Attributes map[string]CIMAttributeInfo
+	Namespace string
+	Origin    string
+	Origins   []string
 }
 
 type CIMAttributeInfo struct {
@@ -14,4 +11,5 @@ type CIMAttributeInfo struct {
 	Label     string
 	Namespace string
 	Origin    string
+	Origins   []string
 }

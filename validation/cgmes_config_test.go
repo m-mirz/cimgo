@@ -344,11 +344,11 @@ func TestValidateSvedalaMerged(t *testing.T) {
 	if counts["syncMachine"] != 38 {
 		t.Errorf("SynchronousMachine.referencePriority-cardinality: expected 38, got %d", counts["syncMachine"])
 	}
-	if counts["prof10"] != 1 {
-		t.Errorf("prof10:PROF10: expected 1, got %d", counts["prof10"])
+	if counts["prof10"] != 0 {
+		t.Errorf("prof10:PROF10: expected 0, got %d", counts["prof10"])
 	}
-	if counts["total"] != 40 {
-		t.Errorf("total violations: expected 40, got %d", counts["total"])
+	if counts["total"] != 39 {
+		t.Errorf("total violations: expected 39, got %d", counts["total"])
 	}
 }
 

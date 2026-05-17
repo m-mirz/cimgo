@@ -152,8 +152,8 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 	// Map of TN IDs that are part of an island
 	tnToIsland := make(map[string]string)
 	for id, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnID := strings.TrimPrefix(island.TopologicalNodes.MRID, "#")
+		for _, tn := range island.TopologicalNodes {
+			tnID := strings.TrimPrefix(tn.MRID, "#")
 			tnToIsland[tnID] = id
 		}
 	}
@@ -429,8 +429,8 @@ func CheckSvStatusInstance(dataset *cimgostructs.CIMElementList) []Violation {
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
@@ -484,8 +484,8 @@ func CheckSvShuntCompensatorSectionsInstance(dataset *cimgostructs.CIMElementLis
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
@@ -537,8 +537,8 @@ func CheckSvTapStepInstance(dataset *cimgostructs.CIMElementList) []Violation {
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
@@ -601,8 +601,8 @@ func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Vi
 	termToIsland := make(map[string]string)
 	tnToIsland := make(map[string]string)
 	for islandID, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnID := strings.TrimPrefix(island.TopologicalNodes.MRID, "#")
+		for _, tn := range island.TopologicalNodes {
+			tnID := strings.TrimPrefix(tn.MRID, "#")
 			tnToIsland[tnID] = islandID
 		}
 	}

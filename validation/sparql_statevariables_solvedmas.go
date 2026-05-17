@@ -217,8 +217,8 @@ func CheckSvPowerFlowInstance(dataset *cimgostructs.CIMElementList) []Violation 
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 

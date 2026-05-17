@@ -1828,8 +1828,22 @@ func asConstraintList(v any) ([]shaclimport.ConstraintInfo, bool) {
 // and have no instances of their own.
 func inverseCountCheck(targetClasses []string, field reflect.StructField, op, threshold string) (string, string) {
 	cond := fmt.Sprintf("inverseCounts[id] %s %s", op, threshold)
+	isList := field.Type.Kind() == reflect.Slice
 	if len(targetClasses) == 1 {
-		prelude := fmt.Sprintf(`	inverseCounts := map[string]int{}
+		var prelude string
+		if isList {
+			prelude = fmt.Sprintf(`	inverseCounts := map[string]int{}
+	for _, ref := range dataset.Elements {
+		r, ok := ref.(*cimgostructs.%s)
+		if !ok {
+			continue
+		}
+		for _, entry := range r.%s {
+			inverseCounts[strings.TrimPrefix(entry.MRID, "#")]++
+		}
+	}`, targetClasses[0], field.Name)
+		} else {
+			prelude = fmt.Sprintf(`	inverseCounts := map[string]int{}
 	for _, ref := range dataset.Elements {
 		r, ok := ref.(*cimgostructs.%s)
 		if !ok {
@@ -1840,6 +1854,7 @@ func inverseCountCheck(targetClasses []string, field reflect.StructField, op, th
 		}
 		inverseCounts[strings.TrimPrefix(r.%s.MRID, "#")]++
 	}`, targetClasses[0], field.Name, field.Name)
+		}
 		return prelude, cond
 	}
 	var b strings.Builder
@@ -1848,9 +1863,15 @@ func inverseCountCheck(targetClasses []string, field reflect.StructField, op, th
 	b.WriteString("\t\tswitch r := ref.(type) {\n")
 	for _, cls := range targetClasses {
 		fmt.Fprintf(&b, "\t\tcase *cimgostructs.%s:\n", cls)
-		fmt.Fprintf(&b, "\t\t\tif r.%s != nil {\n", field.Name)
-		fmt.Fprintf(&b, "\t\t\t\tinverseCounts[strings.TrimPrefix(r.%s.MRID, \"#\")]++\n", field.Name)
-		b.WriteString("\t\t\t}\n")
+		if isList {
+			fmt.Fprintf(&b, "\t\t\tfor _, entry := range r.%s {\n", field.Name)
+			b.WriteString("\t\t\t\tinverseCounts[strings.TrimPrefix(entry.MRID, \"#\")]++\n")
+			b.WriteString("\t\t\t}\n")
+		} else {
+			fmt.Fprintf(&b, "\t\t\tif r.%s != nil {\n", field.Name)
+			fmt.Fprintf(&b, "\t\t\t\tinverseCounts[strings.TrimPrefix(r.%s.MRID, \"#\")]++\n", field.Name)
+			b.WriteString("\t\t\t}\n")
+		}
 	}
 	b.WriteString("\t\t}\n")
 	b.WriteString("\t}")

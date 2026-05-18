@@ -52,11 +52,28 @@ Exit code is `0` when no `sh:Violation`-severity findings are present, `1` other
 
 #### convert
 
-Merges one or more CGMES XML files and outputs the combined dataset as JSON.
+Converts between CGMES XML, JSON, and binary Protobuf. Input format is
+auto-detected from the file extension (`.json` vs `.xml`).
 
 ```bash
-cimcli convert <xml-file1> [<xml-file2> ...]
+cimcli convert [options] <file1> [<file2> ...]
 ```
+
+| Flag | Description |
+| :--- | :--- |
+| `-to` | Output format: `json` (default), `proto`, or `xml`. |
+| `-out` | Output file for `json` (default: stdout) or `proto` (default: `output.pb`), or output directory for `xml` (default: current directory). |
+| `-profile` | Comma-separated profile codes for `-to xml` (e.g. `EQ,SSH,TP`). Default: all profiles. |
+
+**XML → JSON** — merges one or more CGMES XML files and writes the combined
+dataset as JSON to stdout. Each element carries a `_type` field with its CIM
+class name, enabling the output to be converted back to XML.
+
+**XML → Protobuf** — converts the merged dataset to a binary `CIMElementList`
+proto message.
+
+**JSON → XML** — reads a JSON file produced by `-to json` and writes one
+CGMES XML file per profile code into the output directory.
 
 ### Examples
 
@@ -89,9 +106,29 @@ cimcli-windows-amd64.exe validate EQ.xml SSH.xml TP.xml SV.xml
   20210401T1730Z_1D_BE_SV_1.xml
 ```
 
-**Convert files to JSON:**
+**Convert XML files to JSON (stdout):**
 ```bash
 ./cimcli-linux-amd64 convert EQ.xml SSH.xml > dataset.json
+```
+
+**Convert XML files to JSON (file):**
+```bash
+./cimcli-linux-amd64 convert -out dataset.json EQ.xml SSH.xml
+```
+
+**Convert XML files to binary Protobuf:**
+```bash
+./cimcli-linux-amd64 convert -to proto -out dataset.pb EQ.xml SSH.xml
+```
+
+**Convert JSON back to CGMES XML profiles:**
+```bash
+./cimcli-linux-amd64 convert -to xml -out ./output/ dataset.json
+```
+
+**Convert only specific profiles back to XML:**
+```bash
+./cimcli-linux-amd64 convert -to xml -profile EQ,SSH -out ./output/ dataset.json
 ```
 
 ---

@@ -52,11 +52,28 @@ Exit code is `0` when no `sh:Violation`-severity findings are present, `1` other
 
 #### convert
 
-Merges one or more CGMES XML files and outputs the combined dataset as JSON.
+Converts between CGMES XML, JSON, and binary Protobuf. Input format is
+auto-detected from the file extension (`.json` vs `.xml`).
 
 ```bash
-cimcli convert <xml-file1> [<xml-file2> ...]
+cimcli convert [options] <file1> [<file2> ...]
 ```
+
+| Flag | Description |
+| :--- | :--- |
+| `-to` | Output format: `json` (default), `proto`, or `xml`. |
+| `-out` | Output file for `json` (default: stdout) or `proto` (default: `output.pb`), or output directory for `xml` (default: current directory). |
+| `-profile` | Comma-separated profile codes for `-to xml` (e.g. `EQ,SSH,TP`). Default: all profiles. |
+
+**XML → JSON** — merges one or more CGMES XML files and writes the combined
+dataset as JSON to stdout. Each element carries a `_type` field with its CIM
+class name, enabling the output to be converted back to XML.
+
+**XML → Protobuf** — converts the merged dataset to a binary `CIMElementList`
+proto message.
+
+**JSON → XML** — reads a JSON file produced by `-to json` and writes one
+CGMES XML file per profile code into the output directory.
 
 ### Examples
 
@@ -89,9 +106,29 @@ cimcli-windows-amd64.exe validate EQ.xml SSH.xml TP.xml SV.xml
   20210401T1730Z_1D_BE_SV_1.xml
 ```
 
-**Convert files to JSON:**
+**Convert XML files to JSON (stdout):**
 ```bash
 ./cimcli-linux-amd64 convert EQ.xml SSH.xml > dataset.json
+```
+
+**Convert XML files to JSON (file):**
+```bash
+./cimcli-linux-amd64 convert -out dataset.json EQ.xml SSH.xml
+```
+
+**Convert XML files to binary Protobuf:**
+```bash
+./cimcli-linux-amd64 convert -to proto -out dataset.pb EQ.xml SSH.xml
+```
+
+**Convert JSON back to CGMES XML profiles:**
+```bash
+./cimcli-linux-amd64 convert -to xml -out ./output/ dataset.json
+```
+
+**Convert only specific profiles back to XML:**
+```bash
+./cimcli-linux-amd64 convert -to xml -profile EQ,SSH -out ./output/ dataset.json
 ```
 
 ---
@@ -207,7 +244,7 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 6 | `sh:minCount 0` + `sh:maxCount 1` → synthetic `sh:Optional` | The pair means "0 or 1 values". `sh:minCount 0` is dropped by Rule 3; the matching `sh:maxCount 1` is replaced by a single `Optional` sentinel to record the upper bound without implying a presence requirement. |
 | 7 | `sh:minCount 1` + `sh:maxCount 1` → synthetic `sh:Required` | The pair means "exactly 1 value". Both constraints are collapsed into a single `Required` sentinel, avoiding duplicate presence checks. |
 
-### Structurally satisfied (4933 skips)
+### Structurally satisfied (4948 skips)
 
 | Count | Constraint | Reason |
 |------:|-----------|--------|
@@ -218,26 +255,64 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 56 | `sh:maxCount 1` on multi-hop paths | Every hop in a CIM reference path is a 0..1 pointer, so the count is always ≤ 1. |
 | 18 | Cross-class `sh:lessThan` on sibling subtypes | The SHACL property shape reuses the same comparison across multiple target classes. The compared field (`xDirectSubtrans`, `xQuadSubtrans`, `xpp`) exists only on a sibling subtype (`SynchronousMachineTimeConstantReactance` or `AsynchronousMachineTimeConstantReactance`). These subtypes are mutually exclusive in valid CGMES data — a machine is either `SynchronousMachineTimeConstantReactance` or `SynchronousMachineEquivalentCircuit`, never both — so both operands can never be visible at the same time. The same-class cases (`SynchronousMachineTimeConstantReactance.statorLeakageReactance < xDirectSubtrans`, etc.) are generated normally. |
 | 15 | Inverse `sh:class` | The asserted class is an ancestor of every concrete target subclass; Go struct embedding guarantees the constraint is always satisfied. |
-| 8 | `sh:nodeKind` on `rdf:type` paths | The Go struct type is fixed at decode time, so the RDF type is always correct. |
+| 11 | `sh:nodeKind` on `rdf:type` paths | The Go struct type is fixed at decode time, so the RDF type is always correct. |
+| 2 | `sh:datatype xsd:anyURI` on slice fields | A slice field (e.g. `Profile []string`) holds zero or more values; per-element URI format validation requires iterating the slice, which `shaclgen` does not generate for datatype checks. URI format is not validated by the Go XML decoder either, so this is an acknowledged gap rather than a false negative. |
+| 4 | `sh:in (dm:DifferenceModel md:FullModel)` on `Supersedes`/`DependentOn` | The constraint checks that each referenced model's `rdf:type` is either `FullModel` or `DifferenceModel`. `CIMElementList` stores models in two typed maps (`FullModels map[string]*FullModel`, `DifferenceModels map[string]*DifferenceModel`); any MRID that resolves within the dataset is guaranteed to be in one of those two types. |
+| 3 | `sh:hasValue rdf:type rdf:Statements` on `forwardDifferences`/`reverseDifferences`/`preconditions` | The CGMES difference model format mandates that all elements in these collections are `rdf:Statement` resources. The referenced objects are not decoded into `CIMElementList` (they are RDF graph metadata, not CIM elements), so the constraint cannot be checked at runtime — but it cannot be violated by any well-formed CGMES difference model file. |
+| 3 | Multi-segment `sh:required` on `rdf:Statements.subject/predicate/object` | The RDF specification mandates that every `rdf:Statement` resource has `subject`, `predicate`, and `object` predicates. Any `rdf:Statement` instance loaded from a valid RDF document already satisfies these constraints by definition. |
 
-### Cannot be conducted (36 skips)
+### Cannot be conducted (22 skips)
 
 #### Upstream SHACL TTL defects
 
-| Count | Kind | Detail |
-|------:|------|--------|
-| 4 | Field name typo | `ExcDC1A.edfmax` (→ `efdmax`), `GovHydroIEEE.pmax` (→ `GovHydroIEEE0.pmax`), `PVFArType1IEEEVArController.vvtmax` (→ `PFVArType1...`), `PssIEEE4V.vhmax` (→ `PssIEEE4B.vhmax`) |
-| 4 | Class name typo | `CrossCompoundTurbineGovernorDyanmics` (extra 'a' in "Dynamics") used as inverse target class |
-| 4 | Empty `sh:in` list | `sh:in ()` with no values in inverse-association profiles |
-| 4 | Non-`cim:` namespace | `mdc:FullModel`, `diff:DifferenceModel` — Header and AllProfiles shapes outside the CIM namespace |
+**Field name typos** — `sh:lessThan` references a misspelled field name; all four are in `61970-302_Dynamics-AP-Con-Complex-SHACL.ttl`:
 
-#### Fields or classes absent from `cimgostructs`
+| Rule (`sh:name`) | Defect |
+|------------------|--------|
+| `C:302:DY:GovHydroIEEE0.pmin:valueRangePair` | `sh:lessThan cim:GovHydroIEEE.pmax` — class suffix `0` missing; should be `GovHydroIEEE0.pmax` |
+| `C:302:DY:PFVArType1IEEEVArController.vvtmin:valueRangePair` | `sh:lessThan cim:PVFArType1IEEEVArController.vvtmax` — prefix transposed; should be `PFVArType1IEEEVArController.vvtmax` |
+| `C:302:DY:ExcDC1A.efdmin:valueRangePair` | `sh:lessThan cim:ExcDC1A.edfmax` — letters transposed; should be `efdmax` |
+| `C:302:DY:PssIEEE4B.vhmin:valueRangePair` | `sh:lessThan cim:PssIEEE4V.vhmax` — class suffix wrong; should be `PssIEEE4B.vhmax` |
 
-| Count | Kind | Detail |
-|------:|------|--------|
-| 8 | Field missing from struct | `CrossCompoundTurbineGovernorDynamics.SynchronousMachineDynamics` (4), `AccumulatorValue.value`, `CSCDynamics.CsConverter`, `GenICompensationForGenJ.VCompIEEEType2`, `WindTurbineType3or4IEC.WindContQIEC` |
-| 2 | Class name capitalisation mismatch | SHACL uses `CSConverter`; `cimgostructs` generates `CsConverter` |
-| 10 | Class not generated | `AllGeneratingUnit`, `AngleReference`, `DanglingReferences`, `FloatSpecialValues`, `GovHydroIEEE1`, `IDchecks`, `IDuniqueness`, `IdentifiedObjectStringLength`, `SubstationCount`, `TextDiagramObjectDiagramObject` |
+**Class name typo** — one property shape in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` references a misspelled class in its inverse path, generating 4 skip instances (one per concrete target class):
+
+| Rule (`sh:name`) | Defect |
+|------------------|--------|
+| `SynchronousMachineDynamics.CrossCompoundTurbineGovernorDyanmics-cardinality` | `sh:inversePath cim:CrossCompoundTurbineGovernorDyanmics.SynchronousMachineDynamics` — "Dynamics" misspelled as "Dyanmics"; applied to `SynchronousMachineEquivalentCircuit`, `SynchronousMachineSimplified`, `SynchronousMachineTimeConstantReactance`, `SynchronousMachineUserDefined` |
+
+**Class name capitalisation mismatch** — two SHACL files (`61970-457_Dynamics-AP-Con-Complex-Explicit-CrossProfile-SHACL.ttl` and `61970-457_Dynamics-AP-Con-Complex-Implicit-CrossProfile-SHACL.ttl`) reference `cim:CSConverter` (capital S), but all RDFS schema files consistently define the class as `cim:CsConverter`. The two defective shapes generate 2 skip instances:
+
+| Shape | Defect |
+|-------|--------|
+| `dy457cpe:CSCDynamics.CSConverter-valueType` | `sh:in (cim:CSConverter)` — should be `cim:CsConverter` |
+| `dy457cpi:CSCDynamics.CSConverter-valueType` | same defect in the implicit cross-profile file |
+
+**Wrong field names in inverse paths** — four property shapes in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` reference field names that do not match the RDFS schema, generating 8 skip instances:
+
+| Rule (`sh:name`) | Defect |
+|------------------|--------|
+| `SynchronousMachineDynamics.CrossCompoundTurbineGovernorDynamics-cardinality` | `sh:inversePath cim:CrossCompoundTurbineGovernorDynamics.SynchronousMachineDynamics` — no such field; RDFS defines `HighPressureSynchronousMachineDynamics` and `LowPressureSynchronousMachineDynamics`; applied to 4 concrete target classes |
+| `CsConverter.CSCDynamics-cardinality` | `sh:inversePath cim:CSCDynamics.CsConverter` — capitalisation wrong; RDFS defines `CSCDynamics.CSConverter` |
+| `VCompIEEEType2.GenICompensationForGenJ-cardinality` | `sh:inversePath cim:GenICompensationForGenJ.VCompIEEEType2` — capitalisation wrong; RDFS defines `GenICompensationForGenJ.VcompIEEEType2` |
+| `WindContQIEC.WindTurbineType3or4IEC-cardinality` | `sh:inversePath cim:WindTurbineType3or4IEC.WindContQIEC` — capitalisation wrong; RDFS defines `WindTurbineType3or4IEC.WIndContQIEC` |
+
+**Stale field reference** — one property shape in `61970-301_Operation-AP-Con-Complex-SHACL.ttl` references a field that was present in CGMES 2.4 but removed from the current CGMES 3.0 schema:
+
+| Rule (`sh:name`) | Defect |
+|------------------|--------|
+| `C:301:OP:AccumulatorValue.value:valueRange` | `sh:minExclusive` on `cim:AccumulatorValue.value` — field removed in CGMES 3.0 |
+
+**Non-existent target class** — one property shape in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` lists `cim:GovHydroIEEE1` in its `sh:targetClass` alongside several real classes. No such class exists in the CIM standard or in `cimstructs`; `shaclgen` silently skips it when resolving concrete target classes.
+
+**Empty `sh:in` list** — one property shape in `61970-600-2_Operation-AP-Con-Simple-SHACL.ttl` has `sh:in ()`, generating 4 skip instances (one per concrete target class):
+
+| Rule (`sh:name`) | Defect |
+|------------------|--------|
+| `Measurement.Terminal-valueType` | `sh:in ()` — empty allow-list; applied to `Accumulator`, `Analog`, `Discrete`, `StringMeasurement` |
+
+#### Generator limitations
+
+Nine shapes in the SHACL files use `sh:targetNode <sentinel> + sh:sparql` to express constraints that span many instances or require graph traversal: `AllGeneratingUnit`, `AngleReference`, `DanglingReferences`, `FloatSpecialValues`, `IDchecks`, `IDuniqueness`, `IdentifiedObjectStringLength`, `SubstationCount`, `TextDiagramObjectDiagramObject`. None of these names correspond to a real CIM class, so `shaclgen` silently produces no output for them. All nine are instead implemented as hand-written Go functions in `validation/` (see SPARQL Check Coverage below).
 
 ### SPARQL Check Coverage
 

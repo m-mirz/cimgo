@@ -37,7 +37,7 @@ func TestSchemaImport(t *testing.T) {
 	t.Logf("SHA256 hash of output file: %x", hash)
 
 	// Test output file against expected hash
-	expectedHash := "e0fc64fd88c393e13bac2fae5ad41f5d4af6ee3eb55e4c96211c4ee2dd08510e"
+	expectedHash := "4e1820630d12ba82772827b59857c1a90beff3455b2db105904d161346a76f94"
 	if fmt.Sprintf("%x", hash) != expectedHash {
 		t.Error("decoder tests failed, output file hash does not match expected hash")
 	}

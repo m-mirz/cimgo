@@ -2,4 +2,5 @@
 //go:generate go run cmd/cimgen/main.go -lang proto
 //go:generate sh -c "protoc --go_out=. --proto_path=./proto/definitions  proto/definitions/*.proto"
 //go:generate go run ./cmd/shaclgen
+//go:generate go run ./cmd/protoconvgen
 package cimgo

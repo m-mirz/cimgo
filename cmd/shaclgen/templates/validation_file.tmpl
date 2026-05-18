@@ -11,7 +11,7 @@ import (
 
 // {{.OrchestratorName}} runs all generated SHACL rules from
 // {{.FileName}}.
-func {{.OrchestratorName}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func {{.OrchestratorName}}(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 {{- if .Checks}}
 	var violations []shaclmodel.Violation
 {{- range .Checks}}
@@ -33,7 +33,7 @@ func {{.OrchestratorName}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Vi
 {{- if .Message}}
 // {{.Message}}
 {{- end}}
-func {{.Name}}(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func {{.Name}}(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 {{- if .Prelude}}
 {{.Prelude}}

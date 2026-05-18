@@ -1,12 +1,12 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/shaclgen"
 	"cimgo/shaclmodel"
 )
 
-func ValidateGeneratedDiagramlayoutProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedDiagramlayoutProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedDiagramlayout61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedDiagramlayout61970453ComplexProfile(dataset)...)
@@ -17,13 +17,13 @@ func ValidateGeneratedDiagramlayoutProfileSHACL(dataset *cimgostructs.CIMElement
 	return violations
 }
 
-func ValidateGeneratedDiagramlayoutNotsolvedmasProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedDiagramlayoutNotsolvedmasProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedDiagramlayout61970301ComplexNotsolvedmasProfile(dataset)...)
 	return violations
 }
 
-func ValidateGeneratedDynamicsProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedDynamicsProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedDynamics61970302ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedDynamics61970457ComplexExplicitCrossprofileProfile(dataset)...)
@@ -33,7 +33,7 @@ func ValidateGeneratedDynamicsProfileSHACL(dataset *cimgostructs.CIMElementList)
 	return violations
 }
 
-func ValidateGeneratedEquipmentProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedEquipmentProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedEquipment61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedEquipment61970452ComplexProfile(dataset)...)
@@ -44,7 +44,7 @@ func ValidateGeneratedEquipmentProfileSHACL(dataset *cimgostructs.CIMElementList
 	return violations
 }
 
-func ValidateGeneratedEquipmentboundaryProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedEquipmentboundaryProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedEquipmentboundary61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedEquipmentboundary619706002ComplexInverseassociationProfile(dataset)...)
@@ -52,7 +52,7 @@ func ValidateGeneratedEquipmentboundaryProfileSHACL(dataset *cimgostructs.CIMEle
 	return violations
 }
 
-func ValidateGeneratedGeographicallocationProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedGeographicallocationProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedGeographicallocation6196813ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedGeographicallocation619706002ComplexExplicitCrossprofileProfile(dataset)...)
@@ -62,7 +62,7 @@ func ValidateGeneratedGeographicallocationProfileSHACL(dataset *cimgostructs.CIM
 	return violations
 }
 
-func ValidateGeneratedOperationProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedOperationProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedOperation61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedOperation61970452ComplexProfile(dataset)...)
@@ -73,7 +73,7 @@ func ValidateGeneratedOperationProfileSHACL(dataset *cimgostructs.CIMElementList
 	return violations
 }
 
-func ValidateGeneratedShortcircuitProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedShortcircuitProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedShortcircuit61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedShortcircuit61970452ComplexCrossprofileProfile(dataset)...)
@@ -81,7 +81,7 @@ func ValidateGeneratedShortcircuitProfileSHACL(dataset *cimgostructs.CIMElementL
 	return violations
 }
 
-func ValidateGeneratedStatevariablesProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedStatevariablesProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedStatevariables61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedStatevariables61970456ComplexExplicitCrossprofileProfile(dataset)...)
@@ -92,7 +92,7 @@ func ValidateGeneratedStatevariablesProfileSHACL(dataset *cimgostructs.CIMElemen
 	return violations
 }
 
-func ValidateGeneratedSteadystatehypothesisProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedSteadystatehypothesisProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedSteadystatehypothesis61970301ComplexProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedSteadystatehypothesis61970456ComplexProfile(dataset)...)
@@ -100,13 +100,13 @@ func ValidateGeneratedSteadystatehypothesisProfileSHACL(dataset *cimgostructs.CI
 	return violations
 }
 
-func ValidateGeneratedSteadystatehypothesisNotsolvedmasProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedSteadystatehypothesisNotsolvedmasProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedSteadystatehypothesis61970301ComplexNotsolvedmasProfile(dataset)...)
 	return violations
 }
 
-func ValidateGeneratedTopologyProfileSHACL(dataset *cimgostructs.CIMElementList) []shaclmodel.Violation {
+func ValidateGeneratedTopologyProfileSHACL(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, shaclgen.ValidateGeneratedTopology61970456ComplexExplicitCrossprofileProfile(dataset)...)
 	violations = append(violations, shaclgen.ValidateGeneratedTopology61970456ComplexImplicitCrossprofileProfile(dataset)...)

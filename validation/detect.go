@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"sort"
 )
 
@@ -23,9 +23,9 @@ var profURIToShortName = map[string]string{
 // Solved is true when an SV profile is found (power-flow results available).
 // NotSolved is the complement of Solved.
 // Common, Quality, SilencedRules, and EQBDBaseVoltageIDs are left at zero values.
-func DetectConfig(dataset *cimgostructs.CIMElementList) Config {
+func DetectConfig(dataset *cimstructs.CIMElementList) Config {
 	seen := make(map[string]bool)
-	collect := func(m *cimgostructs.Model) {
+	collect := func(m *cimstructs.Model) {
 		if short, ok := profURIToShortName[profileURI(m)]; ok {
 			seen[short] = true
 		}

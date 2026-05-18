@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"math"
 	"reflect"
 	"regexp"
@@ -9,7 +9,7 @@ import (
 )
 
 // ValidateCommonRulesSPARQL runs hand-written checks for common rules (all600, io).
-func ValidateCommonRulesSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateCommonRulesSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	// Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
 	violations = append(violations, CheckIdentifiedObjectStringLengths(dataset)...)
@@ -31,7 +31,7 @@ func ValidateCommonRulesSPARQL(dataset *cimgostructs.CIMElementList) []Violation
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: All IdentifiedObject-s shall have a persistent and globally unique identifier (Master Resource Identifier - mRID).
-func CheckMRIDUniqueness(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckMRIDUniqueness(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	seenMRIDs := make(map[string]string) // mRID -> first object ID found with it
 
@@ -56,7 +56,7 @@ func CheckMRIDUniqueness(dataset *cimgostructs.CIMElementList) []Violation {
 }
 
 // getIdentifiedObject extracts the IdentifiedObject from a CIM struct.
-func getIdentifiedObject(obj interface{}) (*cimgostructs.IdentifiedObject, bool) {
+func getIdentifiedObject(obj interface{}) (*cimstructs.IdentifiedObject, bool) {
 	val := reflect.ValueOf(obj)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -68,7 +68,7 @@ func getIdentifiedObject(obj interface{}) (*cimgostructs.IdentifiedObject, bool)
 	// Try to find IdentifiedObject field by name
 	field := val.FieldByName("IdentifiedObject")
 	if field.IsValid() {
-		if io, ok := field.Interface().(cimgostructs.IdentifiedObject); ok {
+		if io, ok := field.Interface().(cimstructs.IdentifiedObject); ok {
 			return &io, true
 		}
 	}
@@ -77,7 +77,7 @@ func getIdentifiedObject(obj interface{}) (*cimgostructs.IdentifiedObject, bool)
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
 		if f.Kind() == reflect.Struct {
-			if io, ok := f.Interface().(cimgostructs.IdentifiedObject); ok {
+			if io, ok := f.Interface().(cimstructs.IdentifiedObject); ok {
 				return &io, true
 			}
 			// One level deeper for classes that inherit from subclasses of IO
@@ -85,7 +85,7 @@ func getIdentifiedObject(obj interface{}) (*cimgostructs.IdentifiedObject, bool)
 				for j := 0; j < f.NumField(); j++ {
 					sf := f.Field(j)
 					if sf.Kind() == reflect.Struct {
-						if io, ok := sf.Interface().(cimgostructs.IdentifiedObject); ok {
+						if io, ok := sf.Interface().(cimstructs.IdentifiedObject); ok {
 							return &io, true
 						}
 					}
@@ -104,7 +104,7 @@ var urnUuidRegex = regexp.MustCompile("(?i)^urn:uuid:[0-9A-F]{8}-[0-9A-F]{4}-[0-
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: IEC 61970-301 strongly recommends to use UUID, as specified in RFC 4122, for the .mRID. CGMES requires the usage of UUID.
-func CheckIDUUID(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckIDUUID(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		rawID := id
@@ -140,7 +140,7 @@ func CheckIDUUID(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: (deprecated) Transition rule for ID length and underscore prefix.
-func CheckIDDeprecated(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckIDDeprecated(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		if strings.HasPrefix(id, "urn:uuid:") {
@@ -172,7 +172,7 @@ func CheckIDDeprecated(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: European exchanges shall refer to UTC (marked with Z suffix).
-func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckModelDateTimeUTC(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		val := reflect.ValueOf(obj)
@@ -220,7 +220,7 @@ func CheckModelDateTimeUTC(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Float attributes are restricted not to use INF and NaN values.
-func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckFloatSpecialValues(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		val := reflect.ValueOf(obj)
@@ -275,7 +275,7 @@ func CheckFloatSpecialValues(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The modelingAuthoritySet property in the header must not be empty.
-func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckModelingAuthoritySetNotEmpty(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		val := reflect.ValueOf(obj)
@@ -305,7 +305,7 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimgostructs.CIMElementList) []V
 // Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates maximum string lengths for various IdentifiedObject attributes.
-func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		io, ok := getIdentifiedObject(obj)
@@ -361,7 +361,7 @@ func CheckIdentifiedObjectStringLengths(dataset *cimgostructs.CIMElementList) []
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex
 // Origin: Derived from a complex SHACL constraint.
 // Description: Each type of instance file (full or difference) shall have a file header.
-func CheckFileHeaderExists(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckFileHeaderExists(dataset *cimstructs.CIMElementList) []Violation {
 	if len(dataset.FullModels) == 0 && len(dataset.DifferenceModels) == 0 {
 		return []Violation{{
 			ObjectID: "global",

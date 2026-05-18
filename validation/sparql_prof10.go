@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"strings"
 )
 
@@ -19,7 +19,7 @@ const (
 	profSSH  = profBase + "SteadyStateHypothesis-EU/3.0"
 )
 
-func profileURI(m *cimgostructs.Model) string {
+func profileURI(m *cimstructs.Model) string {
 	for _, p := range m.Profile {
 		if p = strings.TrimSpace(p); p != "" {
 			return p
@@ -28,24 +28,48 @@ func profileURI(m *cimgostructs.Model) string {
 	return ""
 }
 
-// dependentOnProfile returns the profile URI of the referenced DependentOn model.
-// Returns "" if DependentOn is absent, "external" if referenced model is not in the dataset.
-func dependentOnProfile(m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) string {
-	if m.DependentOn == nil {
-		return ""
+// dependentOnProfiles returns the resolved profile URI for each DependentOn entry.
+// Entries whose referenced model is not in the dataset are represented as "external".
+func dependentOnProfiles(m *cimstructs.Model, dataset *cimstructs.CIMElementList) []string {
+	if len(m.DependentOn) == 0 {
+		return nil
 	}
-	mrid := strings.TrimPrefix(m.DependentOn.MRID, "#")
-	if dep, ok := dataset.FullModels[mrid]; ok {
-		return profileURI(&dep.Model)
+	out := make([]string, 0, len(m.DependentOn))
+	for _, ref := range m.DependentOn {
+		mrid := strings.TrimPrefix(ref.MRID, "#")
+		if fm, ok := dataset.FullModels[mrid]; ok {
+			out = append(out, profileURI(&fm.Model))
+		} else if dm, ok := dataset.DifferenceModels[mrid]; ok {
+			out = append(out, profileURI(&dm.Model))
+		} else {
+			out = append(out, "external")
+		}
 	}
-	if dep, ok := dataset.DifferenceModels[mrid]; ok {
-		return profileURI(&dep.Model)
+	return out
+}
+
+// hasValue reports whether any entry in deps equals target.
+func hasValue(deps []string, target string) bool {
+	for _, d := range deps {
+		if d == target {
+			return true
+		}
 	}
-	return "external"
+	return false
+}
+
+// allInSet reports whether every resolved (non-external) entry in deps is in allowed.
+func allInSet(deps []string, allowed map[string]bool) bool {
+	for _, d := range deps {
+		if d != "external" && !allowed[d] {
+			return false
+		}
+	}
+	return true
 }
 
 // datasetHasProfile reports whether the dataset contains at least one loaded model with the given profile URI.
-func datasetHasProfile(dataset *cimgostructs.CIMElementList, prof string) bool {
+func datasetHasProfile(dataset *cimstructs.CIMElementList, prof string) bool {
 	for _, fm := range dataset.FullModels {
 		if profileURI(&fm.Model) == prof {
 			return true
@@ -74,7 +98,7 @@ func prof10violation(id, msg, severity string) Violation {
 
 // ValidateProf10HeaderRules checks PROF10 file-header dependency constraints
 // from 61970-600-1_Prof10-Header-AP-Con-Complex-SHACL.ttl.
-func ValidateProf10HeaderRules(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateProf10HeaderRules(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, fm := range dataset.FullModels {
 		violations = append(violations, checkProf10Model(id, &fm.Model, dataset)...)
@@ -82,7 +106,7 @@ func ValidateProf10HeaderRules(dataset *cimgostructs.CIMElementList) []Violation
 	return violations
 }
 
-func checkProf10Model(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
+func checkProf10Model(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
 	switch profileURI(m) {
 	case profEQ:
 		return checkProf10EQ(id, m, dataset)
@@ -109,14 +133,10 @@ func checkProf10Model(id string, m *cimgostructs.Model, dataset *cimgostructs.CI
 const msgEQ = "The EQ does not have reference to EQBD. The file header dependencies cardinalities and types for EQ profile are not according to PROF10."
 
 // checkProf10EQ: sh:hasValue EQBD, sh:Info, no sh:minCount.
-// Fires if DependentOn is absent or its profile is not EQBD.
-// When the referenced model is external (not in dataset), the check is skipped.
-func checkProf10EQ(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	switch dep {
-	case profEQBD:
-		return nil
-	case "external":
+// Passes if any dep is EQBD, or if any dep is external (can't verify).
+func checkProf10EQ(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if hasValue(deps, profEQBD) || hasValue(deps, "external") {
 		return nil
 	}
 	return []Violation{prof10violation(id, msgEQ, "sh:Info")}
@@ -125,34 +145,28 @@ func checkProf10EQ(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 const msgDY = "The file header dependencies cardinalities and types for DY profile are not according to PROF10."
 
 // checkProf10DY: sh:minCount 1, sh:hasValue EQ, sh:Violation.
-func checkProf10DY(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10DY(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgDY, "sh:Violation")}
 	}
-	if dep == "external" {
-		if datasetHasProfile(dataset, profEQ) {
-			return []Violation{prof10violation(id, msgDY, "sh:Violation")}
-		}
+	if hasValue(deps, profEQ) {
 		return nil
 	}
-	if dep != profEQ {
-		return []Violation{prof10violation(id, msgDY, "sh:Violation")}
+	if hasValue(deps, "external") && !datasetHasProfile(dataset, profEQ) {
+		return nil
 	}
-	return nil
+	return []Violation{prof10violation(id, msgDY, "sh:Violation")}
 }
 
 const msgDL = "The file header dependencies cardinalities and types for DL profile are not according to PROF10."
 
 // checkProf10DL: sh:in {DY,TP,EQ,SC,OP}, no sh:minCount, sh:Violation.
-// Vacuously true when DependentOn is absent.
-func checkProf10DL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" || dep == "external" {
-		return nil
-	}
+// External deps pass vacuously; each resolved dep must be in the allowed set.
+func checkProf10DL(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
 	allowed := map[string]bool{profDY: true, profTP: true, profEQ: true, profSC: true, profOP: true}
-	if !allowed[dep] {
+	if !allInSet(deps, allowed) {
 		return []Violation{prof10violation(id, msgDL, "sh:Violation")}
 	}
 	return nil
@@ -161,16 +175,13 @@ func checkProf10DL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 const msgSC = "The file header dependencies cardinalities and types for SC profile are not according to PROF10."
 
 // checkProf10SC: sh:minCount 1, sh:in {EQ,EQBD,OP}, sh:Violation.
-func checkProf10SC(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10SC(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgSC, "sh:Violation")}
 	}
-	if dep == "external" {
-		return nil
-	}
 	allowed := map[string]bool{profEQ: true, profEQBD: true, profOP: true}
-	if !allowed[dep] {
+	if !allInSet(deps, allowed) {
 		return []Violation{prof10violation(id, msgSC, "sh:Violation")}
 	}
 	return nil
@@ -179,16 +190,13 @@ func checkProf10SC(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 const msgOP = "The file header dependencies cardinalities and types for OP profile are not according to PROF10."
 
 // checkProf10OP: sh:minCount 1, sh:in {EQ,EQBD,SC}, sh:Violation.
-func checkProf10OP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10OP(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgOP, "sh:Violation")}
 	}
-	if dep == "external" {
-		return nil
-	}
 	allowed := map[string]bool{profEQ: true, profEQBD: true, profSC: true}
-	if !allowed[dep] {
+	if !allInSet(deps, allowed) {
 		return []Violation{prof10violation(id, msgOP, "sh:Violation")}
 	}
 	return nil
@@ -197,14 +205,11 @@ func checkProf10OP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 const msgGL = "The file header dependencies cardinalities and types for GL profile are not according to PROF10."
 
 // checkProf10GL: sh:in {EQBD,EQ,SC,OP}, no sh:minCount, sh:Violation.
-// Vacuously true when DependentOn is absent.
-func checkProf10GL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" || dep == "external" {
-		return nil
-	}
+// External deps pass vacuously; each resolved dep must be in the allowed set.
+func checkProf10GL(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
 	allowed := map[string]bool{profEQBD: true, profEQ: true, profSC: true, profOP: true}
-	if !allowed[dep] {
+	if !allInSet(deps, allowed) {
 		return []Violation{prof10violation(id, msgGL, "sh:Violation")}
 	}
 	return nil
@@ -213,59 +218,50 @@ func checkProf10GL(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMEl
 const msgSV = "The file header dependencies cardinalities and types for SV profile are not according to PROF10."
 
 // checkProf10SV: sh:minCount 1, sh:hasValue TP, sh:Violation.
-func checkProf10SV(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10SV(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgSV, "sh:Violation")}
 	}
-	if dep == "external" {
-		if datasetHasProfile(dataset, profTP) {
-			return []Violation{prof10violation(id, msgSV, "sh:Violation")}
-		}
+	if hasValue(deps, profTP) {
 		return nil
 	}
-	if dep != profTP {
-		return []Violation{prof10violation(id, msgSV, "sh:Violation")}
+	if hasValue(deps, "external") && !datasetHasProfile(dataset, profTP) {
+		return nil
 	}
-	return nil
+	return []Violation{prof10violation(id, msgSV, "sh:Violation")}
 }
 
 const msgTP = "The file header dependencies cardinalities and types for TP profile are not according to PROF10."
 
 // checkProf10TP: sh:minCount 1, sh:hasValue SSH, sh:Violation.
-func checkProf10TP(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10TP(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgTP, "sh:Violation")}
 	}
-	if dep == "external" {
-		if datasetHasProfile(dataset, profSSH) {
-			return []Violation{prof10violation(id, msgTP, "sh:Violation")}
-		}
+	if hasValue(deps, profSSH) {
 		return nil
 	}
-	if dep != profSSH {
-		return []Violation{prof10violation(id, msgTP, "sh:Violation")}
+	if hasValue(deps, "external") && !datasetHasProfile(dataset, profSSH) {
+		return nil
 	}
-	return nil
+	return []Violation{prof10violation(id, msgTP, "sh:Violation")}
 }
 
 const msgSSH = "The file header dependencies cardinalities and types for SSH profile are not according to PROF10."
 
 // checkProf10SSH: sh:minCount 1, sh:hasValue EQ, sh:Violation.
-func checkProf10SSH(id string, m *cimgostructs.Model, dataset *cimgostructs.CIMElementList) []Violation {
-	dep := dependentOnProfile(m, dataset)
-	if dep == "" {
+func checkProf10SSH(id string, m *cimstructs.Model, dataset *cimstructs.CIMElementList) []Violation {
+	deps := dependentOnProfiles(m, dataset)
+	if len(deps) == 0 {
 		return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
 	}
-	if dep == "external" {
-		if datasetHasProfile(dataset, profEQ) {
-			return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
-		}
+	if hasValue(deps, profEQ) {
 		return nil
 	}
-	if dep != profEQ {
-		return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
+	if hasValue(deps, "external") && !datasetHasProfile(dataset, profEQ) {
+		return nil
 	}
-	return nil
+	return []Violation{prof10violation(id, msgSSH, "sh:Violation")}
 }

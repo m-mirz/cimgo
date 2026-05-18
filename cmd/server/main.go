@@ -3,9 +3,9 @@ package main
 import (
 	"archive/zip"
 	"bytes"
-	"cimgo/cimgostructs"
-	"cimgo/cimprofiles"
-	"cimgo/cimproto"
+	"cimgo/cimstructs"
+	"cimgo/cgmesxml"
+	"cimgo/cimconv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,7 +20,7 @@ import (
 )
 
 // Global map to store CIM specifications in memory, keyed by ID.
-var cimDataset = make(map[string]*cimgostructs.CIMElementList)
+var cimDataset = make(map[string]*cimstructs.CIMElementList)
 var protoDataset = make(map[string][]byte)
 var mu sync.RWMutex
 
@@ -175,7 +175,7 @@ func processCIMFiles(id string) error {
 		readers = append(readers, bytes.NewReader(b))
 	}
 
-	mergedCIMData, err := cimprofiles.DecodeProfiles(readers, nil)
+	mergedCIMData, err := cgmesxml.DecodeProfiles(readers, nil)
 	if err != nil {
 		return fmt.Errorf("failed to decode profiles: %w", err)
 	}
@@ -191,7 +191,7 @@ func processCIMFiles(id string) error {
 	}
 
 	// Generate Protobuf serialization
-	protoList, err := cimproto.ToProto(mergedCIMData)
+	protoList, err := cimconv.ToProto(mergedCIMData)
 	if err != nil {
 		return fmt.Errorf("failed to convert to proto: %w", err)
 	}

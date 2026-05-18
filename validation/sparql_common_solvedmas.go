@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"fmt"
 	"reflect"
 	"sort"
@@ -9,7 +9,7 @@ import (
 )
 
 // ValidateCommonRulesSolvedMASSPARQL runs hand-written checks for common rules that require solved MAS, i.e. 61970-301-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL.
-func ValidateCommonRulesSolvedMASSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateCommonRulesSolvedMASSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	// Profile: 61970-456_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
 	violations = append(violations, CheckAngleReference(dataset)...)
@@ -33,7 +33,7 @@ func ValidateCommonRulesSolvedMASSPARQL(dataset *cimgostructs.CIMElementList) []
 // Origin: Derived from a SPARQL constraint.
 // Description: The angle reference slack should be the SynchronousMachine connected to the
 // TopologicalNode referenced by TopologicalIsland.AngleRefTopologicalNode.
-func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckAngleReference(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	// Find the AngleRefTopologicalNode from all islands
@@ -46,12 +46,12 @@ func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
 	}
 
 	// Find SynchronousMachines with highest referencePriority (usually 1)
-	var highestPrioritySMs []*cimgostructs.SynchronousMachine
+	var highestPrioritySMs []*cimstructs.SynchronousMachine
 	minPriority := 9999
 	for _, sm := range dataset.SynchronousMachines {
 		if sm.ReferencePriority > 0 && sm.ReferencePriority < minPriority {
 			minPriority = sm.ReferencePriority
-			highestPrioritySMs = []*cimgostructs.SynchronousMachine{sm}
+			highestPrioritySMs = []*cimstructs.SynchronousMachine{sm}
 		} else if sm.ReferencePriority > 0 && sm.ReferencePriority == minPriority {
 			highestPrioritySMs = append(highestPrioritySMs, sm)
 		}
@@ -105,7 +105,7 @@ func CheckAngleReference(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS-SHACL
 // Origin: Derived from a SPARQL constraint.
 // Description: All references in the instance files pointing to other instance files should be satisfied.
-func CheckDanglingReferences(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckDanglingReferences(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, obj := range dataset.Elements {
 		val := reflect.ValueOf(obj)
@@ -146,14 +146,14 @@ func CheckDanglingReferences(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SHACL
 // Origin: Derived from a SPARQL constraint.
 // Description: All state variables shall be instantiated for all energized elements part of a TopologicalIsland.
-func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckStateVariablesInstantiated(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	// Map of TN IDs that are part of an island
 	tnToIsland := make(map[string]string)
 	for id, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnID := strings.TrimPrefix(island.TopologicalNodes.MRID, "#")
+		for _, tn := range island.TopologicalNodes {
+			tnID := strings.TrimPrefix(tn.MRID, "#")
 			tnToIsland[tnID] = id
 		}
 	}
@@ -255,7 +255,7 @@ func CheckStateVariablesInstantiated(dataset *cimgostructs.CIMElementList) []Vio
 // Profile: 61970-600-2_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: If multiple RegulatingControls control same point, targetValues must not be contradictory.
-func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckRegulatingControlContradictory(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	type regPoint struct {
@@ -302,7 +302,7 @@ func CheckRegulatingControlContradictory(dataset *cimgostructs.CIMElementList) [
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvShuntCompensatorSections.sections shall be the same as ShuntCompensator.sections for non-regulating shunt compensators.
-func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSvShuntCompensatorSectionsSync(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for _, svsc := range dataset.SvShuntCompensatorSectionss {
@@ -320,7 +320,7 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) [
 		var sections float64
 
 		switch v := scObj.(type) {
-		case *cimgostructs.LinearShuntCompensator:
+		case *cimstructs.LinearShuntCompensator:
 			controlEnabled = v.ControlEnabled
 			sections = v.Sections
 			if v.RegulatingControl != nil {
@@ -329,7 +329,7 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) [
 					rcEnabled = rc.Enabled
 				}
 			}
-		case *cimgostructs.NonlinearShuntCompensator:
+		case *cimstructs.NonlinearShuntCompensator:
 			controlEnabled = v.ControlEnabled
 			sections = v.Sections
 			if v.RegulatingControl != nil {
@@ -371,7 +371,7 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimgostructs.CIMElementList) [
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvTapStep.position shall be the same as TapChanger.step for non-regulating tap changers.
-func CheckSvTapStepPositionSync(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSvTapStepPositionSync(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for _, svts := range dataset.SvTapSteps {
@@ -424,13 +424,13 @@ func CheckSvTapStepPositionSync(dataset *cimgostructs.CIMElementList) []Violatio
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvStatus must be instantiated for all energized ConductingEquipment connected to a TopologicalIsland.
-func CheckSvStatusInstance(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSvStatusInstance(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
@@ -479,19 +479,19 @@ func CheckSvStatusInstance(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvShuntCompensatorSections must be instantiated for all energized ShuntCompensators.
-func CheckSvShuntCompensatorSectionsInstance(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSvShuntCompensatorSectionsInstance(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
 	for id, obj := range dataset.Elements {
 		switch obj.(type) {
-		case *cimgostructs.LinearShuntCompensator, *cimgostructs.NonlinearShuntCompensator:
+		case *cimstructs.LinearShuntCompensator, *cimstructs.NonlinearShuntCompensator:
 		default:
 			continue
 		}
@@ -532,21 +532,21 @@ func CheckSvShuntCompensatorSectionsInstance(dataset *cimgostructs.CIMElementLis
 // Profile: 61970-600-1_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvTapStep must be instantiated for all energized TapChangers.
-func CheckSvTapStepInstance(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSvTapStepInstance(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	tnInIsland := make(map[string]bool)
 	for _, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnInIsland[strings.TrimPrefix(island.TopologicalNodes.MRID, "#")] = true
+		for _, tn := range island.TopologicalNodes {
+			tnInIsland[strings.TrimPrefix(tn.MRID, "#")] = true
 		}
 	}
 
 	for id, obj := range dataset.Elements {
 		switch obj.(type) {
-		case *cimgostructs.RatioTapChanger, *cimgostructs.PhaseTapChangerLinear,
-			*cimgostructs.PhaseTapChangerSymmetrical, *cimgostructs.PhaseTapChangerAsymmetrical,
-			*cimgostructs.PhaseTapChangerTabular:
+		case *cimstructs.RatioTapChanger, *cimstructs.PhaseTapChangerLinear,
+			*cimstructs.PhaseTapChangerSymmetrical, *cimstructs.PhaseTapChangerAsymmetrical,
+			*cimstructs.PhaseTapChangerTabular:
 		default:
 			continue
 		}
@@ -595,14 +595,14 @@ func CheckSvTapStepInstance(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-600-2_AllProfiles-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: The controlled point and the controlling equipment shall be located in the same TopologicalIsland.
-func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckRegulatingControlSameIsland(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	termToIsland := make(map[string]string)
 	tnToIsland := make(map[string]string)
 	for islandID, island := range dataset.TopologicalIslands {
-		if island.TopologicalNodes != nil {
-			tnID := strings.TrimPrefix(island.TopologicalNodes.MRID, "#")
+		for _, tn := range island.TopologicalNodes {
+			tnID := strings.TrimPrefix(tn.MRID, "#")
 			tnToIsland[tnID] = islandID
 		}
 	}
@@ -651,27 +651,27 @@ func CheckRegulatingControlSameIsland(dataset *cimgostructs.CIMElementList) []Vi
 			class := ""
 
 			switch v := obj.(type) {
-			case *cimgostructs.RatioTapChanger:
+			case *cimstructs.RatioTapChanger:
 				tcc, class = v.TapChangerControl, "RatioTapChanger"
 				if v.TransformerEnd != nil {
 					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
 				}
-			case *cimgostructs.PhaseTapChangerLinear:
+			case *cimstructs.PhaseTapChangerLinear:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerLinear"
 				if v.TransformerEnd != nil {
 					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
 				}
-			case *cimgostructs.PhaseTapChangerSymmetrical:
+			case *cimstructs.PhaseTapChangerSymmetrical:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerSymmetrical"
 				if v.TransformerEnd != nil {
 					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
 				}
-			case *cimgostructs.PhaseTapChangerAsymmetrical:
+			case *cimstructs.PhaseTapChangerAsymmetrical:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerAsymmetrical"
 				if v.TransformerEnd != nil {
 					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")
 				}
-			case *cimgostructs.PhaseTapChangerTabular:
+			case *cimstructs.PhaseTapChangerTabular:
 				tcc, class = v.TapChangerControl, "PhaseTapChangerTabular"
 				if v.TransformerEnd != nil {
 					teID = strings.TrimPrefix(v.TransformerEnd.MRID, "#")

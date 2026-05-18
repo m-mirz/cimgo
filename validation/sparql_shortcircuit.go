@@ -1,9 +1,9 @@
 package validation
 
-import "cimgo/cimgostructs"
+import "cimgo/cimstructs"
 
 // ValidateSCProfileSPARQL runs hand-written checks for 61970-301_ShortCircuit-AP-Con-Complex-SHACL.
-func ValidateSCProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateSCProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSeriesCompensatorVaristorUsage(dataset)...)
 	violations = append(violations, CheckTransformerEndGrounding(dataset)...)
@@ -16,7 +16,7 @@ func ValidateSCProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
 // Profile: 61970-301_ShortCircuit-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: varistorRatedCurrent and varistorVoltageThreshold are used for short circuit calculations and exchanged only if SeriesCompensator.varistorPresent is true.
-func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSeriesCompensatorVaristorUsage(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	for id, sc := range dataset.SeriesCompensators {
@@ -49,7 +49,7 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimgostructs.CIMElementList) [
 // Profile: 61970-452_ShortCircuit-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Missing required properties .rground or .xground when grounded=true.
-func CheckTransformerEndGrounding(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckTransformerEndGrounding(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, te := range dataset.PowerTransformerEnds {
 		if te.Grounded {
@@ -71,7 +71,7 @@ func CheckTransformerEndGrounding(dataset *cimgostructs.CIMElementList) []Violat
 // Profile: 61970-452_ShortCircuit-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Missing required properties .earthingStarPointR or .earthingStarPointX when earthing=true.
-func CheckSynchronousMachineEarthing(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSynchronousMachineEarthing(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
 		if sm.Earthing {
@@ -93,7 +93,7 @@ func CheckSynchronousMachineEarthing(dataset *cimgostructs.CIMElementList) []Vio
 // Profile: 61970-600-2_ShortCircuit-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The attributes varistorRatedCurrent and varistorVoltageThreshold are required if SeriesCompensator.varistorPresent is true.
-func CheckSeriesCompensatorVaristorRequired(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSeriesCompensatorVaristorRequired(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	for id, sc := range dataset.SeriesCompensators {
 		if sc.VaristorPresent {

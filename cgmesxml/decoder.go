@@ -1,7 +1,7 @@
-package cimprofiles
+package cgmesxml
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"cimgo/cimxml"
 	"encoding/xml"
 	"io"
@@ -9,8 +9,23 @@ import (
 	"sync"
 )
 
+const rdfNS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+
+// normalizeRDFAbout converts rdf:about="#UUID" to rdf:ID="UUID" so both
+// identifier forms map to the same xml:"ID,attr" struct field on cimbase.Base.
+func normalizeRDFAbout(t *xml.StartElement) {
+	for i := range t.Attr {
+		if t.Attr[i].Name.Local == "about" && t.Attr[i].Name.Space == rdfNS {
+			t.Attr[i].Name.Local = "ID"
+			t.Attr[i].Name.Space = ""
+			t.Attr[i].Value = strings.TrimPrefix(t.Attr[i].Value, "#")
+			return
+		}
+	}
+}
+
 type CIMProfile struct {
-	ModelId          string `xml:"rdf:about,attr"`
+	ModelId          string `xml:"http://www.w3.org/1999/02/22-rdf-syntax-ns# about,attr"`
 	ModelDependentOn *struct {
 		MRID string `xml:"resource,attr"`
 	} `xml:"Model.DependentOn,omitempty"`
@@ -24,14 +39,14 @@ type CIMProfile struct {
 
 type CIMDataset struct {
 	Profiles []*CIMProfile
-	Elements cimgostructs.CIMElementList
+	Elements cimstructs.CIMElementList
 }
 
 // DecodeProfiles decodes each reader concurrently into a separate CIMElementList,
 // then merges them into cimData in input order. Callers control merge precedence
 // by ordering the readers slice (earlier entries win on field conflicts).
-func DecodeProfiles(readers []io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostructs.CIMElementList, error) {
-	results := make([]*cimgostructs.CIMElementList, len(readers))
+func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
+	results := make([]*cimstructs.CIMElementList, len(readers))
 	errs := make([]error, len(readers))
 
 	var wg sync.WaitGroup
@@ -51,7 +66,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimgostructs.CIMElementList) (
 	}
 
 	if cimData == nil {
-		cimData = cimgostructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMElementList()
 	}
 	for _, r := range results {
 		if err := MergeInto(cimData, r); err != nil {
@@ -63,7 +78,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimgostructs.CIMElementList) (
 
 // MergeInto adds all elements from src into dst, merging any objects with
 // matching mRIDs via DeepMerge.
-func MergeInto(dst, src *cimgostructs.CIMElementList) error {
+func MergeInto(dst, src *cimstructs.CIMElementList) error {
 	for _, elem := range src.Elements {
 		if err := dst.AddElement(elem); err != nil {
 			return err
@@ -72,9 +87,9 @@ func MergeInto(dst, src *cimgostructs.CIMElementList) error {
 	return nil
 }
 
-func DecodeProfile(r io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostructs.CIMElementList, error) {
+func DecodeProfile(r io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
 	if cimData == nil {
-		cimData = cimgostructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMElementList()
 	}
 	dec := cimxml.NewDecoder(r)
 
@@ -91,11 +106,12 @@ func DecodeProfile(r io.Reader, cimData *cimgostructs.CIMElementList) (*cimgostr
 
 		switch t := token.(type) {
 		case xml.StartElement:
+			normalizeRDFAbout(&t)
 			labelParts := strings.Split(t.Name.Local, ".")
 			labelEnd := labelParts[len(labelParts)-1]
 
-			if _, ok := cimgostructs.StructMap[labelEnd]; ok {
-				node := cimgostructs.StructMap[labelEnd]()
+			if _, ok := cimstructs.StructMap[labelEnd]; ok {
+				node := cimstructs.StructMap[labelEnd]()
 
 				if err := dec.DecodeElement(node, &t); err != nil {
 					return cimData, err

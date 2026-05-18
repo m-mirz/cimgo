@@ -1,7 +1,7 @@
-package cimgostructs
+package cimstructs
 
 import (
-	"cimgo/cimgobase"
+	"cimgo/cimbase"
 	"fmt"
 	"reflect"
 )
@@ -27,14 +27,14 @@ func NewCIMElementList() *CIMElementList {
 }
 
 func (ds *CIMElementList) AddElement(element interface{}) error {
-	elem, ok := element.(cimgobase.CIMElement)
+	elem, ok := element.(cimbase.CIMElement)
 	if !ok {
 		return fmt.Errorf("element of type %T does not implement CIMElement", element)
 	}
 	id := elem.GetId()
 
 	if existing, ok := ds.Elements[id]; ok {
-		err := cimgobase.DeepMerge(reflect.ValueOf(existing), reflect.ValueOf(element))
+		err := cimbase.DeepMerge(reflect.ValueOf(existing), reflect.ValueOf(element))
 		if err != nil {
 			return fmt.Errorf("ID conflict: element with ID %s already exists and cannot be merged: %v", id, err)
 		}
@@ -61,6 +61,32 @@ var StructMap = map[string]func() interface{}{
 	"{{.Id}}": func() interface{} {
 		return &{{.Id}}{}
 	},
+	{{- end}}
+	{{- end}}
+}
+
+// TypeInfoMap maps CIM type name to its type info (all types, including abstract).
+var TypeInfoMap = map[string]cimbase.CIMTypeInfo{
+	{{- range .Types}}
+	"{{.Id}}": {
+		Namespace: "{{.Namespace}}",
+		Origin:    "{{.Origin}}",
+		Origins:   []string{ {{- range .Origins}}"{{.}}", {{- end}} },
+	},
+	{{- end}}
+}
+
+// AttributeInfoMap maps xml element name (e.g. "TapChanger.step") to its attribute info.
+var AttributeInfoMap = map[string]cimbase.CIMAttributeInfo{
+	{{- range .Types}}
+	{{- range .Attributes}}
+	{{- if .IsAssociationUsed}}
+	"{{.Id}}": {
+		Namespace: "{{.Namespace}}",
+		Origin:    "{{.Origin}}",
+		Origins:   []string{ {{- range .Origins}}"{{.}}", {{- end}} },
+	},
+	{{- end}}
 	{{- end}}
 	{{- end}}
 }

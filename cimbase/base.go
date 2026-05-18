@@ -1,4 +1,4 @@
-package cimgobase
+package cimbase
 
 import (
 	"fmt"

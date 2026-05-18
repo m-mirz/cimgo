@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"fmt"
 	"strings"
 )
@@ -9,7 +9,7 @@ import (
 // ValidateTPNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL and
 // 61970-600_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
 	violations = append(violations, CheckSwitchSameTopologicalNode(dataset)...)
@@ -21,10 +21,10 @@ func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimgostructs.CIMElementList) [
 // Profile: 61970-301_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: The phase code on terminals connecting the same TopologicalNode shall be consistent.
-func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
-	nodeTerminals := make(map[string][]*cimgostructs.Terminal)
+	nodeTerminals := make(map[string][]*cimstructs.Terminal)
 	for _, term := range dataset.Terminals {
 		if term.TopologicalNode != nil {
 			nodeID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
@@ -86,11 +86,11 @@ func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimgostructs.CIMElem
 // Profile: 61970-456_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Terminals of a retained Switch shall not be connected to the same TopologicalNode.
-func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	// Build index: ConductingEquipment ID -> []Terminal
-	eqTerminals := make(map[string][]*cimgostructs.Terminal)
+	eqTerminals := make(map[string][]*cimstructs.Terminal)
 	for _, term := range dataset.Terminals {
 		if term.ConductingEquipment != nil {
 			eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
@@ -104,23 +104,23 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 		class := ""
 
 		switch v := obj.(type) {
-		case *cimgostructs.Switch:
+		case *cimstructs.Switch:
 			retained, class = v.Retained, "Switch"
-		case *cimgostructs.Breaker:
+		case *cimstructs.Breaker:
 			retained, class = v.Retained, "Breaker"
-		case *cimgostructs.Disconnector:
+		case *cimstructs.Disconnector:
 			retained, class = v.Retained, "Disconnector"
-		case *cimgostructs.Fuse:
+		case *cimstructs.Fuse:
 			retained, class = v.Retained, "Fuse"
-		case *cimgostructs.Jumper:
+		case *cimstructs.Jumper:
 			retained, class = v.Retained, "Jumper"
-		case *cimgostructs.LoadBreakSwitch:
+		case *cimstructs.LoadBreakSwitch:
 			retained, class = v.Retained, "LoadBreakSwitch"
-		case *cimgostructs.Cut:
+		case *cimstructs.Cut:
 			retained, class = v.Retained, "Cut"
-		case *cimgostructs.GroundDisconnector:
+		case *cimstructs.GroundDisconnector:
 			retained, class = v.Retained, "GroundDisconnector"
-		case *cimgostructs.DisconnectingCircuitBreaker:
+		case *cimstructs.DisconnectingCircuitBreaker:
 			retained, class = v.Retained, "DisconnectingCircuitBreaker"
 		default:
 			continue
@@ -136,7 +136,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 		}
 
 		// Find terminals with sequenceNumber 1 and 2
-		var t1, t2 *cimgostructs.Terminal
+		var t1, t2 *cimstructs.Terminal
 		for _, t := range terms {
 			if t.SequenceNumber == 1 {
 				t1 = t
@@ -150,13 +150,13 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 			continue
 		}
 
-		getTN := func(t *cimgostructs.Terminal) string {
+		getTN := func(t *cimstructs.Terminal) string {
 			if t.TopologicalNode != nil {
 				return strings.TrimPrefix(t.TopologicalNode.MRID, "#")
 			}
 			if t.ConnectivityNode != nil {
 				cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
-				if cn, ok := dataset.Elements[cnID].(*cimgostructs.ConnectivityNode); ok && cn.TopologicalNode != nil {
+				if cn, ok := dataset.Elements[cnID].(*cimstructs.ConnectivityNode); ok && cn.TopologicalNode != nil {
 					return strings.TrimPrefix(cn.TopologicalNode.MRID, "#")
 				}
 			}
@@ -184,7 +184,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimgostructs.CIMElementList) []Viol
 // Profile: 61970-600_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Terminal.TopologicalNode is required if a RegulatingControl is associated.
-func CheckTerminalExch8TopologicalNode(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckTerminalExch8TopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	// Find terminals used in RegulatingControl

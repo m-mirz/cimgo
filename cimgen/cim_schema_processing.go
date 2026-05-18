@@ -212,7 +212,7 @@ func (cimSpec *CIMSpecification) reorderOrigins() {
 			priorityJ := cimSpec.Ontologies[originJ].Priority
 			return priorityI < priorityJ
 		})
-		// reorder the Origins field of each attribute
+		// reorder the Origins field of each attribute and set its main Origin
 		for _, attr := range t.Attributes {
 			sort.Slice(attr.Origins, func(i, j int) bool {
 				originI := attr.Origins[i]
@@ -221,6 +221,9 @@ func (cimSpec *CIMSpecification) reorderOrigins() {
 				priorityJ := cimSpec.Ontologies[originJ].Priority
 				return priorityI < priorityJ
 			})
+			if len(attr.Origins) > 0 {
+				attr.Origin = attr.Origins[0]
+			}
 		}
 	}
 }

@@ -1,12 +1,12 @@
 package validation
 
 import (
-	"cimgo/cimgostructs"
+	"cimgo/cimstructs"
 	"strings"
 )
 
 // ValidateEQBDProfileSPARQL runs hand-written checks for 61970-301_EquipmentBoundary.
-func ValidateEQBDProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation {
+func ValidateEQBDProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 	return CheckBoundaryPointTieFlow(dataset)
 }
 
@@ -14,7 +14,7 @@ func ValidateEQBDProfileSPARQL(dataset *cimgostructs.CIMElementList) []Violation
 // Profile: 61970-301_EquipmentBoundary-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: If isExcludedFromAreaInterchange is false (default), a TieFlow is required. If true, no TieFlow should be modeled.
-func CheckBoundaryPointTieFlow(dataset *cimgostructs.CIMElementList) []Violation {
+func CheckBoundaryPointTieFlow(dataset *cimstructs.CIMElementList) []Violation {
 	var violations []Violation
 
 	// Build index: Terminal ID -> []TieFlow ID

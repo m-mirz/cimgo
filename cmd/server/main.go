@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"cimgo/cimstructs"
 	"cimgo/cgmesxml"
-	"cimgo/cimproto"
+	"cimgo/cimconv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -191,7 +191,7 @@ func processCIMFiles(id string) error {
 	}
 
 	// Generate Protobuf serialization
-	protoList, err := cimproto.ToProto(mergedCIMData)
+	protoList, err := cimconv.ToProto(mergedCIMData)
 	if err != nil {
 		return fmt.Errorf("failed to convert to proto: %w", err)
 	}

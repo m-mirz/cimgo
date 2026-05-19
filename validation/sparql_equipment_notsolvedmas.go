@@ -8,7 +8,7 @@ import (
 
 // ValidateEQNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
 	violations = append(violations, CheckRegulatingControlTargetValueTapChanger(dataset)...)
@@ -23,7 +23,7 @@ func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []V
 // Origin: Derived from a SPARQL constraint.
 // Description: The BaseVoltage at the two ends of ACLineSegments in a Line shall have the same
 // BaseVoltage.nominalVoltage.
-func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	terminalsByEquipment := make(map[string]map[int]*cimstructs.Terminal)
@@ -97,7 +97,7 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-452_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.targetValue shall be within TapChanger capability limits.
-func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -173,7 +173,7 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementL
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: 10% difference of BaseVoltage.nominalVoltage allowed at two ends of ACLineSegment.
-func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	terminalsByEquipment := make(map[string]map[int]*cimstructs.Terminal)
@@ -256,7 +256,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Boundary points (ConnectivityNodes) must have connected EquivalentInjections and at least one two-terminal ConductingEquipment.
-func CheckBoundaryPointBppl(dataset *cimstructs.CIMElementList) []Violation {
+func CheckBoundaryPointBppl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Identify Boundary Points (ConnectivityNodes associated with eu:BoundaryPoint)
@@ -332,7 +332,7 @@ func CheckBoundaryPointBppl(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: EquivalentInjection at non-HVDC BoundaryPoint shall have regulationCapability=false and no ReactiveCapabilityCurve.
-func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {

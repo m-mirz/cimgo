@@ -9,7 +9,7 @@ import (
 // ValidateTPNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Topology-AP-Con-Complex-NotSolvedMAS-SHACL and
 // 61970-600_Topology-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckTerminalPhasesConsistencyTopologicalNode(dataset)...)
 	violations = append(violations, CheckSwitchSameTopologicalNode(dataset)...)
@@ -21,7 +21,7 @@ func ValidateTPNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []V
 // Profile: 61970-301_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: The phase code on terminals connecting the same TopologicalNode shall be consistent.
-func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	nodeTerminals := make(map[string][]*cimstructs.Terminal)
@@ -88,7 +88,7 @@ func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimstructs.CIMElemen
 // Profile: 61970-456_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Terminals of a retained Switch shall not be connected to the same TopologicalNode.
-func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Build index: ConductingEquipment ID -> []Terminal
@@ -188,7 +188,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMElementList) []Violat
 // Profile: 61970-600_Topology-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Terminal.TopologicalNode is required if a RegulatingControl is associated.
-func CheckTerminalExch8TopologicalNode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTerminalExch8TopologicalNode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Find terminals used in RegulatingControl

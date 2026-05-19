@@ -10,7 +10,7 @@ import (
 // ValidateSVSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL and
 // 61970-456_StateVariables-AP-Con-Complex-SolvedMAS-SHACL
-func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
 	violations = append(violations, CheckSvTapStepPositionInteger(dataset)...)
@@ -27,7 +27,7 @@ func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Viol
 // Profile: 61970-301_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvTapStep.position must be within [TapChanger.lowStep, TapChanger.highStep].
-func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tapChangerStep := func(id string) (low, high int, ok bool) {
@@ -77,7 +77,7 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, SvShuntCompensatorSections.sections shall be integer.
-func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svsc := range dataset.SvShuntCompensatorSectionss {
@@ -126,7 +126,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, SvTapStep.position shall be integer.
-func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svts := range dataset.SvTapSteps {
@@ -175,7 +175,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvSwitch must be instantiated for all switching devices.
-func CheckSvSwitchInstance(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvSwitchInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -214,7 +214,7 @@ func CheckSvSwitchInstance(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow must be instantiated for all energized injection equipment.
-func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	inServiceMap := make(map[string]bool)
@@ -288,7 +288,7 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow.p should be within the min/max operating power limits of the associated machine.
-func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svpf := range dataset.SvPowerFlows {
@@ -333,7 +333,7 @@ func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow.q should be within the reactive capability limits of the associated machine.
-func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svpf := range dataset.SvPowerFlows {
@@ -403,7 +403,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates SvVoltage.v against defined voltage limits and absolute 0.4 pu limit.
-func CheckSvVoltageLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svv := range dataset.SvVoltages {

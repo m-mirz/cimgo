@@ -367,7 +367,7 @@ func TestToProto_RoundTrip(t *testing.T) {
 		t.Fatalf("Marshal: %v", err)
 	}
 
-	decoded := &apiv1.CIMElementList{}
+	decoded := &apiv1.CIMDataset{}
 	if err := proto.Unmarshal(data, decoded); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}

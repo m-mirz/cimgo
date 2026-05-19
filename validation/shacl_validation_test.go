@@ -32,7 +32,7 @@ func loadEQBDBaseVoltageIDs(t *testing.T, path string) map[string]struct{} {
 		if !bytes.Contains(b, []byte("EquipmentBoundary-EU/3.0")) {
 			continue
 		}
-		temp := cimstructs.NewCIMElementList()
+		temp := cimstructs.NewCIMDataset()
 		if _, err := cgmesxml.DecodeProfile(bytes.NewReader(b), temp); err != nil {
 			t.Fatalf("Failed to decode EQBD file %s: %v", f.Name(), err)
 		}
@@ -53,9 +53,9 @@ func indexByID(violations []Violation) map[string][]Violation {
 	return out
 }
 
-func loadDataset(tb testing.TB, path string) *cimstructs.CIMElementList {
+func loadDataset(tb testing.TB, path string) *cimstructs.CIMDataset {
 	tb.Helper()
-	dataset := cimstructs.NewCIMElementList()
+	dataset := cimstructs.NewCIMDataset()
 	b, err := os.ReadFile(path)
 	if err != nil {
 		tb.Fatalf("Failed to read %s: %v", path, err)
@@ -65,7 +65,7 @@ func loadDataset(tb testing.TB, path string) *cimstructs.CIMElementList {
 	return dataset
 }
 
-func loadDirectory(tb testing.TB, path string) *cimstructs.CIMElementList {
+func loadDirectory(tb testing.TB, path string) *cimstructs.CIMDataset {
 	tb.Helper()
 	files, err := os.ReadDir(path)
 	if err != nil {

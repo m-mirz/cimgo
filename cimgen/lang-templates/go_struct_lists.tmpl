@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-type CIMElementList struct {
+type CIMDataset struct {
 	Elements map[string]interface{}
 	{{- range .Types}}
 	{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
@@ -15,8 +15,8 @@ type CIMElementList struct {
 	{{- end}}
 }
 
-func NewCIMElementList() *CIMElementList {
-	return &CIMElementList{
+func NewCIMDataset() *CIMDataset {
+	return &CIMDataset{
 		Elements: make(map[string]interface{}),
 		{{- range .Types}}
 		{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
@@ -26,7 +26,7 @@ func NewCIMElementList() *CIMElementList {
 	}
 }
 
-func (ds *CIMElementList) AddElement(element interface{}) error {
+func (ds *CIMDataset) AddElement(element interface{}) error {
 	elem, ok := element.(cimbase.CIMElement)
 	if !ok {
 		return fmt.Errorf("element of type %T does not implement CIMElement", element)

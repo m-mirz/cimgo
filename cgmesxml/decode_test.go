@@ -180,12 +180,12 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 }
 
 // TestMergeProfiles verifies that decoding multiple profile files into a shared
-// CIMElementList merges elements with the same ID rather than duplicating them.
+// CIMDataset merges elements with the same ID rather than duplicating them.
 // The EQ file declares Terminal.N0 (with name); the TP file re-declares it
 // with a TopologicalNode reference. After merging both files the terminal must
 // carry both the name and the reference.
 func TestMergeProfiles(t *testing.T) {
-	merged := cimstructs.NewCIMElementList()
+	merged := cimstructs.NewCIMDataset()
 
 	for _, file := range []string{
 		"../testdata/test_009_EQ.xml",

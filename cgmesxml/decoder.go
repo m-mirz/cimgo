@@ -39,14 +39,14 @@ type CIMProfile struct {
 
 type CIMDataset struct {
 	Profiles []*CIMProfile
-	Elements cimstructs.CIMElementList
+	Elements cimstructs.CIMDataset
 }
 
-// DecodeProfiles decodes each reader concurrently into a separate CIMElementList,
+// DecodeProfiles decodes each reader concurrently into a separate CIMDataset,
 // then merges them into cimData in input order. Callers control merge precedence
 // by ordering the readers slice (earlier entries win on field conflicts).
-func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
-	results := make([]*cimstructs.CIMElementList, len(readers))
+func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
+	results := make([]*cimstructs.CIMDataset, len(readers))
 	errs := make([]error, len(readers))
 
 	var wg sync.WaitGroup
@@ -66,7 +66,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*c
 	}
 
 	if cimData == nil {
-		cimData = cimstructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMDataset()
 	}
 	for _, r := range results {
 		if err := MergeInto(cimData, r); err != nil {
@@ -78,7 +78,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*c
 
 // MergeInto adds all elements from src into dst, merging any objects with
 // matching mRIDs via DeepMerge.
-func MergeInto(dst, src *cimstructs.CIMElementList) error {
+func MergeInto(dst, src *cimstructs.CIMDataset) error {
 	for _, elem := range src.Elements {
 		if err := dst.AddElement(elem); err != nil {
 			return err
@@ -87,9 +87,9 @@ func MergeInto(dst, src *cimstructs.CIMElementList) error {
 	return nil
 }
 
-func DecodeProfile(r io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
+func DecodeProfile(r io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
 	if cimData == nil {
-		cimData = cimstructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMDataset()
 	}
 	dec := cimxml.NewDecoder(r)
 

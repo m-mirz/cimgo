@@ -14,9 +14,9 @@ import (
 )
 
 // loadXML decodes one or more CGMES XML files and merges them into one dataset.
-func loadXML(t *testing.T, paths ...string) *cimstructs.CIMElementList {
+func loadXML(t *testing.T, paths ...string) *cimstructs.CIMDataset {
 	t.Helper()
-	dataset := cimstructs.NewCIMElementList()
+	dataset := cimstructs.NewCIMDataset()
 	for _, p := range paths {
 		b, err := os.ReadFile(p)
 		if err != nil {
@@ -177,7 +177,7 @@ func TestProtoRoundTrip_MarshalUnmarshal(t *testing.T) {
 		t.Fatal("marshalled proto is empty")
 	}
 
-	decoded := &apiv1.CIMElementList{}
+	decoded := &apiv1.CIMDataset{}
 	if err := proto.Unmarshal(data, decoded); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestProtoRoundTrip_FieldValues(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	decoded := &apiv1.CIMElementList{}
+	decoded := &apiv1.CIMDataset{}
 	if err := proto.Unmarshal(data, decoded); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestProtoRoundTrip_MultiFile(t *testing.T) {
 		t.Fatalf("Marshal: %v", err)
 	}
 
-	decoded := &apiv1.CIMElementList{}
+	decoded := &apiv1.CIMDataset{}
 	if err := proto.Unmarshal(data, decoded); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}

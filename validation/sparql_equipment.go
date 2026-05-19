@@ -8,7 +8,7 @@ import (
 )
 
 // ValidateEQProfileSPARQL runs hand-written checks for 61970-301_Equipment-AP-Con-Complex-SHACL.
-func ValidateEQProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateEQProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACDCTerminalSequenceNumbering(dataset)...)
 	violations = append(violations, CheckTerminalPhasesConsistencyEquipment(dataset)...)
@@ -79,7 +79,7 @@ func ValidateEQProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: The sequence numbering starts with 1 and additional terminals should follow in increasing order.
 // The first terminal is the starting point for a two terminal branch.
-func CheckACDCTerminalSequenceNumbering(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACDCTerminalSequenceNumbering(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	equipmentTerminals := make(map[string][]interface{})
@@ -156,7 +156,7 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimstructs.CIMElementList) []Vi
 // Origin: Derived from a SPARQL constraint.
 // Description: The phase code on terminals connecting same ConnectivityNode or same TopologicalNode
 // as well as for equipment between two terminals shall be consistent.
-func CheckTerminalPhasesConsistencyEquipment(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTerminalPhasesConsistencyEquipment(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	equipmentTerminals := make(map[string]map[int]*cimstructs.Terminal)
@@ -226,7 +226,7 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimstructs.CIMElementList)
 // Origin: Derived from a SPARQL constraint.
 // Description: Use only when there is no voltage level container used and only one base voltage applies.
 // For example, not used for transformers.
-func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -277,7 +277,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMElementList
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Highest voltage winding should be 1. Each end within a power transformer should have a unique subsequent end number.
-func CheckPowerTransformerEndNumberUnique(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndNumberUnique(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimstructs.PowerTransformerEnd)
@@ -346,7 +346,7 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimstructs.CIMElementList) []
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The Terminal referenced by TransformerEnd.Terminal points to a PowerTransformer which is different than the referenced element via PowerTransformerEnd.PowerTransformer.
-func CheckPowerTransformerEndTerminalConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndTerminalConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, end := range dataset.PowerTransformerEnds {
@@ -388,7 +388,7 @@ func CheckPowerTransformerEndTerminalConsistency(dataset *cimstructs.CIMElementL
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: acceptableDuration must be present when isInfiniteDuration is false, and absent when true.
-func CheckOperationalLimitTypeDuration(dataset *cimstructs.CIMElementList) []Violation {
+func CheckOperationalLimitTypeDuration(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, olt := range dataset.OperationalLimitTypes {
@@ -428,7 +428,7 @@ func CheckOperationalLimitTypeDuration(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: for a two Terminal PowerTransformer the high voltage (endNumber=1) has non zero r, r0, x, x0 while low voltage (endNumber=2) has zero values.
-func CheckPowerTransformerTwoWindingEndValues(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerTwoWindingEndValues(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimstructs.PowerTransformerEnd)
@@ -468,7 +468,7 @@ func CheckPowerTransformerTwoWindingEndValues(dataset *cimstructs.CIMElementList
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: PowerTransformerEnd.x shall be consistent with PhaseTapChangerLinear.xMin.
-func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, ptcl := range dataset.PhaseTapChangerLinears {
@@ -501,7 +501,7 @@ func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMElementLis
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: PowerTransformerEnd.x shall be consistent with PhaseTapChangerNonLinear.xMin.
-func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -535,7 +535,7 @@ func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimstructs.CIMElement
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: For a two-winding transformer the values for the high and low voltage sides shall be identical.
-func CheckPowerTransformerEndRatedS2Winding(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndRatedS2Winding(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimstructs.PowerTransformerEnd)
@@ -571,7 +571,7 @@ func CheckPowerTransformerEndRatedS2Winding(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The inherited association ConductingEquipment.BaseVoltage should not be used.
-func CheckPowerTransformerBaseVoltageAssociation(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerBaseVoltageAssociation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, pt := range dataset.PowerTransformers {
@@ -595,7 +595,7 @@ func CheckPowerTransformerBaseVoltageAssociation(dataset *cimstructs.CIMElementL
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The attribute shall be equal to or greater than zero for non-equivalent transformers.
-func CheckPowerTransformerEndRValueRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndRValueRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, end := range dataset.PowerTransformerEnds {
@@ -628,7 +628,7 @@ func CheckPowerTransformerEndRValueRange(dataset *cimstructs.CIMElementList) []V
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The specified terminal shall be associated with the connectivity node of the controlled point.
-func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, rc := range dataset.RegulatingControls {
@@ -661,7 +661,7 @@ func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMEleme
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: When TapChanger.ltcFlag=false and TapChanger.TapChangerControl is present an artificial tap changer can be used to simulate control behaviour in power flow.
-func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -691,7 +691,7 @@ func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMElementList) []Violati
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates both the exponent and coefficient models, ensuring all required attributes
 // are present for the chosen model, no mixture of attributes exists, and sums of coefficients equal 1.
-func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMElementList) []Violation {
+func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, lrc := range dataset.LoadResponseCharacteristics {
@@ -750,7 +750,7 @@ func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMElement
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The number of NonlinearShuntCompenstorPoint instances shall be equal to maximumSections.
-func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	nscPoints := make(map[string]int)
@@ -786,7 +786,7 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMElementList
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: nomU should be within 10% of the nominal voltage.
-func CheckShuntCompensatorNomU(dataset *cimstructs.CIMElementList) []Violation {
+func CheckShuntCompensatorNomU(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -826,7 +826,7 @@ func CheckShuntCompensatorNomU(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The windingConnectionAngle can only be multiples of 30 degrees in the range -150 to 150 excluding 0.
-func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, ptca := range dataset.PhaseTapChangerAsymmetricals {
@@ -854,7 +854,7 @@ func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimstructs.
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: A high voltage side (endNumber=1) shall have a ratedU >= lower voltage sides; ratedU must be positive.
-func CheckPowerTransformerEndRatedUValueRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndRatedUValueRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	transformerEnds := make(map[string][]*cimstructs.PowerTransformerEnd)
@@ -909,7 +909,7 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimstructs.CIMElementList
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The Permanent Admissible Transmission Loading (PATL) is not allowed for VoltageLimit.
-func CheckVoltageLimitPATL(dataset *cimstructs.CIMElementList) []Violation {
+func CheckVoltageLimitPATL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, vl := range dataset.VoltageLimits {
@@ -943,7 +943,7 @@ func CheckVoltageLimitPATL(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: No TapChangerControl is used for the converter transformer contained in DCConverterUnit.
-func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMElementList) []Violation {
+func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -1000,7 +1000,7 @@ func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMElementList) [
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: The phase code on terminals connecting same ConnectivityNode shall be consistent.
-func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	nodeTerminals := make(map[string][]*cimstructs.Terminal)
@@ -1068,7 +1068,7 @@ func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimstructs.CIMEleme
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Equipment.aggregate is not used for EquivalentBranch, EquivalentShunt and EquivalentInjection.
-func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, v := range dataset.EquivalentBranchs {
@@ -1118,7 +1118,7 @@ func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMElementList) []Violat
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: EquivalentBranch.r21 differs from EquivalentBranch.r — informational asymmetry.
-func CheckEquivalentBranchR21Usage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentBranchR21Usage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, eb := range dataset.EquivalentBranchs {
@@ -1142,7 +1142,7 @@ func CheckEquivalentBranchR21Usage(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: EquivalentBranch.x21 differs from EquivalentBranch.x — informational asymmetry.
-func CheckEquivalentBranchX21Usage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentBranchX21Usage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, eb := range dataset.EquivalentBranchs {
@@ -1166,7 +1166,7 @@ func CheckEquivalentBranchX21Usage(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: ReactiveCapabilityCurve can only be associated with EquivalentInjection if regulationCapability is true.
-func CheckEquivalentInjectionRegulationCapability(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentInjectionRegulationCapability(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, ei := range dataset.EquivalentInjections {
@@ -1190,7 +1190,7 @@ func CheckEquivalentInjectionRegulationCapability(dataset *cimstructs.CIMElement
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: GeneratingUnit.nominalP shall be > 0 and <= the associated RotatingMachine.ratedS.
-func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMElementList) []Violation {
+func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Build map: GeneratingUnit MRID -> max ratedS across all RotatingMachines pointing to it
@@ -1264,7 +1264,7 @@ func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMElementList) []Violation
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: A control area should include a GeneratingUnit only once.
-func CheckControlAreaGeneratingUnitInstance(dataset *cimstructs.CIMElementList) []Violation {
+func CheckControlAreaGeneratingUnitInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	type pair struct{ ca, gu string }
@@ -1304,7 +1304,7 @@ func CheckControlAreaGeneratingUnitInstance(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: A DCConverterUnit that contains a CsConverter must also contain a PowerTransformer.
-func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimstructs.CIMElementList) []Violation {
+func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	containerHasPowerTransformer := make(map[string]bool)
@@ -1351,7 +1351,7 @@ func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimstructs.CIMElem
 // Origin: Derived from a SPARQL constraint.
 // Description: There shall be only one OperationalLimitType of kind PATL per OperationalLimitSet
 // for ApparentPowerLimit, ActivePowerLimit, or CurrentLimit, and isInfiniteDuration must be true.
-func CheckLimitKindPATLNumberOfLimitType(dataset *cimstructs.CIMElementList) []Violation {
+func CheckLimitKindPATLNumberOfLimitType(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	patlURI := "http://iec.ch/TC57/CIM100-European#LimitKind.patl"
@@ -1450,7 +1450,7 @@ func CheckLimitKindPATLNumberOfLimitType(dataset *cimstructs.CIMElementList) []V
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: For TC limit kind, acceptableDuration must be 0 (or absent), and only one limit per set.
-func CheckLimitKindTCDuration(dataset *cimstructs.CIMElementList) []Violation {
+func CheckLimitKindTCDuration(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tcURI := "http://iec.ch/TC57/CIM100-European#LimitKind.tc"
@@ -1524,7 +1524,7 @@ func CheckLimitKindTCDuration(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: acceptableDuration must be present when isInfiniteDuration is false.
-func CheckOperationalLimitTypeInfiniteDuration(dataset *cimstructs.CIMElementList) []Violation {
+func CheckOperationalLimitTypeInfiniteDuration(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, olt := range dataset.OperationalLimitTypes {
 		if !olt.IsInfiniteDuration && olt.AcceptableDuration == 0 {
@@ -1547,7 +1547,7 @@ func CheckOperationalLimitTypeInfiniteDuration(dataset *cimstructs.CIMElementLis
 // Origin: Derived from a SPARQL constraint.
 // Description: If only one SynchronousMachine is associated with the GeneratingUnit
 // then the Equipment.aggregate flag shall be consistent between them.
-func CheckSynchronousMachineAggregate(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Map GeneratingUnit to its SynchronousMachines
@@ -1591,7 +1591,7 @@ func CheckSynchronousMachineAggregate(dataset *cimstructs.CIMElementList) []Viol
 // Origin: Derived from a SPARQL constraint.
 // Description: If one AsynchronousMachine is associated with one GeneratingUnit
 // the flag Equipment.aggregate shall be consistent if provided at both.
-func CheckAsynchronousMachineAggregate(dataset *cimstructs.CIMElementList) []Violation {
+func CheckAsynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	guToAMs := make(map[string][]string)
@@ -1633,7 +1633,7 @@ func CheckAsynchronousMachineAggregate(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.mode for SynchronousMachine must be voltage, reactivePower, or powerFactor.
-func CheckSynchronousMachineControlMode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineControlMode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachines {
@@ -1669,7 +1669,7 @@ func CheckSynchronousMachineControlMode(dataset *cimstructs.CIMElementList) []Vi
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.mode for SVC must be voltage or reactivePower.
 // Also SVC.sVCControlMode and SVC.voltageSetPoint should not be used (deprecated in favor of RegulatingControl).
-func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svc := range dataset.StaticVarCompensators {
@@ -1724,7 +1724,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMElementList) []
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.mode for PhaseTapChanger must be activePower or voltage.
-func CheckPhaseTapChangerControlMode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPhaseTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	checkPTCMode := func(id, tccID, class string) {
@@ -1773,7 +1773,7 @@ func CheckPhaseTapChangerControlMode(dataset *cimstructs.CIMElementList) []Viola
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.mode for RatioTapChanger must be voltage, reactivePower, or powerFactor.
-func CheckRatioTapChangerControlMode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRatioTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, rtc := range dataset.RatioTapChangers {
@@ -1808,7 +1808,7 @@ func CheckRatioTapChangerControlMode(dataset *cimstructs.CIMElementList) []Viola
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.mode for ShuntCompensator must be voltage, reactivePower, or powerFactor.
-func CheckShuntCompensatorControlMode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckShuntCompensatorControlMode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	checkSCMode := func(id, rcID, class string) {
@@ -1848,7 +1848,7 @@ func CheckShuntCompensatorControlMode(dataset *cimstructs.CIMElementList) []Viol
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates that minQ/maxQ are provided if InitialReactiveCapabilityCurve is missing,
 // and if both are present, they are consistent with the curve.
-func CheckSynchronousMachineReactiveLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineReactiveLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachines {
@@ -1912,7 +1912,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimstructs.CIMElementList) [
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: SynchronousMachine of type condenser should not have an associated GeneratingUnit.
-func CheckSynchronousMachineTypeCondenser(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineTypeCondenser(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachines {
@@ -1936,7 +1936,7 @@ func CheckSynchronousMachineTypeCondenser(dataset *cimstructs.CIMElementList) []
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: If CurveData.Curve is a VsCapabilityCurve at least two CurveData shall be associated.
-func CheckVsCapabilityCurveCount(dataset *cimstructs.CIMElementList) []Violation {
+func CheckVsCapabilityCurveCount(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	curveCount := make(map[string]int)
@@ -1968,7 +1968,7 @@ func CheckVsCapabilityCurveCount(dataset *cimstructs.CIMElementList) []Violation
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: If CurveData.Curve is a VsCapabilityCurve, the CurveData.y2value shall be greater than CurveData.y1value.
-func CheckVsCapabilityCurveYValues(dataset *cimstructs.CIMElementList) []Violation {
+func CheckVsCapabilityCurveYValues(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, cd := range dataset.CurveDatas {
@@ -1997,7 +1997,7 @@ func CheckVsCapabilityCurveYValues(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates GeneratingUnit min/max operating P based on SynchronousMachine type.
-func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachines {
@@ -2073,7 +2073,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates that x^2 + y^2 <= ratedS^2 for ReactiveCapabilityCurve points.
-func CheckCurveDataReactiveCapabilityLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckCurveDataReactiveCapabilityLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: reactive capability curve ID → ratedS of its SynchronousMachine
@@ -2136,7 +2136,7 @@ func CheckCurveDataReactiveCapabilityLimits(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: y2value >= y1value and not all points can have y2 == y1.
-func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	curvePoints := make(map[string][]string)
@@ -2188,7 +2188,7 @@ func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: minOperatingP/maxOperatingP shall match min/max xvalue of ReactiveCapabilityCurve.
-func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: curve ID → x values
@@ -2259,7 +2259,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMElemen
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Switches shall connect to nodes in the same VoltageLevel or different levels with same BaseVoltage.
-func CheckSwitchConnection(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSwitchConnection(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Find all Switches and their terminals
@@ -2334,7 +2334,7 @@ func CheckSwitchConnection(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates OperationalLimitSet associations.
-func CheckOperationalLimitSetTerminal(dataset *cimstructs.CIMElementList) []Violation {
+func CheckOperationalLimitSetTerminal(dataset *cimstructs.CIMDataset) []Violation {
 	// Index 1: terminal IDs that belong to AuxiliaryEquipment (CurrentTransformer etc.)
 	auxTerminalIDs := make(map[string]bool)
 	for _, aux := range dataset.CurrentTransformers {
@@ -2393,7 +2393,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimstructs.CIMElementList) []Viol
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: TapChangerControl in reactivePower mode shall only control a Terminal associated with its PowerTransformer.
-func CheckTapChangerControlRemoteQControl(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTapChangerControlRemoteQControl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: TapChangerControl ID → transformer end IDs
@@ -2443,7 +2443,7 @@ func CheckTapChangerControlRemoteQControl(dataset *cimstructs.CIMElementList) []
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: All CurveData.xvalue for a given ReactiveCapabilityCurve shall be unique.
-func CheckReactiveCapabilityCurveXValueUnique(dataset *cimstructs.CIMElementList) []Violation {
+func CheckReactiveCapabilityCurveXValueUnique(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: curve ID → list of x values
@@ -2481,7 +2481,7 @@ func CheckReactiveCapabilityCurveXValueUnique(dataset *cimstructs.CIMElementList
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates series reactance for two and three winding transformers.
-func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Group ends by transformer
@@ -2536,7 +2536,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMElementList
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: GeneratingUnit.maxOperatingP <= sum of RotatingMachine.ratedS.
-func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimstructs.CIMElementList) []Violation {
+func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	guToRatedSSum := make(map[string]float64)
@@ -2575,7 +2575,7 @@ func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates HydroGeneratingUnit energyConversionCapability vs SynchronousMachine type.
-func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimstructs.CIMElementList) []Violation {
+func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: generating unit ID → synchronous machine
@@ -2632,7 +2632,7 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimstructs.CIME
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Terminals of a two-terminal ConductingEquipment shall not connect to the same ConnectivityNode.
-func CheckTerminalConnectionSameNode(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTerminalConnectionSameNode(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Find two-terminal equipment and their terminals
@@ -2671,7 +2671,7 @@ func CheckTerminalConnectionSameNode(dataset *cimstructs.CIMElementList) []Viola
 // Profile: 61970-452_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates number of CurveData points for a ReactiveCapabilityCurve based on SynchronousMachine type.
-func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMElementList) []Violation {
+func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: curve ID → SynchronousMachine
@@ -2757,7 +2757,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMElementLi
 
 // CheckReactiveCapabilityCurveUnits implements eq600:ReactiveCapabilityCurve-units
 // Description: Curve.xUnit shall be W and y1Unit, y2Unit shall be VAr.
-func CheckReactiveCapabilityCurveUnits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckReactiveCapabilityCurveUnits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Pre-build: set of curve IDs associated with a SynchronousMachine
@@ -2793,7 +2793,7 @@ func CheckReactiveCapabilityCurveUnits(dataset *cimstructs.CIMElementList) []Vio
 
 // CheckSubstationCount implements eq600:Substation-count
 // Description: Reports warning if only one Substation or one Substation per VoltageLevel.
-func CheckSubstationCount(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSubstationCount(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	substations := len(dataset.Substations)
@@ -2817,7 +2817,7 @@ func CheckSubstationCount(dataset *cimstructs.CIMElementList) []Violation {
 
 // CheckTapChangerNeutralUValueRange implements eq600:TapChanger.neutralU-valueRangePair
 // Description: TapChanger.neutralU shall be the same as PowerTransformerEnd.ratedU.
-func CheckTapChangerNeutralUValueRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTapChangerNeutralUValueRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	const epsilon = 1e-6
 

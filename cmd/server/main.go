@@ -20,7 +20,7 @@ import (
 )
 
 // Global map to store CIM specifications in memory, keyed by ID.
-var cimDataset = make(map[string]*cimstructs.CIMElementList)
+var cimDataset = make(map[string]*cimstructs.CIMDataset)
 var protoDataset = make(map[string][]byte)
 var mu sync.RWMutex
 

@@ -5,7 +5,7 @@ import "cimgo/cimstructs"
 // ValidateSVProfileSPARQL runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SHACL and
 // 61970-456_StateVariables-AP-Con-Complex-SHACL.
-func ValidateSVProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateSVProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckCsConverterStateValueRange(dataset)...)
 	violations = append(violations, CheckTopologicalIslandCount(dataset)...)
@@ -16,7 +16,7 @@ func ValidateSVProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-301_StateVariables-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: alpha and gamma values should be within typical ranges for rectifier and inverter modes respectively.
-func CheckCsConverterStateValueRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckCsConverterStateValueRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, csc := range dataset.CsConverters {
@@ -62,7 +62,7 @@ func CheckCsConverterStateValueRange(dataset *cimstructs.CIMElementList) []Viola
 // Profile: 61970-456_StateVariables-AP-Con-Complex
 // Origin: Derived from a complex SHACL constraint (minCount 1 with inversePath) that was too complex for automated code generation.
 // Description: At least one TopologicalIsland instance shall be present per SV instance.
-func CheckTopologicalIslandCount(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTopologicalIslandCount(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	if len(dataset.TopologicalIslands) == 0 {

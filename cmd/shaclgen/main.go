@@ -159,7 +159,7 @@ func writeIndex(outDir, pkg string, orchestrators []string) error {
 	fmt.Fprintf(f, "package %s\n\n", pkg)
 	fmt.Fprintf(f, "import (\n\t\"cimgo/cimstructs\"\n\t\"cimgo/shaclmodel\"\n)\n\n")
 	fmt.Fprintf(f, "// ValidateAllGeneratedProfiles runs every generated SHACL profile orchestrator.\n")
-	fmt.Fprintf(f, "func ValidateAllGeneratedProfiles(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {\n")
+	fmt.Fprintf(f, "func ValidateAllGeneratedProfiles(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {\n")
 	if len(orchestrators) == 0 {
 		fmt.Fprintf(f, "\treturn nil\n}\n")
 		return nil

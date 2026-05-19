@@ -7,105 +7,105 @@ import (
 	"sync"
 )
 
-func ValidateCommonRules(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateCommonRules(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateCommonRulesSPARQL(dataset)...)
 	return violations
 }
 
-func ValidateEQProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateEQProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateEQProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedEquipmentProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateEQNotSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateEQNotSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateEQNotSolvedMASProfileSPARQL(dataset)...)
 	return violations
 }
 
-func ValidateSSHProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSSHProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSSHProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedSteadystatehypothesisProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateSSHNotSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSSHNotSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSSHNotSolvedMASProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedSteadystatehypothesisNotsolvedmasProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateDYProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateDYProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateDYProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedDynamicsProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateSCProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSCProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSCProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedShortcircuitProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateSCNotSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSCNotSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSCNotSolvedMASProfileSPARQL(dataset)...)
 	return violations
 }
 
-func ValidateSVProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSVProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSVProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedStatevariablesProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateSVSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateSVSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateSVSolvedMASProfileSPARQL(dataset)...)
 	return violations
 }
 
-func ValidateDLProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateDLProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateDLProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedDiagramlayoutProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateDLNotSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateDLNotSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateGeneratedDiagramlayoutNotsolvedmasProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateTPProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateTPProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateGeneratedTopologyProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateTPNotSolvedMASProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateTPNotSolvedMASProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateTPNotSolvedMASProfileSPARQL(dataset)...)
 	return violations
 }
 
-func ValidateEQBDProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateEQBDProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateEQBDProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedEquipmentboundaryProfileSHACL(dataset)...)
 	return violations
 }
 
-func ValidateOPProfile(dataset *cimstructs.CIMElementList) []shaclmodel.Violation {
+func ValidateOPProfile(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 	var violations []shaclmodel.Violation
 	violations = append(violations, ValidateOPProfileSPARQL(dataset)...)
 	violations = append(violations, ValidateGeneratedOperationProfileSHACL(dataset)...)
@@ -120,14 +120,14 @@ type Config struct {
 	Quality            bool              // enables CIMdesk-style modeling quality checks
 	SilencedRules      []string
 	EQBDBaseVoltageIDs map[string]struct{}                     // enables EQBD2 check when non-nil
-	PerProfileDatasets map[string]*cimstructs.CIMElementList // isolated per-profile data; nil = use merged
+	PerProfileDatasets map[string]*cimstructs.CIMDataset // isolated per-profile data; nil = use merged
 }
 
-func RunValidation(dataset *cimstructs.CIMElementList, cfg Config) []shaclmodel.Violation {
+func RunValidation(dataset *cimstructs.CIMDataset, cfg Config) []shaclmodel.Violation {
 	profileSelected := func(p string) bool {
 		return len(cfg.Profiles) == 0 || slices.Contains(cfg.Profiles, p)
 	}
-	profileDS := func(name string) *cimstructs.CIMElementList {
+	profileDS := func(name string) *cimstructs.CIMDataset {
 		if cfg.PerProfileDatasets != nil {
 			if ds, ok := cfg.PerProfileDatasets[name]; ok {
 				return ds

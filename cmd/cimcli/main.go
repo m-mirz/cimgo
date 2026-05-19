@@ -74,8 +74,8 @@ func runValidate(args []string) {
 		os.Exit(1)
 	}
 
-	dataset := cimstructs.NewCIMElementList()
-	profileDatasets := make(map[string]*cimstructs.CIMElementList)
+	dataset := cimstructs.NewCIMDataset()
+	profileDatasets := make(map[string]*cimstructs.CIMDataset)
 	eqbdBVIDs := make(map[string]struct{})
 	for _, file := range files {
 		b, err := os.ReadFile(file)
@@ -189,7 +189,7 @@ func runConvert(args []string) {
 
 	fromJSON := strings.HasSuffix(strings.ToLower(files[0]), ".json")
 
-	var dataset *cimstructs.CIMElementList
+	var dataset *cimstructs.CIMDataset
 
 	if fromJSON {
 		if len(files) != 1 {
@@ -207,7 +207,7 @@ func runConvert(args []string) {
 			os.Exit(1)
 		}
 	} else {
-		dataset = cimstructs.NewCIMElementList()
+		dataset = cimstructs.NewCIMDataset()
 		for _, file := range files {
 			b, err := os.ReadFile(file)
 			if err != nil {
@@ -302,7 +302,7 @@ func resolveProfileCodes(profileStr string) []string {
 	return knownProfileCodes
 }
 
-func marshalWithType(dataset *cimstructs.CIMElementList) ([]byte, error) {
+func marshalWithType(dataset *cimstructs.CIMDataset) ([]byte, error) {
 	out := make(map[string]map[string]interface{}, len(dataset.Elements))
 	for id, elem := range dataset.Elements {
 		typeName := reflect.TypeOf(elem).Elem().Name()
@@ -320,12 +320,12 @@ func marshalWithType(dataset *cimstructs.CIMElementList) ([]byte, error) {
 	return json.MarshalIndent(out, "", "  ")
 }
 
-func unmarshalWithType(data []byte) (*cimstructs.CIMElementList, error) {
+func unmarshalWithType(data []byte) (*cimstructs.CIMDataset, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
-	dataset := cimstructs.NewCIMElementList()
+	dataset := cimstructs.NewCIMDataset()
 	for _, elemRaw := range raw {
 		var typeHolder struct {
 			Type string `json:"_type"`

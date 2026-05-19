@@ -649,7 +649,7 @@ func BenchmarkRealGridLoadSequential(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		dataset := cimstructs.NewCIMElementList()
+		dataset := cimstructs.NewCIMDataset()
 		for _, blob := range blobs {
 			if _, err := cgmesxml.DecodeProfile(bytes.NewReader(blob), dataset); err != nil {
 				b.Fatal(err)

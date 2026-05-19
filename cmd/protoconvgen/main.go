@@ -1,7 +1,7 @@
 // Command protoconvgen generates typed conversion functions from cimstructs to
 // proto/api/v1 types. Each CIM class — concrete and abstract alike — gets one
 // FooToProto(*cimstructs.Foo) *apiv1.ProtoFoo function. A top-level ToProto
-// function dispatches over all concrete element types in a CIMElementList.
+// function dispatches over all concrete element types in a CIMDataset.
 //
 // Output is written to cimconv/generated_conv.go (override with -out).
 // Run via go generate (see gen.go) or directly: go run ./cmd/protoconvgen/
@@ -87,13 +87,13 @@ func collectAllCIMTypes() map[string]reflect.Type {
 }
 
 // buildProtoTypeMap builds a cimstructs-name → proto Go reflect.Type map for
-// all concrete CIM classes by enumerating the []*Foo fields of CIMElementList.
+// all concrete CIM classes by enumerating the []*Foo fields of CIMDataset.
 // Names are matched case-insensitively against cimMap to handle the few spots
 // where the proto generator capitalises differently (e.g. "1or2" → "1Or2").
 func buildProtoTypeMap(cimMap map[string]reflect.Type) map[string]reflect.Type {
 	cimLower := lowerIndex(cimMap)
 	result := map[string]reflect.Type{}
-	lt := reflect.TypeOf(apiv1.CIMElementList{})
+	lt := reflect.TypeOf(apiv1.CIMDataset{})
 	for i := 0; i < lt.NumField(); i++ {
 		f := lt.Field(i)
 		if f.Type.Kind() != reflect.Slice {
@@ -112,7 +112,7 @@ func buildProtoTypeMap(cimMap map[string]reflect.Type) map[string]reflect.Type {
 	return result
 }
 
-// expandProtoTypeMap discovers abstract base class types not in CIMElementList
+// expandProtoTypeMap discovers abstract base class types not in CIMDataset
 // by following Super pointer fields transitively from known proto types.
 func expandProtoTypeMap(m map[string]reflect.Type, cimMap map[string]reflect.Type) {
 	cimLower := lowerIndex(cimMap)
@@ -236,9 +236,9 @@ func emitToProto(buf *bytes.Buffer, protoMap map[string]reflect.Type) {
 	}
 	sort.Strings(concreteNames)
 
-	buf.WriteString("// ToProto converts a CIMElementList to its Protobuf equivalent.\n")
-	buf.WriteString("func ToProto(src *cimstructs.CIMElementList) (*apiv1.CIMElementList, error) {\n")
-	buf.WriteString("\tdst := &apiv1.CIMElementList{}\n")
+	buf.WriteString("// ToProto converts a CIMDataset to its Protobuf equivalent.\n")
+	buf.WriteString("func ToProto(src *cimstructs.CIMDataset) (*apiv1.CIMDataset, error) {\n")
+	buf.WriteString("\tdst := &apiv1.CIMDataset{}\n")
 	buf.WriteString("\tfor _, elem := range src.Elements {\n")
 	buf.WriteString("\t\tswitch v := elem.(type) {\n")
 	for _, name := range concreteNames {

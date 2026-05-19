@@ -11,7 +11,7 @@ import (
 // ValidateDYProfileSPARQL runs hand-written checks for
 // 61970-457_Dynamics-AP-Con-Complex-SHACL and
 // 61970-302_Dynamics-AP-Con-Complex-SHACL.
-func ValidateDYProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateDYProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset)...)
 	violations = append(violations, CheckSynchronousMachineTimeConstantReactanceModelType(dataset)...)
@@ -30,7 +30,7 @@ func ValidateDYProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-457_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: ExcitationSystemDynamics.SynchronousMachineDynamics shall not point to a SynchronousMachineSimplified.
-func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimstructs.CIMElementList) []Violation {
+func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements { // Using reflect to check if it's a subtype of ExcitationSystemDynamics
@@ -78,7 +78,7 @@ func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimstructs
 // Profile: 61970-457_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates synchronous machine reactance parameters based on the modelKind and rotorKind (Annex A).
-func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachineTimeConstantReactances {
@@ -140,7 +140,7 @@ func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimstructs.C
 // Profile: 61970-457_Dynamics-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: mwbase parameter shall correspond to RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS.
-func CheckTurbineGovernorMbaseEquation(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTurbineGovernorMbaseEquation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -210,7 +210,7 @@ func CheckTurbineGovernorMbaseEquation(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates gain and time constant invariants for various excitation systems.
-func CheckExcitationSystemGains(dataset *cimstructs.CIMElementList) []Violation {
+func CheckExcitationSystemGains(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, v := range dataset.ExcAC8Bs {
@@ -272,7 +272,7 @@ func CheckExcitationSystemGains(dataset *cimstructs.CIMElementList) []Violation 
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: inputSignal1Type shall be different than inputSignal2Type.
-func CheckPssInputSignals(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPssInputSignals(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, v := range dataset.Pss2STs {
@@ -300,7 +300,7 @@ func CheckPssInputSignals(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates sequential gain points (gv0-gv5, pgv0-pgv5) based on model type.
-func CheckGovHydro4GainPoints(dataset *cimstructs.CIMElementList) []Violation {
+func CheckGovHydro4GainPoints(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, v := range dataset.GovHydro4s {
@@ -389,7 +389,7 @@ func CheckGovHydro4GainPoints(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates required and prohibited attributes for various LoadStatic model types.
-func CheckLoadStaticModelAttributes(dataset *cimstructs.CIMElementList) []Violation {
+func CheckLoadStaticModelAttributes(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, v := range dataset.LoadStatics {
@@ -454,7 +454,7 @@ func CheckLoadStaticModelAttributes(dataset *cimstructs.CIMElementList) []Violat
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: saturationFactor120 must be >= saturationFactor.
-func CheckRotatingMachineSaturation(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRotatingMachineSaturation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {
@@ -487,7 +487,7 @@ func CheckRotatingMachineSaturation(dataset *cimstructs.CIMElementList) []Violat
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Saturation related attributes are not needed for SynchronousMachineSimplified.
-func CheckSynchronousMachineSimplifiedAttributes(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineSimplifiedAttributes(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sms := range dataset.SynchronousMachineSimplifieds {
@@ -506,7 +506,7 @@ func CheckSynchronousMachineSimplifiedAttributes(dataset *cimstructs.CIMElementL
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a manual complex constraint (typically SPARQL or class association rule).
 // Description: TurbineGovernorDynamics and MechanicalLoadDynamics shall point to either a Synchronous or Asynchronous Machine Dynamics model.
-func CheckDynamicsAssociations(dataset *cimstructs.CIMElementList) []Violation {
+func CheckDynamicsAssociations(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, obj := range dataset.Elements {

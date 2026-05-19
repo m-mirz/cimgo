@@ -23,7 +23,7 @@ var profURIToShortName = map[string]string{
 // Solved is true when an SV profile is found (power-flow results available).
 // NotSolved is the complement of Solved.
 // Common, Quality, SilencedRules, and EQBDBaseVoltageIDs are left at zero values.
-func DetectConfig(dataset *cimstructs.CIMElementList) Config {
+func DetectConfig(dataset *cimstructs.CIMDataset) Config {
 	seen := make(map[string]bool)
 	collect := func(m *cimstructs.Model) {
 		if short, ok := profURIToShortName[profileURI(m)]; ok {

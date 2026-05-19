@@ -60,6 +60,8 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation
 		if sv.Position < float64(low) || sv.Position > float64(high) {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "SvTapStep.position-valueRange",
+				Name:     "SvTapStep.position-valueRange",
 				Class:    "SvTapStep",
 				Property: "SvTapStep.position",
 				Message:  fmt.Sprintf("The value (%v) is out of range [%d,%d].", sv.Position, low, high),
@@ -106,6 +108,8 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) 
 			if svsc.Sections != float64(int(svsc.Sections)) {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "svs456:SvShuntCompensatorSections.sections-value",
+					Name:     "SvShuntCompensatorSections.sections-value",
 					Class:    "SvShuntCompensatorSections",
 					Property: "SvShuntCompensatorSections.sections",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svsc.Sections),
@@ -153,6 +157,8 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violati
 			if svts.Position != float64(int(svts.Position)) {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "svs456:SvTapStep.position-value",
+					Name:     "SvTapStep.position-value",
 					Class:    "SvTapStep",
 					Property: "SvTapStep.position",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svts.Position),
@@ -191,7 +197,10 @@ func CheckSvSwitchInstance(dataset *cimstructs.CIMElementList) []Violation {
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "svs456:SvSwitch-instance",
+				Name:     "SvSwitch-instance",
+				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvSwitch not instantiated.",
 				Severity: "sh:Violation",
 			})
@@ -262,7 +271,10 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "svs456:SvPowerFlow-instance",
+				Name:     "SvPowerFlow-instance",
+				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvPowerFlow is not instantiated for energized equipment.",
 				Severity: "sh:Violation",
 			})
@@ -305,6 +317,8 @@ func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMElementList) []Violation {
 		if svpf.P < gu.MinOperatingP || svpf.P > gu.MaxOperatingP {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "svs456:SvPowerFlow.p-synchronousMachine",
+				Name:     "SvPowerFlow.p-synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.p",
 				Message:  fmt.Sprintf("Active power (%v) is outside of the range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.P, gu.MinOperatingP, gu.MaxOperatingP, sm.Id),
@@ -373,6 +387,8 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
 		if svpf.Q < minQ || svpf.Q > maxQ {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "svs456:SvPowerFlow.q-synchronousMachine",
+				Name:     "SvPowerFlow.q-synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.q",
 				Message:  fmt.Sprintf("Reactive power (%v) is outside of the capability range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.Q, minQ, maxQ, sm.Id),
@@ -413,6 +429,8 @@ func CheckSvVoltageLimits(dataset *cimstructs.CIMElementList) []Violation {
 			// But only if no other limits are defined (simplified check)
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "svs456:SvVoltage.v-absoluteLimit",
+				Name:     "SvVoltage.v-absoluteLimit",
 				Class:    "SvVoltage",
 				Property: "SvVoltage.v",
 				Message:  fmt.Sprintf("The value (%v) is <=0.4 pu of nominal voltage (%v).", v, nomV),

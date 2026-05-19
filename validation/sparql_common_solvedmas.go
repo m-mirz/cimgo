@@ -64,6 +64,8 @@ func CheckAngleReference(dataset *cimstructs.CIMElementList) []Violation {
 	if len(highestPrioritySMs) > 1 {
 		violations = append(violations, Violation{
 			ObjectID: "global",
+			RuleID:   "sm456:Model-angleReference",
+			Name:     "Model-angleReference",
 			Class:    "SynchronousMachine",
 			Property: "referencePriority",
 			Message:  "Multiple machines with highest SynchronousMachine.referencePriority found.",
@@ -90,6 +92,8 @@ func CheckAngleReference(dataset *cimstructs.CIMElementList) []Violation {
 		if !foundAtRefNode {
 			violations = append(violations, Violation{
 				ObjectID: sm.Id,
+				RuleID:   "sm456:Model-angleReference",
+				Name:     "Model-angleReference",
 				Class:    "SynchronousMachine",
 				Property: "referencePriority",
 				Message:  "The SynchronousMachine with highest priority is not connected to a TopologicalIsland.AngleRefTopologicalNode.",
@@ -128,6 +132,8 @@ func CheckDanglingReferences(dataset *cimstructs.CIMElementList) []Violation {
 						if _, ok := dataset.Elements[targetID]; !ok {
 							violations = append(violations, Violation{
 								ObjectID: id,
+								RuleID:   "sm600:All-DanglingReferences",
+								Name:     "All-DanglingReferences",
 								Class:    goTypeName(obj),
 								Property: val.Type().Field(i).Name,
 								Message:  fmt.Sprintf("Dangling reference to '%s'.", targetID),
@@ -169,7 +175,11 @@ func CheckStateVariablesInstantiated(dataset *cimstructs.CIMElementList) []Viola
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: tnID, Class: "TopologicalNode", Property: "rdf:type",
+				ObjectID: tnID,
+				RuleID:   "sm600:SvVoltage-SV__4",
+				Name:     "SvVoltage-SV__4",
+				Class:    "TopologicalNode",
+				Property: "rdf:type",
 				Message:  fmt.Sprintf("SvVoltage is not instantiated for energized TopologicalNode part of island %s.", islandID),
 				Severity: "sh:Violation",
 			})
@@ -207,7 +217,11 @@ func CheckStateVariablesInstantiated(dataset *cimstructs.CIMElementList) []Viola
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: "Switch", Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "sm600:SvSwitch-SV__4",
+				Name:     "SvSwitch-SV__4",
+				Class:    "Switch",
+				Property: "rdf:type",
 				Message:  "SvSwitch not instantiated for energized retained Switch.",
 				Severity: "sh:Violation",
 			})
@@ -241,7 +255,11 @@ func CheckStateVariablesInstantiated(dataset *cimstructs.CIMElementList) []Viola
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "sm600:SvStatus-SV__4",
+				Name:     "SvStatus-SV__4",
+				Class:    goTypeName(obj),
+				Property: "rdf:type",
 				Message:  "SvStatus is not instantiated for energized ConductingEquipment.",
 				Severity: "sh:Violation",
 			})
@@ -286,6 +304,8 @@ func CheckRegulatingControlContradictory(dataset *cimstructs.CIMElementList) []V
 			if dataset.RegulatingControls[ids[i]].TargetValue != val0 {
 				violations = append(violations, Violation{
 					ObjectID: ids[i],
+					RuleID:   "sm6002:RegulatingControl-samePoint",
+					Name:     "RegulatingControl-samePoint",
 					Class:    "RegulatingControl",
 					Property: "RegulatingControl.targetValue",
 					Message:  fmt.Sprintf("Enabled RegulatingControl-s of the same type associated with the same TopologicalNode have different target values. RegulatingControl ID: %s.", ids[i]),
@@ -356,7 +376,11 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimstructs.CIMElementList) []V
 		if !controlEnabled || !rcEnabled {
 			if svsc.Sections != sections {
 				violations = append(violations, Violation{
-					ObjectID: scID, Class: goTypeName(scObj), Property: "ShuntCompensator.sections",
+					ObjectID: scID,
+					RuleID:   "mas600:SvShuntCompensatorSections.sections-SV__4",
+					Name:     "SvShuntCompensatorSections.sections-SV__4",
+					Class:    goTypeName(scObj),
+					Property: "ShuntCompensator.sections",
 					Message:  fmt.Sprintf("SvShuntCompensatorSections.sections (%v) is not the same as ShuntCompensator.sections (%v) for non-regulating ShuntCompensator.", svsc.Sections, sections),
 					Severity: "sh:Violation",
 				})
@@ -409,7 +433,11 @@ func CheckSvTapStepPositionSync(dataset *cimstructs.CIMElementList) []Violation 
 		if !controlEnabled || !rcEnabled {
 			if svts.Position != step {
 				violations = append(violations, Violation{
-					ObjectID: tcID, Class: goTypeName(tcObj), Property: "TapChanger.step",
+					ObjectID: tcID,
+					RuleID:   "mas600:SvTapStep.position-SV__4",
+					Name:     "SvTapStep.position-SV__4",
+					Class:    goTypeName(tcObj),
+					Property: "TapChanger.step",
 					Message:  fmt.Sprintf("SvTapStep.position (%v) is not the same as TapChanger.step (%v) for non-regulating TapChanger.", svts.Position, step),
 					Severity: "sh:Violation",
 				})
@@ -465,7 +493,11 @@ func CheckSvStatusInstance(dataset *cimstructs.CIMElementList) []Violation {
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "mas600:SvStatus-SV__4",
+				Name:     "SvStatus-SV__4",
+				Class:    goTypeName(obj),
+				Property: "rdf:type",
 				Message:  "SvStatus is not instantiated for a ConductingEquipment connected to a TopologicalNode which is referenced by a TopologicalIsland.",
 				Severity: "sh:Violation",
 			})
@@ -518,7 +550,11 @@ func CheckSvShuntCompensatorSectionsInstance(dataset *cimstructs.CIMElementList)
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "mas600:SvShuntCompensatorSections-SV__4",
+				Name:     "SvShuntCompensatorSections-SV__4",
+				Class:    goTypeName(obj),
+				Property: "rdf:type",
 				Message:  "SvShuntCompensatorSections is not instantiated for an energized ShuntCompensator.",
 				Severity: "sh:Violation",
 			})
@@ -581,7 +617,11 @@ func CheckSvTapStepInstance(dataset *cimstructs.CIMElementList) []Violation {
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: goTypeName(obj), Property: "rdf:type",
+				ObjectID: id,
+				RuleID:   "mas600:SvTapStep-SV__4",
+				Name:     "SvTapStep-SV__4",
+				Class:    goTypeName(obj),
+				Property: "rdf:type",
 				Message:  "SvTapStep is not instantiated for an energized TapChanger.",
 				Severity: "sh:Violation",
 			})
@@ -632,7 +672,11 @@ func CheckRegulatingControlSameIsland(dataset *cimstructs.CIMElementList) []Viol
 					if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == sm.Id {
 						if smIsland, ok := termToIsland[term.Id]; ok && smIsland != rcIsland {
 							violations = append(violations, Violation{
-								ObjectID: id, Class: "RegulatingControl", Property: "rdf:type",
+								ObjectID: id,
+								RuleID:   "sm6002:RegulatingControl-point",
+								Name:     "RegulatingControl-point",
+								Class:    "RegulatingControl",
+								Property: "rdf:type",
 								Message:  fmt.Sprintf("The controlled point and the controlling equipment (SynchronousMachine %s) are not located in the same TopologicalIsland.", sm.Id),
 								Severity: "sh:Violation",
 							})
@@ -688,7 +732,11 @@ func CheckRegulatingControlSameIsland(dataset *cimstructs.CIMElementList) []Viol
 						termID := strings.TrimPrefix(termField.Elem().FieldByName("MRID").String(), "#")
 						if tcIsland, ok := termToIsland[termID]; ok && tcIsland != rcIsland {
 							violations = append(violations, Violation{
-								ObjectID: id, Class: "RegulatingControl", Property: "rdf:type",
+								ObjectID: id,
+								RuleID:   "sm6002:RegulatingControl-point",
+								Name:     "RegulatingControl-point",
+								Class:    "RegulatingControl",
+								Property: "rdf:type",
 								Message:  fmt.Sprintf("The controlled point and the controlling equipment (%s %s) are not located in the same TopologicalIsland.", class, tcID),
 								Severity: "sh:Violation",
 							})

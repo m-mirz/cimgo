@@ -56,6 +56,8 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMElementList) 
 		if disallowed(targetObj) {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "dlc.DiagramObject.IdentifiedObject-DLvalueType",
+				Name:     "DiagramObject.IdentifiedObject-DLvalueType",
 				Class:    goTypeName(obj),
 				Property: "DiagramObject.IdentifiedObject",
 				Message:  "The value type shall not be an instance of cim:Diagram, cim:DiagramObject, cim:VisibilityLayer, cim:DiagramStyle, cim:DiagramObjectStyle or cim:TextDiagramObject.",

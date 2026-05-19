@@ -62,7 +62,10 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMElementList) [
 		if mType == "TapPosition" || mType == "SwitchPosition" {
 			if termRef != nil {
 				violations = append(violations, Violation{
-					ObjectID: id, Class: class, Property: "Terminal",
+					ObjectID: id,
+					RuleID:   "opn452:Measurement.Terminal-requiredCases",
+					Name:     "Measurement.Terminal-requiredCases",
+					Class:    class, Property: "Terminal",
 					Message:  fmt.Sprintf("Measurement.Terminal should not be exchanged for measurementType '%s'.", mType),
 					Severity: "sh:Violation",
 				})
@@ -72,7 +75,10 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMElementList) [
 
 		if termRef == nil {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: class, Property: "Terminal",
+				ObjectID: id,
+				RuleID:   "opn452:Measurement.Terminal-requiredCases",
+				Name:     "Measurement.Terminal-requiredCases",
+				Class:    class, Property: "Terminal",
 				Message:  fmt.Sprintf("Measurement.Terminal is required for measurementType '%s'.", mType),
 				Severity: "sh:Violation",
 			})
@@ -95,7 +101,10 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMElementList) [
 		}
 		if !found {
 			violations = append(violations, Violation{
-				ObjectID: id, Class: class, Property: "Terminal",
+				ObjectID: id,
+				RuleID:   "opn452:Measurement.Terminal-requiredCases",
+				Name:     "Measurement.Terminal-requiredCases",
+				Class:    class, Property: "Terminal",
 				Message:  fmt.Sprintf("Terminal %s is not a terminal of PowerSystemResource %s.", termID, psrID),
 				Severity: "sh:Violation",
 			})

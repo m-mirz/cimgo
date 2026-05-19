@@ -67,6 +67,8 @@ func CheckTerminalPhasesConsistencyTopologicalNode(dataset *cimstructs.CIMElemen
 				if failed {
 					violations = append(violations, Violation{
 						ObjectID: nodeID,
+						RuleID:   "topcns.Terminal.phases-consistencyTopologicalNode",
+						Name:     "Terminal.phases-consistencyTopologicalNode",
 						Class:    "TopologicalNode",
 						Property: "Terminal.phases",
 						Message:  fmt.Sprintf("The phase codes for the connected terminals are not consistent. Terminal %s code: %s, Terminal %s code: %s.", terms[i].MRID, val1, terms[j].MRID, val2),
@@ -169,6 +171,8 @@ func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMElementList) []Violat
 		if tn1 != "" && tn1 == tn2 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "topc456ns:Switch-sameTopologicalNode",
+				Name:     "Switch-sameTopologicalNode",
 				Class:    class,
 				Property: "retained",
 				Message:  "Terminals of retained Switch connect to the same TopologicalNode.",
@@ -209,6 +213,8 @@ func CheckTerminalExch8TopologicalNode(dataset *cimstructs.CIMElementList) []Vio
 				if !hasTN {
 					violations = append(violations, Violation{
 						ObjectID: id,
+						RuleID:   "topc600ns:Terminal-EXCH8TopologicalNode",
+						Name:     "Terminal-EXCH8TopologicalNode",
 						Class:    "Terminal",
 						Property: "TopologicalNode",
 						Message:  "The Terminal is referenced by a RegulatingControl but is not associated with a TopologicalNode.",

@@ -24,6 +24,8 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimstructs.CIMElementList) []V
 			if sc.VaristorRatedCurrent != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "scc.SeriesCompensator.varistorRatedCurrent-usage",
+					Name:     "SeriesCompensator.varistorRatedCurrent-usage",
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorRatedCurrent",
 					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
@@ -33,6 +35,8 @@ func CheckSeriesCompensatorVaristorUsage(dataset *cimstructs.CIMElementList) []V
 			if sc.VaristorVoltageThreshold != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "scc.SeriesCompensator.varistorVoltageThreshold-usage",
+					Name:     "SeriesCompensator.varistorVoltageThreshold-usage",
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorVoltageThreshold",
 					Message:  "The attribute is present and SeriesCompensator.varistorPresent is false.",
@@ -56,6 +60,8 @@ func CheckTransformerEndGrounding(dataset *cimstructs.CIMElementList) []Violatio
 			if te.Rground == 0 && te.Xground == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "sc452:TransformerEnd-grounding",
+					Name:     "TransformerEnd-grounding",
 					Class:    "PowerTransformerEnd",
 					Property: "grounded",
 					Message:  "Missing required properties .rground or .xground when grounded=true.",
@@ -78,6 +84,8 @@ func CheckSynchronousMachineEarthing(dataset *cimstructs.CIMElementList) []Viola
 			if sm.EarthingStarPointR == 0 && sm.EarthingStarPointX == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "sc452:SynchronousMachine-attributes",
+					Name:     "SynchronousMachine-attributes",
 					Class:    "SynchronousMachine",
 					Property: "earthing",
 					Message:  "Missing required properties .earthingStarPointR or .earthingStarPointX when earthing=true.",
@@ -100,6 +108,8 @@ func CheckSeriesCompensatorVaristorRequired(dataset *cimstructs.CIMElementList) 
 			if sc.VaristorRatedCurrent == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "scc600-2.SeriesCompensator.varistorRatedCurrent-required",
+					Name:     "SeriesCompensator.varistorRatedCurrent-required",
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorRatedCurrent",
 					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",
@@ -109,6 +119,8 @@ func CheckSeriesCompensatorVaristorRequired(dataset *cimstructs.CIMElementList) 
 			if sc.VaristorVoltageThreshold == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "scc600-2.SeriesCompensator.varistorVoltageThreshold-required",
+					Name:     "SeriesCompensator.varistorVoltageThreshold-required",
 					Class:    "SeriesCompensator",
 					Property: "SeriesCompensator.varistorVoltageThreshold",
 					Message:  "The attribute is missing when SeriesCompensator.varistorPresent is true.",

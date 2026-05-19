@@ -24,24 +24,6 @@ func normalizeRDFAbout(t *xml.StartElement) {
 	}
 }
 
-type CIMProfile struct {
-	ModelId          string `xml:"http://www.w3.org/1999/02/22-rdf-syntax-ns# about,attr"`
-	ModelDependentOn *struct {
-		MRID string `xml:"resource,attr"`
-	} `xml:"Model.DependentOn,omitempty"`
-	ModelCreated              string `xml:"Model.created"`
-	ModelDescription          string `xml:"Model.description"`
-	ModelModelingAuthoritySet string `xml:"Model.modelingAuthoritySet"`
-	ModelProfile              string `xml:"Model.profile"`
-	ModelScenarioTime         string `xml:"Model.scenarioTime"`
-	ModelVersion              int    `xml:"Model.version"`
-}
-
-type CIMDataset struct {
-	Profiles []*CIMProfile
-	Elements cimstructs.CIMDataset
-}
-
 // DecodeProfiles decodes each reader concurrently into a separate CIMDataset,
 // then merges them into cimData in input order. Callers control merge precedence
 // by ordering the readers slice (earlier entries win on field conflicts).

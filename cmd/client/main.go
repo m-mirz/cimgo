@@ -159,7 +159,7 @@ func getProtoData(id string) {
 		os.Exit(1)
 	}
 
-	protoList := &apiv1.CIMElementList{}
+	protoList := &apiv1.CIMDataset{}
 	err = proto.Unmarshal(bodyBytes, protoList)
 	if err != nil {
 		fmt.Printf("Error unmarshaling protobuf: %v\n", err)

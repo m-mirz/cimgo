@@ -6,7 +6,7 @@ import (
 )
 
 // ValidateDLProfileSPARQL runs hand-written checks for 61970-301_DiagramLayout-AP-Con-Complex-SHACL.
-func ValidateDLProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateDLProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	return CheckDiagramObjectIdentifiedObjectType(dataset)
 }
 
@@ -15,7 +15,7 @@ func ValidateDLProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: DiagramObject.IdentifiedObject must be an IRI and must NOT point to one of:
 // Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
-func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMElementList) []Violation {
+func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	disallowed := func(o interface{}) bool {
@@ -31,7 +31,7 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMElementList) 
 		return false
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var identifiedObject *struct {
 			MRID string `xml:"resource,attr"`
 		}
@@ -49,7 +49,7 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMElementList) 
 			continue
 		}
 		targetID := strings.TrimPrefix(identifiedObject.MRID, "#")
-		targetObj, ok := dataset.Elements[targetID]
+		targetObj, ok := dataset.ByID[targetID]
 		if !ok {
 			continue
 		}

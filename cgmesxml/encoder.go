@@ -314,7 +314,7 @@ func emitCharData(enc *cimxml.Encoder, localName, value string) error {
 // EncodeForProfile encodes only the elements and attributes that belong to
 // profileCode into w, using rdf:ID for primary-profile elements and rdf:about
 // for secondary-profile references, with correct namespace prefixes.
-func EncodeForProfile(w io.Writer, cimData *cimstructs.CIMElementList, profileCode string) error {
+func EncodeForProfile(w io.Writer, cimData *cimstructs.CIMDataset, profileCode string) error {
 	if _, err := w.Write([]byte("<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n")); err != nil {
 		return err
 	}
@@ -337,7 +337,7 @@ func EncodeForProfile(w io.Writer, cimData *cimstructs.CIMElementList, profileCo
 
 	urlKeyword := profileURLKeywords[profileCode]
 
-	for _, element := range cimData.Elements {
+	for _, element := range cimData.ByID {
 		rv := reflect.TypeOf(element)
 		if rv.Kind() == reflect.Ptr {
 			rv = rv.Elem()

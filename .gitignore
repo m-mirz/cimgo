@@ -8,3 +8,4 @@ proto
 *.zip
 docs
 shaclgen/generated*
+cimconv/generated*

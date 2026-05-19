@@ -8,7 +8,7 @@ import (
 
 // ValidateEQNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_Equipment-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckACLineSegmentBaseVoltage(dataset)...)
 	violations = append(violations, CheckRegulatingControlTargetValueTapChanger(dataset)...)
@@ -23,7 +23,7 @@ func ValidateEQNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []V
 // Origin: Derived from a SPARQL constraint.
 // Description: The BaseVoltage at the two ends of ACLineSegments in a Line shall have the same
 // BaseVoltage.nominalVoltage.
-func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	terminalsByEquipment := make(map[string]map[int]*cimstructs.Terminal)
@@ -43,7 +43,7 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violati
 			return 0, false
 		}
 		tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
-		tnObj, ok := dataset.Elements[tnID]
+		tnObj, ok := dataset.ByID[tnID]
 		if !ok {
 			return 0, false
 		}
@@ -52,7 +52,7 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violati
 			return 0, false
 		}
 		bvID := strings.TrimPrefix(tn.BaseVoltage.MRID, "#")
-		bvObj, ok := dataset.Elements[bvID]
+		bvObj, ok := dataset.ByID[bvID]
 		if !ok {
 			return 0, false
 		}
@@ -63,7 +63,7 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violati
 		return bv.NominalVoltage, true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if _, ok := obj.(*cimstructs.ACLineSegment); !ok {
 			continue
 		}
@@ -97,10 +97,10 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-452_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: RegulatingControl.targetValue shall be within TapChanger capability limits.
-func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var rc *cimstructs.RegulatingControl
 		switch v := obj.(type) {
 		case *cimstructs.RegulatingControl:
@@ -116,7 +116,7 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementL
 		}
 
 		// Find associated RatioTapChanger
-		for _, tcObj := range dataset.Elements {
+		for _, tcObj := range dataset.ByID {
 			rtc, ok := tcObj.(*cimstructs.RatioTapChanger)
 			if !ok || rtc.TapChangerControl == nil || strings.TrimPrefix(rtc.TapChangerControl.MRID, "#") != id || !rtc.ControlEnabled {
 				continue
@@ -126,15 +126,15 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementL
 			var nominalU float64
 			if rc.Terminal != nil {
 				tID := strings.TrimPrefix(rc.Terminal.MRID, "#")
-				t, ok := dataset.Elements[tID].(*cimstructs.Terminal)
+				t, ok := dataset.ByID[tID].(*cimstructs.Terminal)
 				if ok && t.ConnectivityNode != nil {
 					cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
-					cn, ok := dataset.Elements[cnID].(*cimstructs.ConnectivityNode)
+					cn, ok := dataset.ByID[cnID].(*cimstructs.ConnectivityNode)
 					if ok && cn.ConnectivityNodeContainer != nil {
 						cncID := strings.TrimPrefix(cn.ConnectivityNodeContainer.MRID, "#")
-						if vl, ok := dataset.Elements[cncID].(*cimstructs.VoltageLevel); ok && vl.BaseVoltage != nil {
+						if vl, ok := dataset.ByID[cncID].(*cimstructs.VoltageLevel); ok && vl.BaseVoltage != nil {
 							bvID := strings.TrimPrefix(vl.BaseVoltage.MRID, "#")
-							if bvObj, ok := dataset.Elements[bvID]; ok {
+							if bvObj, ok := dataset.ByID[bvID]; ok {
 								if bv, ok := bvObj.(*cimstructs.BaseVoltage); ok {
 									nominalU = bv.NominalVoltage
 								}
@@ -173,7 +173,7 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMElementL
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: 10% difference of BaseVoltage.nominalVoltage allowed at two ends of ACLineSegment.
-func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	terminalsByEquipment := make(map[string]map[int]*cimstructs.Terminal)
@@ -193,7 +193,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Vio
 			return 0, false
 		}
 		tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
-		tnObj, ok := dataset.Elements[tnID]
+		tnObj, ok := dataset.ByID[tnID]
 		if !ok {
 			return 0, false
 		}
@@ -202,7 +202,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Vio
 			return 0, false
 		}
 		bvID := strings.TrimPrefix(tn.BaseVoltage.MRID, "#")
-		bvObj, ok := dataset.Elements[bvID]
+		bvObj, ok := dataset.ByID[bvID]
 		if !ok {
 			return 0, false
 		}
@@ -213,7 +213,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Vio
 		return bv.NominalVoltage, true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if _, ok := obj.(*cimstructs.ACLineSegment); !ok {
 			continue
 		}
@@ -256,12 +256,12 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMElementList) []Vio
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Boundary points (ConnectivityNodes) must have connected EquivalentInjections and at least one two-terminal ConductingEquipment.
-func CheckBoundaryPointBppl(dataset *cimstructs.CIMElementList) []Violation {
+func CheckBoundaryPointBppl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	// Identify Boundary Points (ConnectivityNodes associated with eu:BoundaryPoint)
 	bpToCN := make(map[string]string)
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if bp, ok := obj.(*cimstructs.BoundaryPoint); ok && bp.ConnectivityNode != nil {
 			bpToCN[id] = strings.TrimPrefix(bp.ConnectivityNode.MRID, "#")
 		}
@@ -272,13 +272,13 @@ func CheckBoundaryPointBppl(dataset *cimstructs.CIMElementList) []Violation {
 		hasEqInjection := false
 		hasTwoTerminalEq := false
 
-		for _, tObj := range dataset.Elements {
+		for _, tObj := range dataset.ByID {
 			if t, ok := tObj.(*cimstructs.Terminal); ok && t.ConnectivityNode != nil && strings.TrimPrefix(t.ConnectivityNode.MRID, "#") == cnID {
 				if t.ConductingEquipment == nil {
 					continue
 				}
 				eqID := strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
-				eq, ok := dataset.Elements[eqID]
+				eq, ok := dataset.ByID[eqID]
 				if !ok {
 					continue
 				}
@@ -332,10 +332,10 @@ func CheckBoundaryPointBppl(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-600_Equipment-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: EquivalentInjection at non-HVDC BoundaryPoint shall have regulationCapability=false and no ReactiveCapabilityCurve.
-func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		ei, ok := obj.(*cimstructs.EquivalentInjection)
 		if !ok {
 			continue
@@ -343,11 +343,11 @@ func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIM
 
 		// Find if it's connected to a non-HVDC BoundaryPoint
 		isNonHVDCBP := false
-		for _, tObj := range dataset.Elements {
+		for _, tObj := range dataset.ByID {
 			if t, ok := tObj.(*cimstructs.Terminal); ok && t.ConductingEquipment != nil && strings.TrimPrefix(t.ConductingEquipment.MRID, "#") == id {
 				if t.ConnectivityNode != nil {
 					cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
-					for _, bpObj := range dataset.Elements {
+					for _, bpObj := range dataset.ByID {
 						if bp, ok := bpObj.(*cimstructs.BoundaryPoint); ok && bp.ConnectivityNode != nil && strings.TrimPrefix(bp.ConnectivityNode.MRID, "#") == cnID {
 							if !bp.IsDirectCurrent {
 								isNonHVDCBP = true

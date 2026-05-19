@@ -11,7 +11,7 @@ import (
 // Description: Every BaseVoltage in the merged model must also be defined in the Boundary EQ (EQBD).
 // BaseVoltages that exist only in IGM EQ files — not in the shared boundary dataset — are flagged.
 // Severity: sh:Warning (per CIMdesk classification).
-func CheckBaseVoltageInEQBD(dataset *cimstructs.CIMElementList, eqbdBaseVoltageIDs map[string]struct{}) []Violation {
+func CheckBaseVoltageInEQBD(dataset *cimstructs.CIMDataset, eqbdBaseVoltageIDs map[string]struct{}) []Violation {
 	var violations []Violation
 	for id, bv := range dataset.BaseVoltages {
 		if _, inEQBD := eqbdBaseVoltageIDs[id]; inEQBD {
@@ -42,7 +42,7 @@ func ref(mrid string) string { return strings.TrimPrefix(mrid, "#") }
 
 // ValidateCIMdeskQualityChecks runs modeling quality checks derived from CIMdesk behaviour.
 // These checks are not encoded in the CGMES SHACL TTL files.
-func ValidateCIMdeskQualityChecks(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateCIMdeskQualityChecks(dataset *cimstructs.CIMDataset) []Violation {
 	var v []Violation
 	v = append(v, CheckNoTapChangerControls(dataset)...)
 	v = append(v, CheckNoRegulatingControls(dataset)...)
@@ -61,7 +61,7 @@ func ValidateCIMdeskQualityChecks(dataset *cimstructs.CIMElementList) []Violatio
 }
 
 // CheckNoTapChangerControls fires when PowerTransformers are present but no TapChangerControls exist.
-func CheckNoTapChangerControls(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNoTapChangerControls(dataset *cimstructs.CIMDataset) []Violation {
 	if len(dataset.TapChangerControls) > 0 || len(dataset.PowerTransformers) == 0 {
 		return nil
 	}
@@ -77,7 +77,7 @@ func CheckNoTapChangerControls(dataset *cimstructs.CIMElementList) []Violation {
 // CheckNoRegulatingControls fires when voltage-regulating equipment is present but no
 // RegulatingControls exist. The check covers SynchronousMachine, LinearShuntCompensator,
 // NonlinearShuntCompensator, and StaticVarCompensator.
-func CheckNoRegulatingControls(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNoRegulatingControls(dataset *cimstructs.CIMDataset) []Violation {
 	hasRC := len(dataset.RegulatingControls)+len(dataset.TapChangerControls) > 0
 	hasEquip := len(dataset.SynchronousMachines)+
 		len(dataset.LinearShuntCompensators)+
@@ -97,7 +97,7 @@ func CheckNoRegulatingControls(dataset *cimstructs.CIMElementList) []Violation {
 
 // CheckNoShuntCompensators fires when no LinearShuntCompensator or NonlinearShuntCompensator
 // objects are present in the dataset.
-func CheckNoShuntCompensators(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNoShuntCompensators(dataset *cimstructs.CIMDataset) []Violation {
 	if len(dataset.LinearShuntCompensators)+len(dataset.NonlinearShuntCompensators) > 0 {
 		return nil
 	}
@@ -117,7 +117,7 @@ func CheckNoShuntCompensators(dataset *cimstructs.CIMElementList) []Violation {
 // CheckSubstationHasNoVoltageLevels fires for each Substation that has neither a child
 // VoltageLevel nor a child ConnectivityNode. Boundary substations (EQBD) have ConnectivityNodes
 // but no VoltageLevels and are intentionally excluded.
-func CheckSubstationHasNoVoltageLevels(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSubstationHasNoVoltageLevels(dataset *cimstructs.CIMDataset) []Violation {
 	hasVL := make(map[string]struct{})
 	for _, vl := range dataset.VoltageLevels {
 		if vl.Substation != nil {
@@ -152,7 +152,7 @@ func CheckSubstationHasNoVoltageLevels(dataset *cimstructs.CIMElementList) []Vio
 
 // CheckControlAreaHasNoChildren fires for each ControlArea that has neither
 // ControlAreaGeneratingUnits nor TieFlows referencing it.
-func CheckControlAreaHasNoChildren(dataset *cimstructs.CIMElementList) []Violation {
+func CheckControlAreaHasNoChildren(dataset *cimstructs.CIMDataset) []Violation {
 	hasCAGU := make(map[string]struct{})
 	for _, cagu := range dataset.ControlAreaGeneratingUnits {
 		if cagu.ControlArea != nil {
@@ -187,7 +187,7 @@ func CheckControlAreaHasNoChildren(dataset *cimstructs.CIMElementList) []Violati
 
 // CheckNoLocationsForConductors fires for each ACLineSegment or DCLineSegment that has no
 // Location pointing to it. Locations live in the GL profile; if none are loaded the check is skipped.
-func CheckNoLocationsForConductors(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNoLocationsForConductors(dataset *cimstructs.CIMDataset) []Violation {
 	if len(dataset.Locations) == 0 {
 		return nil
 	}
@@ -229,7 +229,7 @@ func CheckNoLocationsForConductors(dataset *cimstructs.CIMElementList) []Violati
 
 // CheckACLineSegmentXRRatio fires when ACLineSegment.x / ACLineSegment.r exceeds xrRatioThreshold.
 // Zero resistance (r == 0) is skipped; those are handled by the SHACL r-value range check.
-func CheckACLineSegmentXRRatio(dataset *cimstructs.CIMElementList) []Violation {
+func CheckACLineSegmentXRRatio(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, seg := range dataset.ACLineSegments {
 		if seg.R == 0 || seg.X == 0 {
@@ -252,7 +252,7 @@ func CheckACLineSegmentXRRatio(dataset *cimstructs.CIMElementList) []Violation {
 
 // CheckBaseVoltageDuplicateNominalVoltage fires when two or more BaseVoltage objects share
 // the same nominalVoltage value.
-func CheckBaseVoltageDuplicateNominalVoltage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckBaseVoltageDuplicateNominalVoltage(dataset *cimstructs.CIMDataset) []Violation {
 	byVoltage := make(map[float64][]string)
 	for id, bv := range dataset.BaseVoltages {
 		byVoltage[bv.NominalVoltage] = append(byVoltage[bv.NominalVoltage], id)
@@ -277,7 +277,7 @@ func CheckBaseVoltageDuplicateNominalVoltage(dataset *cimstructs.CIMElementList)
 
 // CheckPowerTransformerEndsSameNominalVoltage fires when all PowerTransformerEnds of a
 // PowerTransformer have the same ratedU value (no voltage transformation).
-func CheckPowerTransformerEndsSameNominalVoltage(dataset *cimstructs.CIMElementList) []Violation {
+func CheckPowerTransformerEndsSameNominalVoltage(dataset *cimstructs.CIMDataset) []Violation {
 	endsByPT := make(map[string][]*cimstructs.PowerTransformerEnd)
 	for _, end := range dataset.PowerTransformerEnds {
 		if end.PowerTransformer == nil {
@@ -322,7 +322,7 @@ func CheckPowerTransformerEndsSameNominalVoltage(dataset *cimstructs.CIMElementL
 }
 
 // CheckConnectivityNodeOpenEnded fires for each ConnectivityNode that has exactly one Terminal.
-func CheckConnectivityNodeOpenEnded(dataset *cimstructs.CIMElementList) []Violation {
+func CheckConnectivityNodeOpenEnded(dataset *cimstructs.CIMDataset) []Violation {
 	count := make(map[string]int)
 	for _, t := range dataset.Terminals {
 		if t.ConnectivityNode != nil {
@@ -348,7 +348,7 @@ func CheckConnectivityNodeOpenEnded(dataset *cimstructs.CIMElementList) []Violat
 // CheckDisconnectorCrossVoltageLevel fires for each Disconnector whose Terminals connect
 // ConnectivityNodes that belong to two different VoltageLevels (both containers must be
 // VoltageLevels; connections to Bays, boundary Substations, etc. are excluded).
-func CheckDisconnectorCrossVoltageLevel(dataset *cimstructs.CIMElementList) []Violation {
+func CheckDisconnectorCrossVoltageLevel(dataset *cimstructs.CIMDataset) []Violation {
 	// Only include ConnectivityNodes whose container is a VoltageLevel.
 	cnVoltageLevel := make(map[string]string) // CN MRID → VoltageLevel MRID
 	for id, cn := range dataset.ConnectivityNodes {
@@ -397,7 +397,7 @@ func CheckDisconnectorCrossVoltageLevel(dataset *cimstructs.CIMElementList) []Vi
 
 // CheckConformLoadCrossContainer fires for each ConformLoad whose EquipmentContainer differs
 // from the ConnectivityNodeContainer of its connected Terminal's ConnectivityNode.
-func CheckConformLoadCrossContainer(dataset *cimstructs.CIMElementList) []Violation {
+func CheckConformLoadCrossContainer(dataset *cimstructs.CIMDataset) []Violation {
 	cnContainer := make(map[string]string)
 	for id, cn := range dataset.ConnectivityNodes {
 		if cn.ConnectivityNodeContainer != nil {
@@ -442,7 +442,7 @@ func CheckConformLoadCrossContainer(dataset *cimstructs.CIMElementList) []Violat
 
 // CheckRegulatingControlTargetVoltageMismatch fires for each voltage-mode RegulatingControl
 // whose targetValue deviates 10 % or more from the nominalVoltage of the regulated node.
-func CheckRegulatingControlTargetVoltageMismatch(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlTargetVoltageMismatch(dataset *cimstructs.CIMDataset) []Violation {
 	// CN → nominalVoltage (kV): CN → VoltageLevel → BaseVoltage.
 	cnNominalKV := make(map[string]float64)
 	for cnID, cn := range dataset.ConnectivityNodes {
@@ -468,7 +468,7 @@ func CheckRegulatingControlTargetVoltageMismatch(dataset *cimstructs.CIMElementL
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		rc, ok := obj.(*cimstructs.RegulatingControl)
 		if !ok {
 			continue

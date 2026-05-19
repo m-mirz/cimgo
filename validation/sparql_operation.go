@@ -8,7 +8,7 @@ import (
 )
 
 // ValidateOPProfileSPARQL runs hand-written checks for 61970-301_Operation.
-func ValidateOPProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateOPProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	return CheckMeasurementTerminalRequiredCases(dataset)
 }
 
@@ -17,10 +17,10 @@ func ValidateOPProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
 // Origin: Derived from a SPARQL constraint.
 // Description: Measurement.Terminal must reference a Terminal of the Equipment referenced by
 // Measurement.PowerSystemResource, unless measurementType is TapPosition or SwitchPosition.
-func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMElementList) []Violation {
+func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var mType string
 		var psrRef *struct {
 			MRID string `xml:"resource,attr"`

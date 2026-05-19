@@ -8,7 +8,7 @@ import (
 
 // ValidateSCNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_ShortCircuit-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	return CheckMutualCouplingTerminalsAssignment(dataset)
 }
 
@@ -17,7 +17,7 @@ func ValidateSCNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []V
 // Origin: Derived from a SPARQL constraint.
 // Description: The first and second terminals of a mutual coupling should point to different
 // ACLineSegments (or generic Equipment).
-func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMElementList) []Violation {
+func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	conductingEquipmentOf := func(termRef *struct {
@@ -27,7 +27,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMElementList) 
 			return "", nil, false
 		}
 		termID := strings.TrimPrefix(termRef.MRID, "#")
-		termObj, ok := dataset.Elements[termID]
+		termObj, ok := dataset.ByID[termID]
 		if !ok {
 			return "", nil, false
 		}
@@ -36,14 +36,14 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMElementList) 
 			return "", nil, false
 		}
 		eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-		eqObj, ok := dataset.Elements[eqID]
+		eqObj, ok := dataset.ByID[eqID]
 		if !ok {
 			return eqID, nil, true
 		}
 		return eqID, eqObj, true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		mc, ok := obj.(*cimstructs.MutualCoupling)
 		if !ok {
 			continue

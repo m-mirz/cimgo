@@ -24,29 +24,11 @@ func normalizeRDFAbout(t *xml.StartElement) {
 	}
 }
 
-type CIMProfile struct {
-	ModelId          string `xml:"http://www.w3.org/1999/02/22-rdf-syntax-ns# about,attr"`
-	ModelDependentOn *struct {
-		MRID string `xml:"resource,attr"`
-	} `xml:"Model.DependentOn,omitempty"`
-	ModelCreated              string `xml:"Model.created"`
-	ModelDescription          string `xml:"Model.description"`
-	ModelModelingAuthoritySet string `xml:"Model.modelingAuthoritySet"`
-	ModelProfile              string `xml:"Model.profile"`
-	ModelScenarioTime         string `xml:"Model.scenarioTime"`
-	ModelVersion              int    `xml:"Model.version"`
-}
-
-type CIMDataset struct {
-	Profiles []*CIMProfile
-	Elements cimstructs.CIMElementList
-}
-
-// DecodeProfiles decodes each reader concurrently into a separate CIMElementList,
+// DecodeProfiles decodes each reader concurrently into a separate CIMDataset,
 // then merges them into cimData in input order. Callers control merge precedence
 // by ordering the readers slice (earlier entries win on field conflicts).
-func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
-	results := make([]*cimstructs.CIMElementList, len(readers))
+func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
+	results := make([]*cimstructs.CIMDataset, len(readers))
 	errs := make([]error, len(readers))
 
 	var wg sync.WaitGroup
@@ -66,7 +48,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*c
 	}
 
 	if cimData == nil {
-		cimData = cimstructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMDataset()
 	}
 	for _, r := range results {
 		if err := MergeInto(cimData, r); err != nil {
@@ -78,8 +60,8 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMElementList) (*c
 
 // MergeInto adds all elements from src into dst, merging any objects with
 // matching mRIDs via DeepMerge.
-func MergeInto(dst, src *cimstructs.CIMElementList) error {
-	for _, elem := range src.Elements {
+func MergeInto(dst, src *cimstructs.CIMDataset) error {
+	for _, elem := range src.ByID {
 		if err := dst.AddElement(elem); err != nil {
 			return err
 		}
@@ -87,9 +69,9 @@ func MergeInto(dst, src *cimstructs.CIMElementList) error {
 	return nil
 }
 
-func DecodeProfile(r io.Reader, cimData *cimstructs.CIMElementList) (*cimstructs.CIMElementList, error) {
+func DecodeProfile(r io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
 	if cimData == nil {
-		cimData = cimstructs.NewCIMElementList()
+		cimData = cimstructs.NewCIMDataset()
 	}
 	dec := cimxml.NewDecoder(r)
 

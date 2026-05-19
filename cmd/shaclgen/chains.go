@@ -57,7 +57,7 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 
 	var b strings.Builder
 	b.WriteString("\tdatasetCount := 0\n")
-	b.WriteString("\tfor _, ref := range dataset.Elements {\n")
+	b.WriteString("\tfor _, ref := range dataset.ByID {\n")
 	b.WriteString("\t\tswitch ref.(type) {")
 	for _, cls := range classes {
 		fmt.Fprintf(&b, "\n\t\tcase *cimstructs.%s:\n\t\t\tdatasetCount++", cls)
@@ -193,7 +193,7 @@ func walkForwardRefChain(pathSegs []string, startType reflect.Type, startVar str
 		fmt.Fprintf(&b, "\t\tif %s.%s == nil {\n\t\t\tcontinue\n\t\t}\n", currentVar, field.Name)
 		fmt.Fprintf(&b, "\t\trefID%d := strings.TrimPrefix(%s.%s.MRID, \"#\")\n", i, currentVar, field.Name)
 		targetVar := fmt.Sprintf("target%d", i)
-		fmt.Fprintf(&b, "\t\t%s, found%d := dataset.Elements[refID%d]\n", targetVar, i, i)
+		fmt.Fprintf(&b, "\t\t%s, found%d := dataset.ByID[refID%d]\n", targetVar, i, i)
 		fmt.Fprintf(&b, "\t\tif !found%d {\n\t\t\tcontinue\n\t\t}\n", i)
 
 		isLast := i == len(pathSegs)-1

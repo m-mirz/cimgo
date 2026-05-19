@@ -10,7 +10,7 @@ import (
 // ValidateSVSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_StateVariables-AP-Con-Complex-SolvedMAS-SHACL and
 // 61970-456_StateVariables-AP-Con-Complex-SolvedMAS-SHACL
-func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckSvTapStepPositionRange(dataset)...)
 	violations = append(violations, CheckSvTapStepPositionInteger(dataset)...)
@@ -27,11 +27,11 @@ func ValidateSVSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Viol
 // Profile: 61970-301_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvTapStep.position must be within [TapChanger.lowStep, TapChanger.highStep].
-func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tapChangerStep := func(id string) (low, high int, ok bool) {
-		obj, found := dataset.Elements[id]
+		obj, found := dataset.ByID[id]
 		if !found {
 			return 0, 0, false
 		}
@@ -47,7 +47,7 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation
 		return int(lowField.Int()), int(highField.Int()), true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		sv, ok := obj.(*cimstructs.SvTapStep)
 		if !ok || sv.TapChanger == nil {
 			continue
@@ -77,7 +77,7 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMElementList) []Violation
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, SvShuntCompensatorSections.sections shall be integer.
-func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svsc := range dataset.SvShuntCompensatorSectionss {
@@ -85,7 +85,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) 
 			continue
 		}
 		scID := strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#")
-		scObj, ok := dataset.Elements[scID]
+		scObj, ok := dataset.ByID[scID]
 		if !ok {
 			continue
 		}
@@ -99,7 +99,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) 
 		rcField := val.FieldByName("RegulatingControl")
 		if rcField.IsValid() && rcField.Kind() == reflect.Ptr && !rcField.IsNil() {
 			rcID := strings.TrimPrefix(rcField.Elem().FieldByName("MRID").String(), "#")
-			if rcObj, ok := dataset.Elements[rcID]; ok {
+			if rcObj, ok := dataset.ByID[rcID]; ok {
 				rc, _ = rcObj.(*cimstructs.RegulatingControl)
 			}
 		}
@@ -126,7 +126,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) 
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, SvTapStep.position shall be integer.
-func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svts := range dataset.SvTapSteps {
@@ -134,7 +134,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violati
 			continue
 		}
 		tcID := strings.TrimPrefix(svts.TapChanger.MRID, "#")
-		tcObj, ok := dataset.Elements[tcID]
+		tcObj, ok := dataset.ByID[tcID]
 		if !ok {
 			continue
 		}
@@ -148,7 +148,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violati
 		tccField := val.FieldByName("TapChangerControl")
 		if tccField.IsValid() && tccField.Kind() == reflect.Ptr && !tccField.IsNil() {
 			tccID := strings.TrimPrefix(tccField.Elem().FieldByName("MRID").String(), "#")
-			if tccObj, ok := dataset.Elements[tccID]; ok {
+			if tccObj, ok := dataset.ByID[tccID]; ok {
 				tcc, _ = tccObj.(*cimstructs.TapChangerControl)
 			}
 		}
@@ -175,10 +175,10 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMElementList) []Violati
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvSwitch must be instantiated for all switching devices.
-func CheckSvSwitchInstance(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvSwitchInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.Switch, *cimstructs.Breaker, *cimstructs.LoadBreakSwitch,
 			*cimstructs.Disconnector, *cimstructs.Fuse, *cimstructs.Jumper,
@@ -214,7 +214,7 @@ func CheckSvSwitchInstance(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow must be instantiated for all energized injection equipment.
-func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	inServiceMap := make(map[string]bool)
@@ -231,7 +231,7 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.NonConformLoad, *cimstructs.EquivalentInjection, *cimstructs.EnergySource,
 			*cimstructs.ExternalNetworkInjection, *cimstructs.PowerElectronicsConnection,
@@ -288,7 +288,7 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow.p should be within the min/max operating power limits of the associated machine.
-func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svpf := range dataset.SvPowerFlows {
@@ -333,7 +333,7 @@ func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: SvPowerFlow.q should be within the reactive capability limits of the associated machine.
-func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svpf := range dataset.SvPowerFlows {
@@ -360,7 +360,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
 			// Find all CurveData for this curve
 			rccID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
 			var y1vals, y2vals []float64
-			for _, cdObj := range dataset.Elements {
+			for _, cdObj := range dataset.ByID {
 				if cd, ok := cdObj.(*cimstructs.CurveData); ok && cd.Curve != nil {
 					if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
 						y1vals = append(y1vals, cd.Y1value)
@@ -403,7 +403,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMElementList) []Violation {
 // Profile: 61970-456_StateVariables-AP-Con-Complex-SolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates SvVoltage.v against defined voltage limits and absolute 0.4 pu limit.
-func CheckSvVoltageLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, svv := range dataset.SvVoltages {

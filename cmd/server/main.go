@@ -20,7 +20,7 @@ import (
 )
 
 // Global map to store CIM specifications in memory, keyed by ID.
-var cimDataset = make(map[string]*cimstructs.CIMElementList)
+var cimDataset = make(map[string]*cimstructs.CIMDataset)
 var protoDataset = make(map[string][]byte)
 var mu sync.RWMutex
 
@@ -181,7 +181,7 @@ func processCIMFiles(id string) error {
 	}
 	log.Println("Decoded CIM data")
 
-	jsonOut, err := json.MarshalIndent(mergedCIMData.Elements, "", "  ")
+	jsonOut, err := json.MarshalIndent(mergedCIMData.ByID, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to create a nicely formatted JSON: %w", err)
 	}

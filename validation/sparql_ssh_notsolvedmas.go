@@ -9,7 +9,7 @@ import (
 // ValidateSSHNotSolvedMASProfileSPARQL runs hand-written checks for
 // 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL and
 // 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS-SHACL.
-func ValidateSSHNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []Violation {
+func ValidateSSHNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	violations = append(violations, CheckLinearShuntCompensatorSectionsRange(dataset)...)
 	violations = append(violations, CheckNonlinearShuntCompensatorSectionsValid(dataset)...)
@@ -35,10 +35,10 @@ func ValidateSSHNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMElementList) []
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: For LinearShuntCompensator the value shall be between zero and ShuntCompensator.maximumSections.
-func CheckLinearShuntCompensatorSectionsRange(dataset *cimstructs.CIMElementList) []Violation {
+func CheckLinearShuntCompensatorSectionsRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		lsc, ok := obj.(*cimstructs.LinearShuntCompensator)
 		if !ok {
 			continue
@@ -64,11 +64,11 @@ func CheckLinearShuntCompensatorSectionsRange(dataset *cimstructs.CIMElementList
 // Origin: Derived from a SPARQL constraint.
 // Description: For NonlinearShuntCompensator-s, sections shall only be set to one of the
 // NonlinearShuntCompenstorPoint.sectionNumber.
-func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMElementList) []Violation {
+func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	pointSections := make(map[string]map[int]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		point, ok := obj.(*cimstructs.NonlinearShuntCompensatorPoint)
 		if !ok || point.NonlinearShuntCompensator == nil {
 			continue
@@ -80,7 +80,7 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMElementL
 		pointSections[nscID][point.SectionNumber] = true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		nsc, ok := obj.(*cimstructs.NonlinearShuntCompensator)
 		if !ok {
 			continue
@@ -106,7 +106,7 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMElementL
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: When mode=powerFactor, both minAllowedTargetValue and maxAllowedTargetValue must be present.
-func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	check := func(id, class string, mode *struct {
@@ -128,7 +128,7 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMEleme
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RegulatingControl:
 			check(id, "RegulatingControl", v.Mode, v.MinAllowedTargetValue, v.MaxAllowedTargetValue)
@@ -144,11 +144,11 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMEleme
 // Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: For a discrete TapChangerControl the step value shall be integer.
-func CheckTapChangerStepInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tccDiscrete := make(map[string]bool)
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if tcc, ok := obj.(*cimstructs.TapChangerControl); ok {
 			tccDiscrete[id] = tcc.Discrete
 		}
@@ -177,7 +177,7 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMElementList) []Violation 
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RatioTapChanger:
 			report(id, "RatioTapChanger", v.Step, v.TapChangerControl)
@@ -200,7 +200,7 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMElementList) []Violation 
 // Origin: Derived from a SPARQL constraint.
 // Description: targetAlpha must not be set for inverters; it is only valid for rectifiers
 // with continuous (non-discrete) tap changer control at the PCC terminal transformer.
-func CheckCsConverterTargetAlphaApplicability(dataset *cimstructs.CIMElementList) []Violation {
+func CheckCsConverterTargetAlphaApplicability(dataset *cimstructs.CIMDataset) []Violation {
 	return checkCsConverterTargetAngleApplicability(dataset, true)
 }
 
@@ -209,17 +209,17 @@ func CheckCsConverterTargetAlphaApplicability(dataset *cimstructs.CIMElementList
 // Origin: Derived from a SPARQL constraint.
 // Description: targetGamma must not be set for rectifiers; it is only valid for inverters
 // with continuous (non-discrete) tap changer control at the PCC terminal transformer.
-func CheckCsConverterTargetGammaApplicability(dataset *cimstructs.CIMElementList) []Violation {
+func CheckCsConverterTargetGammaApplicability(dataset *cimstructs.CIMDataset) []Violation {
 	return checkCsConverterTargetAngleApplicability(dataset, false)
 }
 
 // checkCsConverterTargetAngleApplicability is the shared implementation for the alpha/gamma
 // applicability checks. forAlpha=true checks targetAlpha (only valid for rectifiers),
 // forAlpha=false checks targetGamma (only valid for inverters).
-func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList, forAlpha bool) []Violation {
+func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMDataset, forAlpha bool) []Violation {
 	// Build index: terminalID → RegulatingControl.discrete
 	rcDiscrete := make(map[string]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RegulatingControl:
 			if v.Terminal != nil {
@@ -235,7 +235,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		cs, ok := obj.(*cimstructs.CsConverter)
 		if !ok {
 			continue
@@ -282,7 +282,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList
 			continue
 		}
 		eqID := strings.TrimPrefix(pccTerm.ConductingEquipment.MRID, "#")
-		if _, isPT := dataset.Elements[eqID].(*cimstructs.PowerTransformer); !isPT {
+		if _, isPT := dataset.ByID[eqID].(*cimstructs.PowerTransformer); !isPT {
 			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
@@ -299,10 +299,10 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList
 // Origin: Derived from a SPARQL constraint.
 // Description: For ControlArea of type Interchange, the netInterchange value must equal the
 // sum of EquivalentInjection.p values for EquivalentInjections connected to BoundaryPoint terminals.
-func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementList) []Violation {
+func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMDataset) []Violation {
 	// Build index: connectivityNodeID → true if a BoundaryPoint references it
 	cnHasBoundaryPoint := make(map[string]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		bp, ok := obj.(*cimstructs.BoundaryPoint)
 		if !ok || bp.ConnectivityNode == nil {
 			continue
@@ -312,7 +312,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementLis
 
 	// Build index: controlAreaID → []terminalIDs from TieFlows
 	caTerminals := make(map[string][]string)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		tf, ok := obj.(*cimstructs.TieFlow)
 		if !ok || tf.ControlArea == nil || tf.Terminal == nil {
 			continue
@@ -323,7 +323,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementLis
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		ca, ok := obj.(*cimstructs.ControlArea)
 		if !ok || ca.Type == nil || ca.Type.URI != cimstructs.ControlAreaTypeKindInterchange || ca.NetInterchange == 0 {
 			continue
@@ -340,7 +340,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementLis
 				continue
 			}
 			eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-			ei, ok := dataset.Elements[eqID].(*cimstructs.EquivalentInjection)
+			ei, ok := dataset.ByID[eqID].(*cimstructs.EquivalentInjection)
 			if !ok {
 				continue
 			}
@@ -365,7 +365,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementLis
 // CheckEquivalentInjectionRegulation implements sshn456:EquivalentInjection-regulation
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, ei := range dataset.EquivalentInjections {
 		if ei.RegulationCapability {
@@ -400,9 +400,9 @@ func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMElementList) []Vi
 // CheckRotatingMachinePLimits implements sshn456:RotatingMachine.p-limits
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckRotatingMachinePLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRotatingMachinePLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var p float64
 		var guRef *struct {
 			MRID string `xml:"resource,attr"`
@@ -448,7 +448,7 @@ func CheckRotatingMachinePLimits(dataset *cimstructs.CIMElementList) []Violation
 // CheckRotatingMachineQLimits implements sshn456:RotatingMachine.q-limits
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckRotatingMachineQLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRotatingMachineQLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
 		if !sm.InService || sm.InitialReactiveCapabilityCurve != nil {
@@ -478,7 +478,7 @@ func CheckRotatingMachineQLimits(dataset *cimstructs.CIMElementList) []Violation
 // CheckSynchronousMachineOperatingModeMatch implements sshn456:SynchronousMachine.operatingMode-matchType
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckSynchronousMachineOperatingModeMatch(dataset *cimstructs.CIMElementList) []Violation {
+func CheckSynchronousMachineOperatingModeMatch(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, sm := range dataset.SynchronousMachines {
 		if sm.OperatingMode == nil || sm.Type == nil {
@@ -515,7 +515,7 @@ func CheckSynchronousMachineOperatingModeMatch(dataset *cimstructs.CIMElementLis
 // CheckGeneratingUnitSingleActivePowerSlack implements sshn456:GeneratingUnit-singleActivePowerSlack
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimstructs.CIMElementList) []Violation {
+func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	// Rule: one generator has GeneratingUnit.normalPF set to a highest value (non-zero) and all other generating units have a zero GeneratingUnit.normalPF.
 	// Actually, this is per ControlArea.
@@ -554,7 +554,7 @@ func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimstructs.CIMElementLis
 // CheckExternalNetworkInjectionLimits implements sshn456:ExternalNetworkInjection.p-limits and q-limits
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckExternalNetworkInjectionLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckExternalNetworkInjectionLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, eni := range dataset.ExternalNetworkInjections {
 		if !eni.InService {
@@ -597,7 +597,7 @@ func CheckExternalNetworkInjectionLimits(dataset *cimstructs.CIMElementList) []V
 // CheckEquivalentInjectionLimits implements sshn456:EquivalentInjection.p-limits and q-limits
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckEquivalentInjectionLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckEquivalentInjectionLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, ei := range dataset.EquivalentInjections {
 		if !ei.InService {
@@ -640,7 +640,7 @@ func CheckEquivalentInjectionLimits(dataset *cimstructs.CIMElementList) []Violat
 // CheckRotatingMachineCurveLimits implements sshn456:RotatingMachine-pAndQcapabilityCurveP/Q
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, sm := range dataset.SynchronousMachines {
@@ -653,7 +653,7 @@ func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMElementList) []Viola
 		var y1vals []float64
 		var y2vals []float64
 
-		for _, cdObj := range dataset.Elements {
+		for _, cdObj := range dataset.ByID {
 			if cd, ok := cdObj.(*cimstructs.CurveData); ok && cd.Curve != nil {
 				if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
 					xvals = append(xvals, cd.Xvalue)
@@ -723,7 +723,7 @@ func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMElementList) []Viola
 // CheckRegulatingControlTargetValuePositive implements sshn456:RegulatingControl.targetValue-value
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
-func CheckRegulatingControlTargetValuePositive(dataset *cimstructs.CIMElementList) []Violation {
+func CheckRegulatingControlTargetValuePositive(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	for id, rc := range dataset.RegulatingControls {
 		if rc.Mode != nil && strings.HasSuffix(rc.Mode.URI, "voltage") {
@@ -747,10 +747,10 @@ func CheckRegulatingControlTargetValuePositive(dataset *cimstructs.CIMElementLis
 // Profile: 61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
 // Origin: Derived from a SPARQL constraint.
 // Description: In cases where RegulatingControl.discrete is true and RegulatingControl.enabled is true, ShuntCompensator.sections shall be integer.
-func CheckShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) []Violation {
+func CheckShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var sections float64
 		var rcID string
 		var class string

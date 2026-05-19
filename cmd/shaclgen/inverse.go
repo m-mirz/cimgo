@@ -21,7 +21,7 @@ func inverseCountCheck(targetClasses []string, field reflect.StructField, op, th
 		var prelude string
 		if isList {
 			prelude = fmt.Sprintf(`	inverseCounts := map[string]int{}
-	for _, ref := range dataset.Elements {
+	for _, ref := range dataset.ByID {
 		r, ok := ref.(*cimstructs.%s)
 		if !ok {
 			continue
@@ -32,7 +32,7 @@ func inverseCountCheck(targetClasses []string, field reflect.StructField, op, th
 	}`, targetClasses[0], field.Name)
 		} else {
 			prelude = fmt.Sprintf(`	inverseCounts := map[string]int{}
-	for _, ref := range dataset.Elements {
+	for _, ref := range dataset.ByID {
 		r, ok := ref.(*cimstructs.%s)
 		if !ok {
 			continue
@@ -47,7 +47,7 @@ func inverseCountCheck(targetClasses []string, field reflect.StructField, op, th
 	}
 	var b strings.Builder
 	b.WriteString("\tinverseCounts := map[string]int{}\n")
-	b.WriteString("\tfor _, ref := range dataset.Elements {\n")
+	b.WriteString("\tfor _, ref := range dataset.ByID {\n")
 	b.WriteString("\t\tswitch r := ref.(type) {\n")
 	for _, cls := range targetClasses {
 		fmt.Fprintf(&b, "\t\tcase *cimstructs.%s:\n", cls)
@@ -76,7 +76,7 @@ func inverseHasEnumValueCheck(targetClasses []string, refField, valueField refle
 	cond := "!hasEnumValue[id]"
 	if len(targetClasses) == 1 {
 		prelude := fmt.Sprintf(`	hasEnumValue := map[string]bool{}
-	for _, ref := range dataset.Elements {
+	for _, ref := range dataset.ByID {
 		r, ok := ref.(*cimstructs.%s)
 		if !ok {
 			continue
@@ -93,7 +93,7 @@ func inverseHasEnumValueCheck(targetClasses []string, refField, valueField refle
 	}
 	var b strings.Builder
 	b.WriteString("\thasEnumValue := map[string]bool{}\n")
-	b.WriteString("\tfor _, ref := range dataset.Elements {\n")
+	b.WriteString("\tfor _, ref := range dataset.ByID {\n")
 	b.WriteString("\t\tswitch r := ref.(type) {\n")
 	for _, cls := range targetClasses {
 		fmt.Fprintf(&b, "\t\tcase *cimstructs.%s:\n", cls)

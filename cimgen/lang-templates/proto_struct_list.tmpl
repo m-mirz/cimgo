@@ -7,7 +7,7 @@ option go_package = "proto/api/v1;apiv1";
 import "{{ .Id }}.proto";
 {{- end }}
 
-message CIMElementList {
+message CIMDataset {
 {{- range $index, $element := .}}
   repeated {{ .Id }} {{ .Label }} = {{ add $index 1 }};
 {{- end }}

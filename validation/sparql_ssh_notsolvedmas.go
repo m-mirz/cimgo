@@ -46,6 +46,8 @@ func CheckLinearShuntCompensatorSectionsRange(dataset *cimstructs.CIMElementList
 		if lsc.Sections < 0 || lsc.Sections > float64(lsc.MaximumSections) {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshcns.ShuntCompensator.sections-valueLinear",
+				Name:     "ShuntCompensator.sections-valueLinear",
 				Class:    "LinearShuntCompensator",
 				Property: "ShuntCompensator.sections",
 				Message:  fmt.Sprintf("The value (%v) is not between zero and ShuntCompensator.maximumSections (%d).", lsc.Sections, lsc.MaximumSections),
@@ -87,6 +89,8 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMElementL
 		if section != float64(int(section)) || !pointSections[id][int(section)] {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshcns.ShuntCompensator.sections-valueNonLinear",
+				Name:     "ShuntCompensator.sections-valueNonLinear",
 				Class:    "NonlinearShuntCompensator",
 				Property: "ShuntCompensator.sections",
 				Message:  fmt.Sprintf("The value (%v) does not equal one of the NonlinearShuntCompenstorPoint.sectionNumber.", section),
@@ -114,6 +118,8 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMEleme
 		if minVal == 0 || maxVal == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshcns.RegulatingControl-requiredAttributes",
+				Name:     "RegulatingControl-requiredAttributes",
 				Class:    class,
 				Property: "RegulatingControl.mode",
 				Message:  "Both minAllowedTargetValue and maxAllowedTargetValue are not provided for RegulatingControl in mode powerFactor.",
@@ -161,6 +167,8 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMElementList) []Violation 
 		if step != float64(int(step)) {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshcns.TapChanger.step-valueType",
+				Name:     "TapChanger.step-valueType",
 				Class:    class,
 				Property: "TapChanger.step",
 				Message:  fmt.Sprintf("Non-integer value (%v) for a discrete TapChangerControl.", step),
@@ -234,15 +242,19 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList
 		}
 
 		var value float64
-		var property, msg string
+		var property, msg, ruleID, ruleName string
 		if forAlpha {
 			value = cs.TargetAlpha
 			property = "CsConverter.targetAlpha"
 			msg = "CsConverter.targetAlpha is provided for an inverter or discrete tap changer control is used or RegulatingControl is not provided."
+			ruleID = "sshn301.CsConverter.targetAlpha-applicability"
+			ruleName = "CsConverter.targetAlpha-applicability"
 		} else {
 			value = cs.TargetGamma
 			property = "CsConverter.targetGamma"
 			msg = "CsConverter.targetGamma is provided for a rectifier or discrete tap changer control is used or RegulatingControl is not provided."
+			ruleID = "sshn301.CsConverter.targetGamma-applicability"
+			ruleName = "CsConverter.targetGamma-applicability"
 		}
 		if value == 0 || cs.OperatingMode == nil {
 			continue
@@ -254,29 +266,29 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMElementList
 			invalidMode = cimstructs.CsOperatingModeKindrectifier
 		}
 		if mode == invalidMode {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
+			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 
 		// Check OPTIONAL: PccTerminal → PowerTransformer → RegulatingControl
 		if cs.PccTerminal == nil {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
+			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		pccTermID := strings.TrimPrefix(cs.PccTerminal.MRID, "#")
 		pccTerm, hasTerm := dataset.Terminals[pccTermID]
 		if !hasTerm || pccTerm.ConductingEquipment == nil {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
+			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		eqID := strings.TrimPrefix(pccTerm.ConductingEquipment.MRID, "#")
 		if _, isPT := dataset.Elements[eqID].(*cimstructs.PowerTransformer); !isPT {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
+			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
 		discrete, hasRC := rcDiscrete[pccTermID]
 		if !hasRC || discrete {
-			violations = append(violations, Violation{ObjectID: id, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
+			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 		}
 	}
 	return violations
@@ -338,6 +350,8 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMElementLis
 		if ca.NetInterchange != sum {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn301.ControlArea-netInterchangeCalculation",
+				Name:     "ControlArea-netInterchangeCalculation",
 				Class:    "ControlArea",
 				Property: "ControlArea.netInterchange",
 				Message:  fmt.Sprintf("The sum of the EquivalentInjections which are connected to the BoundaryPoint-s differs from the ControlArea.netInterchange. ControlArea.netInterchange= %v. Sum of the EquivalentInjections= %v.", ca.NetInterchange, sum),
@@ -358,6 +372,8 @@ func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMElementList) []Vi
 			if !ei.RegulationStatus || ei.RegulationTarget == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "sshn456:EquivalentInjection-regulation",
+					Name:     "EquivalentInjection-regulation",
 					Class:    "EquivalentInjection",
 					Property: "regulationStatus",
 					Message:  "EquivalentInjection.regulationStatus and regulationTarget are required when regulationCapability is true.",
@@ -368,6 +384,8 @@ func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMElementList) []Vi
 			if ei.RegulationStatus || ei.RegulationTarget != 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "sshn456:EquivalentInjection-regulation",
+					Name:     "EquivalentInjection-regulation",
 					Class:    "EquivalentInjection",
 					Property: "regulationStatus",
 					Message:  "EquivalentInjection.regulationStatus and regulationTarget should not be exchanged when regulationCapability is false.",
@@ -415,6 +433,8 @@ func CheckRotatingMachinePLimits(dataset *cimstructs.CIMElementList) []Violation
 		if negP < gu.MinOperatingP || negP > gu.MaxOperatingP {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:RotatingMachine.p-limits",
+				Name:     "RotatingMachine.p-limits",
 				Class:    goTypeName(obj),
 				Property: "RotatingMachine.p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v] of associated GeneratingUnit.", negP, gu.MinOperatingP, gu.MaxOperatingP),
@@ -443,6 +463,8 @@ func CheckRotatingMachineQLimits(dataset *cimstructs.CIMElementList) []Violation
 		if negQ < sm.MinQ || negQ > sm.MaxQ {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:RotatingMachine.q-limits",
+				Name:     "RotatingMachine.q-limits",
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v] (no ReactiveCapabilityCurve).", negQ, sm.MinQ, sm.MaxQ),
@@ -478,6 +500,8 @@ func CheckSynchronousMachineOperatingModeMatch(dataset *cimstructs.CIMElementLis
 		if !valid {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:SynchronousMachine.operatingMode-matchType",
+				Name:     "SynchronousMachine.operatingMode-matchType",
 				Class:    "SynchronousMachine",
 				Property: "SynchronousMachine.operatingMode",
 				Message:  fmt.Sprintf("SynchronousMachine.operatingMode (%v) is not consistent with SynchronousMachine.type (%v).", mode, kind),
@@ -514,6 +538,8 @@ func CheckGeneratingUnitSingleActivePowerSlack(dataset *cimstructs.CIMElementLis
 		if len(slacks) > 1 {
 			violations = append(violations, Violation{
 				ObjectID: caID,
+				RuleID:   "sshn456:GeneratingUnit-singleActivePowerSlack",
+				Name:     "GeneratingUnit-singleActivePowerSlack",
 				Class:    "ControlArea",
 				Property: "rdf:type",
 				Message:  fmt.Sprintf("Multiple generating units (%v) in ControlArea %s have non-zero normalPF.", slacks, caID),
@@ -541,6 +567,8 @@ func CheckExternalNetworkInjectionLimits(dataset *cimstructs.CIMElementList) []V
 		if negP < eni.MinP || negP > eni.MaxP {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:ExternalNetworkInjection.p-limits",
+				Name:     "ExternalNetworkInjection.p-limits",
 				Class:    "ExternalNetworkInjection",
 				Property: "p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v].", negP, eni.MinP, eni.MaxP),
@@ -554,6 +582,8 @@ func CheckExternalNetworkInjectionLimits(dataset *cimstructs.CIMElementList) []V
 		if negQ < eni.MinQ || negQ > eni.MaxQ {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:ExternalNetworkInjection.q-limits",
+				Name:     "ExternalNetworkInjection.q-limits",
 				Class:    "ExternalNetworkInjection",
 				Property: "q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v].", negQ, eni.MinQ, eni.MaxQ),
@@ -580,6 +610,8 @@ func CheckEquivalentInjectionLimits(dataset *cimstructs.CIMElementList) []Violat
 		if negP < ei.MinP || negP > ei.MaxP {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:EquivalentInjection.p-limits",
+				Name:     "EquivalentInjection.p-limits",
 				Class:    "EquivalentInjection",
 				Property: "p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of the range [Min:%v, Max:%v].", negP, ei.MinP, ei.MaxP),
@@ -593,6 +625,8 @@ func CheckEquivalentInjectionLimits(dataset *cimstructs.CIMElementList) []Violat
 		if negQ < ei.MinQ || negQ > ei.MaxQ {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:EquivalentInjection.q-limits",
+				Name:     "EquivalentInjection.q-limits",
 				Class:    "EquivalentInjection",
 				Property: "q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of the range [Min:%v, Max:%v].", negQ, ei.MinQ, ei.MaxQ),
@@ -662,6 +696,8 @@ func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMElementList) []Viola
 		if negP < minX || negP > maxX {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:RotatingMachine-pAndQcapabilityCurveP",
+				Name:     "RotatingMachine-pAndQcapabilityCurveP",
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.p",
 				Message:  fmt.Sprintf("Negated active power (%v) is outside of curve x-range [%v, %v].", negP, minX, maxX),
@@ -671,6 +707,8 @@ func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMElementList) []Viola
 		if negQ < minY1 || negQ > maxY2 {
 			violations = append(violations, Violation{
 				ObjectID: id,
+				RuleID:   "sshn456:RotatingMachine-pAndQcapabilityCurveQ",
+				Name:     "RotatingMachine-pAndQcapabilityCurveQ",
 				Class:    "SynchronousMachine",
 				Property: "RotatingMachine.q",
 				Message:  fmt.Sprintf("Negated reactive power (%v) is outside of curve y-range [%v, %v].", negQ, minY1, maxY2),
@@ -692,6 +730,8 @@ func CheckRegulatingControlTargetValuePositive(dataset *cimstructs.CIMElementLis
 			if rc.TargetValue <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
+					RuleID:   "sshn456:RegulatingControl.targetValue-value",
+					Name:     "RegulatingControl.targetValue-value",
 					Class:    "RegulatingControl",
 					Property: "targetValue",
 					Message:  "RegulatingControl.targetValue shall be positive value in cases where the RegulatingControl.mode is set to voltage.",
@@ -736,6 +776,8 @@ func CheckShuntCompensatorSectionsInteger(dataset *cimstructs.CIMElementList) []
 				if sections != float64(int(sections)) {
 					violations = append(violations, Violation{
 						ObjectID: id,
+						RuleID:   "sshc456ns:ShuntCompensator.sections-value",
+						Name:     "ShuntCompensator.sections-value",
 						Class:    class,
 						Property: "ShuntCompensator.sections",
 						Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", sections),

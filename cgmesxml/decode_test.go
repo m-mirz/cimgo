@@ -17,11 +17,11 @@ func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cimData.Elements) != 2 {
-		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
+	if len(cimData.ByID) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(cimData.ByID))
 	}
 
-	vl, ok := cimData.Elements["VoltageLevel.98"].(*cimstructs.VoltageLevel)
+	vl, ok := cimData.ByID["VoltageLevel.98"].(*cimstructs.VoltageLevel)
 	if !ok {
 		t.Fatal("VoltageLevel.98 not found or wrong type")
 	}
@@ -32,7 +32,7 @@ func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
 		t.Errorf("VoltageLevel.BaseVoltage: got %v, want MRID=#BaseVoltage.20", vl.BaseVoltage)
 	}
 
-	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimstructs.BaseVoltage)
+	bv, ok := cimData.ByID["BaseVoltage.20"].(*cimstructs.BaseVoltage)
 	if !ok {
 		t.Fatal("BaseVoltage.20 not found or wrong type")
 	}
@@ -54,11 +54,11 @@ func TestDecodeRDFAbout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cimData.Elements) != 2 {
-		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
+	if len(cimData.ByID) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(cimData.ByID))
 	}
 
-	a, ok := cimData.Elements["Analog.N0.Voltage"].(*cimstructs.Analog)
+	a, ok := cimData.ByID["Analog.N0.Voltage"].(*cimstructs.Analog)
 	if !ok {
 		t.Fatal("Analog.N0.Voltage not found or wrong type")
 	}
@@ -69,7 +69,7 @@ func TestDecodeRDFAbout(t *testing.T) {
 		t.Errorf("Analog.MeasurementType: got %q, want %q", a.MeasurementType, "Voltage")
 	}
 
-	av, ok := cimData.Elements["AnalogValue.N0.Voltage"].(*cimstructs.AnalogValue)
+	av, ok := cimData.ByID["AnalogValue.N0.Voltage"].(*cimstructs.AnalogValue)
 	if !ok {
 		t.Fatal("AnalogValue.N0.Voltage not found or wrong type")
 	}
@@ -88,11 +88,11 @@ func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cimData.Elements) != 2 {
-		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
+	if len(cimData.ByID) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(cimData.ByID))
 	}
 
-	tn, ok := cimData.Elements["N0"].(*cimstructs.TopologicalNode)
+	tn, ok := cimData.ByID["N0"].(*cimstructs.TopologicalNode)
 	if !ok {
 		t.Fatal("TopologicalNode N0 not found or wrong type")
 	}
@@ -100,7 +100,7 @@ func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
 		t.Errorf("TopologicalNode.Name: got %q, want %q", tn.Name, "N0")
 	}
 
-	term, ok := cimData.Elements["Terminal.N0"].(*cimstructs.Terminal)
+	term, ok := cimData.ByID["Terminal.N0"].(*cimstructs.Terminal)
 	if !ok {
 		t.Fatal("Terminal.N0 not found or wrong type")
 	}
@@ -122,11 +122,11 @@ func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cimData.Elements) != 2 {
-		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
+	if len(cimData.ByID) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(cimData.ByID))
 	}
 
-	fm, ok := cimData.Elements["test004"].(*cimstructs.FullModel)
+	fm, ok := cimData.ByID["test004"].(*cimstructs.FullModel)
 	if !ok {
 		t.Fatal("FullModel test004 not found or wrong type")
 	}
@@ -134,7 +134,7 @@ func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
 		t.Errorf("FullModel.Profile: got %v, want [http://iec.ch/TC57/ns/CIM/CoreEquipment-EU/3.0]", fm.Profile)
 	}
 
-	bv, ok := cimData.Elements["BaseVoltage.20"].(*cimstructs.BaseVoltage)
+	bv, ok := cimData.ByID["BaseVoltage.20"].(*cimstructs.BaseVoltage)
 	if !ok {
 		t.Fatal("BaseVoltage.20 not found or wrong type")
 	}
@@ -158,11 +158,11 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cimData.Elements) != 2 {
-		t.Fatalf("expected 2 elements, got %d", len(cimData.Elements))
+	if len(cimData.ByID) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(cimData.ByID))
 	}
 
-	cn, ok := cimData.Elements["N0"].(*cimstructs.ConnectivityNode)
+	cn, ok := cimData.ByID["N0"].(*cimstructs.ConnectivityNode)
 	if !ok {
 		t.Fatal("ConnectivityNode N0 not found or wrong type")
 	}
@@ -170,7 +170,7 @@ func TestDecodeBoundaryPoint(t *testing.T) {
 		t.Errorf("ConnectivityNode.Name: got %q, want %q", cn.Name, "N0")
 	}
 
-	bp, ok := cimData.Elements["N0_BP"].(*cimstructs.BoundaryPoint)
+	bp, ok := cimData.ByID["N0_BP"].(*cimstructs.BoundaryPoint)
 	if !ok {
 		t.Fatal("BoundaryPoint N0_BP not found or wrong type")
 	}
@@ -200,11 +200,11 @@ func TestMergeProfiles(t *testing.T) {
 		}
 	}
 
-	if len(merged.Elements) != 2 {
-		t.Fatalf("expected 2 elements after merge, got %d", len(merged.Elements))
+	if len(merged.ByID) != 2 {
+		t.Fatalf("expected 2 elements after merge, got %d", len(merged.ByID))
 	}
 
-	tn, ok := merged.Elements["N0"].(*cimstructs.TopologicalNode)
+	tn, ok := merged.ByID["N0"].(*cimstructs.TopologicalNode)
 	if !ok {
 		t.Fatal("TopologicalNode N0 not found or wrong type after merge")
 	}
@@ -212,7 +212,7 @@ func TestMergeProfiles(t *testing.T) {
 		t.Errorf("TopologicalNode.Name: got %q, want %q", tn.Name, "N0")
 	}
 
-	term, ok := merged.Elements["Terminal.N0"].(*cimstructs.Terminal)
+	term, ok := merged.ByID["Terminal.N0"].(*cimstructs.Terminal)
 	if !ok {
 		t.Fatal("Terminal.N0 not found or wrong type after merge")
 	}

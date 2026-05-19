@@ -20,7 +20,7 @@ func ValidateOPProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var mType string
 		var psrRef *struct {
 			MRID string `xml:"resource,attr"`

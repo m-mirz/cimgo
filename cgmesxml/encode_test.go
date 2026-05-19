@@ -31,7 +31,7 @@ func TestDecodeEncodePSTPhaseTapChangerLinearType1(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("Decoded %d CIM elements", len(cimData.Elements))
+	t.Logf("Decoded %d CIM elements", len(cimData.ByID))
 
 	const testDir = "../CGMES-Test-Configurations/v3.0/PST/PST_PhaseTapChangerLinear_Type1/"
 

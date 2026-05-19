@@ -337,7 +337,7 @@ func EncodeForProfile(w io.Writer, cimData *cimstructs.CIMDataset, profileCode s
 
 	urlKeyword := profileURLKeywords[profileCode]
 
-	for _, element := range cimData.Elements {
+	for _, element := range cimData.ByID {
 		rv := reflect.TypeOf(element)
 		if rv.Kind() == reflect.Ptr {
 			rv = rv.Elem()

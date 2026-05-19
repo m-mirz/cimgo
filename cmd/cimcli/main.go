@@ -118,7 +118,7 @@ func runValidate(args []string) {
 	}
 
 	if !jsonOutput {
-		fmt.Printf("Loaded %d elements from %d files\n", len(dataset.Elements), len(files))
+		fmt.Printf("Loaded %d elements from %d files\n", len(dataset.ByID), len(files))
 		fmt.Println("Running validation...")
 	}
 
@@ -303,8 +303,8 @@ func resolveProfileCodes(profileStr string) []string {
 }
 
 func marshalWithType(dataset *cimstructs.CIMDataset) ([]byte, error) {
-	out := make(map[string]map[string]interface{}, len(dataset.Elements))
-	for id, elem := range dataset.Elements {
+	out := make(map[string]map[string]interface{}, len(dataset.ByID))
+	for id, elem := range dataset.ByID {
 		typeName := reflect.TypeOf(elem).Elem().Name()
 		b, err := json.Marshal(elem)
 		if err != nil {

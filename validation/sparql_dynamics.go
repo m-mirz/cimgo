@@ -33,7 +33,7 @@ func ValidateDYProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements { // Using reflect to check if it's a subtype of ExcitationSystemDynamics
+	for id, obj := range dataset.ByID { // Using reflect to check if it's a subtype of ExcitationSystemDynamics
 		typeName := goTypeName(obj)
 		if !strings.HasPrefix(typeName, "Exc") {
 			continue
@@ -56,7 +56,7 @@ func CheckExcitationSystemDynamicsSynchronousMachineDynamics(dataset *cimstructs
 		}
 		targetID := strings.TrimPrefix(mridField.String(), "#")
 
-		if targetObj, ok := dataset.Elements[targetID]; ok {
+		if targetObj, ok := dataset.ByID[targetID]; ok {
 			if _, ok := targetObj.(*cimstructs.SynchronousMachineSimplified); ok {
 				violations = append(violations, Violation{
 					ObjectID: id,
@@ -143,7 +143,7 @@ func CheckSynchronousMachineTimeConstantReactanceModelType(dataset *cimstructs.C
 func CheckTurbineGovernorMbaseEquation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -167,7 +167,7 @@ func CheckTurbineGovernorMbaseEquation(dataset *cimstructs.CIMDataset) []Violati
 		}
 
 		smdID := strings.TrimPrefix(smdField.Elem().FieldByName("MRID").String(), "#")
-		smdObj, ok := dataset.Elements[smdID]
+		smdObj, ok := dataset.ByID[smdID]
 		if !ok {
 			continue
 		}
@@ -457,7 +457,7 @@ func CheckLoadStaticModelAttributes(dataset *cimstructs.CIMDataset) []Violation 
 func CheckRotatingMachineSaturation(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -509,7 +509,7 @@ func CheckSynchronousMachineSimplifiedAttributes(dataset *cimstructs.CIMDataset)
 func CheckDynamicsAssociations(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()

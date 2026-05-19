@@ -239,7 +239,7 @@ func emitToProto(buf *bytes.Buffer, protoMap map[string]reflect.Type) {
 	buf.WriteString("// ToProto converts a CIMDataset to its Protobuf equivalent.\n")
 	buf.WriteString("func ToProto(src *cimstructs.CIMDataset) (*apiv1.CIMDataset, error) {\n")
 	buf.WriteString("\tdst := &apiv1.CIMDataset{}\n")
-	buf.WriteString("\tfor _, elem := range src.Elements {\n")
+	buf.WriteString("\tfor _, elem := range src.ByID {\n")
 	buf.WriteString("\t\tswitch v := elem.(type) {\n")
 	for _, name := range concreteNames {
 		pt := protoMap[name]

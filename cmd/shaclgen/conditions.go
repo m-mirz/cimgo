@@ -394,7 +394,7 @@ func classCondition(field reflect.StructField, payload any) (string, string, err
 			continue
 		}
 		refID := strings.TrimPrefix(v.%s.MRID, "#")
-		target, found := dataset.Elements[refID]
+		target, found := dataset.ByID[refID]
 		if !found {
 			continue
 		}
@@ -404,7 +404,7 @@ func classCondition(field reflect.StructField, payload any) (string, string, err
 	var b strings.Builder
 	fmt.Fprintf(&b, "\t\tif v.%s == nil {\n\t\t\tcontinue\n\t\t}\n", field.Name)
 	fmt.Fprintf(&b, "\t\trefID := strings.TrimPrefix(v.%s.MRID, \"#\")\n", field.Name)
-	b.WriteString("\t\ttarget, found := dataset.Elements[refID]\n")
+	b.WriteString("\t\ttarget, found := dataset.ByID[refID]\n")
 	b.WriteString("\t\tif !found {\n\t\t\tcontinue\n\t\t}\n")
 	b.WriteString("\t\tisWantedClass := false\n")
 	b.WriteString("\t\tswitch target.(type) {")

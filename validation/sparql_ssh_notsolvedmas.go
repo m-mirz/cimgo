@@ -38,7 +38,7 @@ func ValidateSSHNotSolvedMASProfileSPARQL(dataset *cimstructs.CIMDataset) []Viol
 func CheckLinearShuntCompensatorSectionsRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		lsc, ok := obj.(*cimstructs.LinearShuntCompensator)
 		if !ok {
 			continue
@@ -68,7 +68,7 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMDataset)
 	var violations []Violation
 
 	pointSections := make(map[string]map[int]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		point, ok := obj.(*cimstructs.NonlinearShuntCompensatorPoint)
 		if !ok || point.NonlinearShuntCompensator == nil {
 			continue
@@ -80,7 +80,7 @@ func CheckNonlinearShuntCompensatorSectionsValid(dataset *cimstructs.CIMDataset)
 		pointSections[nscID][point.SectionNumber] = true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		nsc, ok := obj.(*cimstructs.NonlinearShuntCompensator)
 		if !ok {
 			continue
@@ -128,7 +128,7 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMDatas
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RegulatingControl:
 			check(id, "RegulatingControl", v.Mode, v.MinAllowedTargetValue, v.MaxAllowedTargetValue)
@@ -148,7 +148,7 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tccDiscrete := make(map[string]bool)
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if tcc, ok := obj.(*cimstructs.TapChangerControl); ok {
 			tccDiscrete[id] = tcc.Discrete
 		}
@@ -177,7 +177,7 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RatioTapChanger:
 			report(id, "RatioTapChanger", v.Step, v.TapChangerControl)
@@ -219,7 +219,7 @@ func CheckCsConverterTargetGammaApplicability(dataset *cimstructs.CIMDataset) []
 func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMDataset, forAlpha bool) []Violation {
 	// Build index: terminalID → RegulatingControl.discrete
 	rcDiscrete := make(map[string]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		switch v := obj.(type) {
 		case *cimstructs.RegulatingControl:
 			if v.Terminal != nil {
@@ -235,7 +235,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMDataset, fo
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		cs, ok := obj.(*cimstructs.CsConverter)
 		if !ok {
 			continue
@@ -282,7 +282,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMDataset, fo
 			continue
 		}
 		eqID := strings.TrimPrefix(pccTerm.ConductingEquipment.MRID, "#")
-		if _, isPT := dataset.Elements[eqID].(*cimstructs.PowerTransformer); !isPT {
+		if _, isPT := dataset.ByID[eqID].(*cimstructs.PowerTransformer); !isPT {
 			violations = append(violations, Violation{ObjectID: id, RuleID: ruleID, Name: ruleName, Class: "CsConverter", Property: property, Message: msg, Severity: "sh:Violation"})
 			continue
 		}
@@ -302,7 +302,7 @@ func checkCsConverterTargetAngleApplicability(dataset *cimstructs.CIMDataset, fo
 func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMDataset) []Violation {
 	// Build index: connectivityNodeID → true if a BoundaryPoint references it
 	cnHasBoundaryPoint := make(map[string]bool)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		bp, ok := obj.(*cimstructs.BoundaryPoint)
 		if !ok || bp.ConnectivityNode == nil {
 			continue
@@ -312,7 +312,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMDataset) [
 
 	// Build index: controlAreaID → []terminalIDs from TieFlows
 	caTerminals := make(map[string][]string)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		tf, ok := obj.(*cimstructs.TieFlow)
 		if !ok || tf.ControlArea == nil || tf.Terminal == nil {
 			continue
@@ -323,7 +323,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMDataset) [
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		ca, ok := obj.(*cimstructs.ControlArea)
 		if !ok || ca.Type == nil || ca.Type.URI != cimstructs.ControlAreaTypeKindInterchange || ca.NetInterchange == 0 {
 			continue
@@ -340,7 +340,7 @@ func CheckControlAreaNetInterchangeCalculation(dataset *cimstructs.CIMDataset) [
 				continue
 			}
 			eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-			ei, ok := dataset.Elements[eqID].(*cimstructs.EquivalentInjection)
+			ei, ok := dataset.ByID[eqID].(*cimstructs.EquivalentInjection)
 			if !ok {
 				continue
 			}
@@ -402,7 +402,7 @@ func CheckEquivalentInjectionRegulation(dataset *cimstructs.CIMDataset) []Violat
 // Origin: Derived from a SPARQL constraint.
 func CheckRotatingMachinePLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var p float64
 		var guRef *struct {
 			MRID string `xml:"resource,attr"`
@@ -653,7 +653,7 @@ func CheckRotatingMachineCurveLimits(dataset *cimstructs.CIMDataset) []Violation
 		var y1vals []float64
 		var y2vals []float64
 
-		for _, cdObj := range dataset.Elements {
+		for _, cdObj := range dataset.ByID {
 			if cd, ok := cdObj.(*cimstructs.CurveData); ok && cd.Curve != nil {
 				if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
 					xvals = append(xvals, cd.Xvalue)
@@ -750,7 +750,7 @@ func CheckRegulatingControlTargetValuePositive(dataset *cimstructs.CIMDataset) [
 func CheckShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var sections float64
 		var rcID string
 		var class string

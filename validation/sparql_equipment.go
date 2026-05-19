@@ -229,7 +229,7 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimstructs.CIMDataset) []V
 func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		typeName := goTypeName(obj)
 		if typeName == "ACLineSegment" || typeName == "EquivalentBranch" || typeName == "SeriesCompensator" || typeName == "Equipment" {
 			continue
@@ -254,7 +254,7 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMDataset) []
 			ecMRID := mridField.String()
 			ecID := strings.TrimPrefix(ecMRID, "#")
 
-			if ecObj, ok := dataset.Elements[ecID]; ok {
+			if ecObj, ok := dataset.ByID[ecID]; ok {
 				if goTypeName(ecObj) == "VoltageLevel" {
 					violations = append(violations, Violation{
 						ObjectID: id,
@@ -355,7 +355,7 @@ func CheckPowerTransformerEndTerminalConsistency(dataset *cimstructs.CIMDataset)
 		}
 
 		termID := strings.TrimPrefix(end.Terminal.MRID, "#")
-		termObj, ok := dataset.Elements[termID]
+		termObj, ok := dataset.ByID[termID]
 		if !ok {
 			continue
 		}
@@ -477,7 +477,7 @@ func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMDataset) [
 		}
 
 		endID := strings.TrimPrefix(ptcl.TransformerEnd.MRID, "#")
-		if endObj, ok := dataset.Elements[endID]; ok {
+		if endObj, ok := dataset.ByID[endID]; ok {
 			if end, ok := endObj.(*cimstructs.PowerTransformerEnd); ok {
 				if ptcl.XMin != end.X {
 					violations = append(violations, Violation{
@@ -504,14 +504,14 @@ func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMDataset) [
 func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		ptcnl, ok := obj.(*cimstructs.PhaseTapChangerNonLinear)
 		if !ok || ptcnl.TransformerEnd == nil {
 			continue
 		}
 
 		endID := strings.TrimPrefix(ptcnl.TransformerEnd.MRID, "#")
-		if endObj, ok := dataset.Elements[endID]; ok {
+		if endObj, ok := dataset.ByID[endID]; ok {
 			if end, ok := endObj.(*cimstructs.PowerTransformerEnd); ok {
 				if ptcnl.XMin != end.X {
 					violations = append(violations, Violation{
@@ -604,7 +604,7 @@ func CheckPowerTransformerEndRValueRange(dataset *cimstructs.CIMDataset) []Viola
 		}
 
 		ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-		if ptObj, ok := dataset.Elements[ptID]; ok {
+		if ptObj, ok := dataset.ByID[ptID]; ok {
 			if pt, ok := ptObj.(*cimstructs.PowerTransformer); ok {
 				if !pt.Aggregate && end.R < 0 {
 					violations = append(violations, Violation{
@@ -637,7 +637,7 @@ func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMDatas
 		}
 
 		termID := strings.TrimPrefix(rc.Terminal.MRID, "#")
-		if termObj, ok := dataset.Elements[termID]; ok {
+		if termObj, ok := dataset.ByID[termID]; ok {
 			if term, ok := termObj.(*cimstructs.Terminal); ok {
 				if term.ConnectivityNode == nil {
 					violations = append(violations, Violation{
@@ -664,7 +664,7 @@ func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMDatas
 func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		tc, ok := obj.(*cimstructs.TapChanger)
 		if !ok {
 			continue
@@ -762,7 +762,7 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMDataset) []
 	}
 
 	for id, count := range nscPoints {
-		if obj, ok := dataset.Elements[id]; ok {
+		if obj, ok := dataset.ByID[id]; ok {
 			if nsc, ok := obj.(*cimstructs.NonlinearShuntCompensator); ok {
 				if nsc.MaximumSections != count {
 					violations = append(violations, Violation{
@@ -789,17 +789,17 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMDataset) []
 func CheckShuntCompensatorNomU(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		sc, ok := obj.(*cimstructs.ShuntCompensator)
 		if !ok || sc.EquipmentContainer == nil {
 			continue
 		}
 
 		ecID := strings.TrimPrefix(sc.EquipmentContainer.MRID, "#")
-		if ecObj, ok := dataset.Elements[ecID]; ok {
+		if ecObj, ok := dataset.ByID[ecID]; ok {
 			if vl, ok := ecObj.(*cimstructs.VoltageLevel); ok && vl.BaseVoltage != nil {
 				bvID := strings.TrimPrefix(vl.BaseVoltage.MRID, "#")
-				if bvObj, ok := dataset.Elements[bvID]; ok {
+				if bvObj, ok := dataset.ByID[bvID]; ok {
 					if bv, ok := bvObj.(*cimstructs.BaseVoltage); ok {
 						nomV := bv.NominalVoltage
 						if sc.NomU < 0.9*nomV || sc.NomU > 1.1*nomV {
@@ -918,7 +918,7 @@ func CheckVoltageLimitPATL(dataset *cimstructs.CIMDataset) []Violation {
 		}
 
 		oltID := strings.TrimPrefix(vl.OperationalLimitType.MRID, "#")
-		if oltObj, ok := dataset.Elements[oltID]; ok {
+		if oltObj, ok := dataset.ByID[oltID]; ok {
 			if olt, ok := oltObj.(*cimstructs.OperationalLimitType); ok && olt.Kind != nil {
 				patl := "http://iec.ch/TC57/CIM100-European#LimitKind.patl"
 				if olt.Kind.URI == patl {
@@ -946,7 +946,7 @@ func CheckVoltageLimitPATL(dataset *cimstructs.CIMDataset) []Violation {
 func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var tcControl *struct {
 			MRID string `xml:"resource,attr"`
 		}
@@ -968,13 +968,13 @@ func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMDataset) []Vio
 			continue
 		}
 
-		if endObj, ok := dataset.Elements[transformerEndID]; ok {
+		if endObj, ok := dataset.ByID[transformerEndID]; ok {
 			if end, ok := endObj.(*cimstructs.PowerTransformerEnd); ok && end.PowerTransformer != nil {
 				ptID := strings.TrimPrefix(end.PowerTransformer.MRID, "#")
-				if ptObj, ok := dataset.Elements[ptID]; ok {
+				if ptObj, ok := dataset.ByID[ptID]; ok {
 					if pt, ok := ptObj.(*cimstructs.PowerTransformer); ok && pt.EquipmentContainer != nil {
 						ecID := strings.TrimPrefix(pt.EquipmentContainer.MRID, "#")
-						if ecObj, ok := dataset.Elements[ecID]; ok {
+						if ecObj, ok := dataset.ByID[ecID]; ok {
 							if _, ok := ecObj.(*cimstructs.DCConverterUnit); ok {
 								violations = append(violations, Violation{
 									ObjectID: id,
@@ -1195,7 +1195,7 @@ func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMDataset) []Violation {
 
 	// Build map: GeneratingUnit MRID -> max ratedS across all RotatingMachines pointing to it
 	ratedSByGU := make(map[string]float64)
-	for _, obj := range dataset.Elements {
+	for _, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -1228,7 +1228,7 @@ func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMDataset) []Violation {
 		return f.Float(), true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		typeName := goTypeName(obj)
 		switch typeName {
 		case "GeneratingUnit", "ThermalGeneratingUnit", "WindGeneratingUnit",
@@ -1321,7 +1321,7 @@ func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimstructs.CIMData
 			continue
 		}
 		ecID := strings.TrimPrefix(csc.EquipmentContainer.MRID, "#")
-		ecObj, ok := dataset.Elements[ecID]
+		ecObj, ok := dataset.ByID[ecID]
 		if !ok {
 			continue
 		}
@@ -1564,8 +1564,8 @@ func CheckSynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violatio
 			continue
 		}
 		smID := smIDs[0]
-		sm := dataset.Elements[smID].(*cimstructs.SynchronousMachine)
-		gu, ok := dataset.Elements[guID].(*cimstructs.GeneratingUnit)
+		sm := dataset.ByID[smID].(*cimstructs.SynchronousMachine)
+		gu, ok := dataset.ByID[guID].(*cimstructs.GeneratingUnit)
 		if !ok {
 			continue
 		}
@@ -1607,8 +1607,8 @@ func CheckAsynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violati
 			continue
 		}
 		amID := amIDs[0]
-		am := dataset.Elements[amID].(*cimstructs.AsynchronousMachine)
-		gu, ok := dataset.Elements[guID].(*cimstructs.GeneratingUnit)
+		am := dataset.ByID[amID].(*cimstructs.AsynchronousMachine)
+		gu, ok := dataset.ByID[guID].(*cimstructs.GeneratingUnit)
 		if !ok {
 			continue
 		}
@@ -1642,7 +1642,7 @@ func CheckSynchronousMachineControlMode(dataset *cimstructs.CIMDataset) []Violat
 		}
 
 		rcID := strings.TrimPrefix(sm.RegulatingControl.MRID, "#")
-		rc, ok := dataset.Elements[rcID].(*cimstructs.RegulatingControl)
+		rc, ok := dataset.ByID[rcID].(*cimstructs.RegulatingControl)
 		if !ok || rc.Mode == nil {
 			continue
 		}
@@ -1675,7 +1675,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMDataset) []Viol
 	for id, svc := range dataset.StaticVarCompensators {
 		if svc.RegulatingControl != nil {
 			rcID := strings.TrimPrefix(svc.RegulatingControl.MRID, "#")
-			rc, ok := dataset.Elements[rcID].(*cimstructs.RegulatingControl)
+			rc, ok := dataset.ByID[rcID].(*cimstructs.RegulatingControl)
 			if ok && rc.Mode != nil {
 				uri := rc.Mode.URI
 				if !strings.HasSuffix(uri, "voltage") && !strings.HasSuffix(uri, "reactivePower") {
@@ -1728,7 +1728,7 @@ func CheckPhaseTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation
 	var violations []Violation
 
 	checkPTCMode := func(id, tccID, class string) {
-		rc, ok := dataset.Elements[tccID].(*cimstructs.TapChangerControl)
+		rc, ok := dataset.ByID[tccID].(*cimstructs.TapChangerControl)
 		if !ok || rc.Mode == nil {
 			return
 		}
@@ -1782,7 +1782,7 @@ func CheckRatioTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation
 		}
 
 		tccID := strings.TrimPrefix(rtc.TapChangerControl.MRID, "#")
-		rc, ok := dataset.Elements[tccID].(*cimstructs.TapChangerControl)
+		rc, ok := dataset.ByID[tccID].(*cimstructs.TapChangerControl)
 		if !ok || rc.Mode == nil {
 			continue
 		}
@@ -1812,7 +1812,7 @@ func CheckShuntCompensatorControlMode(dataset *cimstructs.CIMDataset) []Violatio
 	var violations []Violation
 
 	checkSCMode := func(id, rcID, class string) {
-		rc, ok := dataset.Elements[rcID].(*cimstructs.RegulatingControl)
+		rc, ok := dataset.ByID[rcID].(*cimstructs.RegulatingControl)
 		if !ok || rc.Mode == nil {
 			return
 		}
@@ -2006,7 +2006,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violati
 		}
 
 		guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
-		gu, ok := dataset.Elements[guID].(*cimstructs.GeneratingUnit)
+		gu, ok := dataset.ByID[guID].(*cimstructs.GeneratingUnit)
 		if !ok {
 			continue
 		}
@@ -2152,7 +2152,7 @@ func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMDataset) []Violati
 	for curveID, pointIDs := range curvePoints {
 		allSame := true
 		for _, pID := range pointIDs {
-			cd := dataset.Elements[pID].(*cimstructs.CurveData)
+			cd := dataset.ByID[pID].(*cimstructs.CurveData)
 			if cd.Y2value < cd.Y1value {
 				violations = append(violations, Violation{
 					ObjectID: pID,
@@ -2206,7 +2206,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMDatase
 		}
 
 		guID := strings.TrimPrefix(sm.GeneratingUnit.MRID, "#")
-		gu, ok := dataset.Elements[guID].(*cimstructs.GeneratingUnit)
+		gu, ok := dataset.ByID[guID].(*cimstructs.GeneratingUnit)
 		if !ok {
 			continue
 		}
@@ -2268,7 +2268,7 @@ func CheckSwitchConnection(dataset *cimstructs.CIMDataset) []Violation {
 		if t.ConductingEquipment != nil {
 			eqID := strings.TrimPrefix(t.ConductingEquipment.MRID, "#")
 			// Check if ConductingEquipment is a Switch
-			eq := dataset.Elements[eqID]
+			eq := dataset.ByID[eqID]
 			isSwitch := false
 			switch eq.(type) {
 			case *cimstructs.Breaker, *cimstructs.Disconnector, *cimstructs.Fuse,
@@ -2292,16 +2292,16 @@ func CheckSwitchConnection(dataset *cimstructs.CIMDataset) []Violation {
 		cncs := make(map[string]bool)
 
 		for _, tID := range tIDs {
-			t := dataset.Elements[tID].(*cimstructs.Terminal)
+			t := dataset.ByID[tID].(*cimstructs.Terminal)
 			if t.ConnectivityNode != nil {
 				cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
-				if cn, ok := dataset.Elements[cnID].(*cimstructs.ConnectivityNode); ok {
+				if cn, ok := dataset.ByID[cnID].(*cimstructs.ConnectivityNode); ok {
 					if cn.ConnectivityNodeContainer != nil {
 						cncID := strings.TrimPrefix(cn.ConnectivityNodeContainer.MRID, "#")
 						cncs[cncID] = true
-						if vl, ok := dataset.Elements[cncID].(*cimstructs.VoltageLevel); ok && vl.BaseVoltage != nil {
+						if vl, ok := dataset.ByID[cncID].(*cimstructs.VoltageLevel); ok && vl.BaseVoltage != nil {
 							bvID := strings.TrimPrefix(vl.BaseVoltage.MRID, "#")
-							if bvObj, ok := dataset.Elements[bvID]; ok {
+							if bvObj, ok := dataset.ByID[bvID]; ok {
 								if bv, ok := bvObj.(*cimstructs.BaseVoltage); ok {
 									bvs[bv.NominalVoltage] = true
 								}
@@ -2419,7 +2419,7 @@ func CheckTapChangerControlRemoteQControl(dataset *cimstructs.CIMDataset) []Viol
 		rcTermID := strings.TrimPrefix(tcc.Terminal.MRID, "#")
 
 		for _, teID := range tccToTE[id] {
-			te, ok := dataset.Elements[teID].(*cimstructs.PowerTransformerEnd)
+			te, ok := dataset.ByID[teID].(*cimstructs.PowerTransformerEnd)
 			if ok && te.Terminal != nil {
 				if strings.TrimPrefix(te.Terminal.MRID, "#") != rcTermID {
 					violations = append(violations, Violation{
@@ -2498,7 +2498,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMDataset) []
 		if numEnds == 2 {
 			// Find end 1
 			for _, teID := range teIDs {
-				te := dataset.Elements[teID].(*cimstructs.PowerTransformerEnd)
+				te := dataset.ByID[teID].(*cimstructs.PowerTransformerEnd)
 				if te.EndNumber == 1 && te.X <= 0 {
 					violations = append(violations, Violation{
 						ObjectID: teID,
@@ -2513,7 +2513,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMDataset) []
 			}
 		} else if numEnds == 3 {
 			for _, teID := range teIDs {
-				te := dataset.Elements[teID].(*cimstructs.PowerTransformerEnd)
+				te := dataset.ByID[teID].(*cimstructs.PowerTransformerEnd)
 				if te.X == 0 {
 					violations = append(violations, Violation{
 						ObjectID: teID,
@@ -2648,8 +2648,8 @@ func CheckTerminalConnectionSameNode(dataset *cimstructs.CIMDataset) []Violation
 		if len(tIDs) != 2 {
 			continue
 		}
-		t1 := dataset.Elements[tIDs[0]].(*cimstructs.Terminal)
-		t2 := dataset.Elements[tIDs[1]].(*cimstructs.Terminal)
+		t1 := dataset.ByID[tIDs[0]].(*cimstructs.Terminal)
+		t2 := dataset.ByID[tIDs[1]].(*cimstructs.Terminal)
 
 		if t1.ConnectivityNode != nil && t2.ConnectivityNode != nil && t1.ConnectivityNode.MRID == t2.ConnectivityNode.MRID {
 			violations = append(violations, Violation{

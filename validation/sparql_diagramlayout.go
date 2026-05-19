@@ -31,7 +31,7 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMDataset) []Vi
 		return false
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		var identifiedObject *struct {
 			MRID string `xml:"resource,attr"`
 		}
@@ -49,7 +49,7 @@ func CheckDiagramObjectIdentifiedObjectType(dataset *cimstructs.CIMDataset) []Vi
 			continue
 		}
 		targetID := strings.TrimPrefix(identifiedObject.MRID, "#")
-		targetObj, ok := dataset.Elements[targetID]
+		targetObj, ok := dataset.ByID[targetID]
 		if !ok {
 			continue
 		}

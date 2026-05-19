@@ -61,7 +61,7 @@ func loadDataset(tb testing.TB, path string) *cimstructs.CIMDataset {
 		tb.Fatalf("Failed to read %s: %v", path, err)
 	}
 	cgmesxml.DecodeProfile(bytes.NewReader(b), dataset)
-	tb.Logf("Loaded %d elements from %s", len(dataset.Elements), path)
+	tb.Logf("Loaded %d elements from %s", len(dataset.ByID), path)
 	return dataset
 }
 
@@ -87,7 +87,7 @@ func loadDirectory(tb testing.TB, path string) *cimstructs.CIMDataset {
 	if err != nil {
 		tb.Fatalf("Failed to decode profiles in %s: %v", path, err)
 	}
-	tb.Logf("Total loaded %d elements from %s", len(dataset.Elements), path)
+	tb.Logf("Total loaded %d elements from %s", len(dataset.ByID), path)
 	return dataset
 }
 

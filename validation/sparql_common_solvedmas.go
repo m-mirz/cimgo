@@ -111,7 +111,7 @@ func CheckAngleReference(dataset *cimstructs.CIMDataset) []Violation {
 // Description: All references in the instance files pointing to other instance files should be satisfied.
 func CheckDanglingReferences(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -129,7 +129,7 @@ func CheckDanglingReferences(dataset *cimstructs.CIMDataset) []Violation {
 					targetID := strings.TrimPrefix(mridField.String(), "#")
 					// Skip if it's an external URI or empty
 					if targetID != "" && !strings.Contains(targetID, "://") && !strings.HasPrefix(targetID, "http") {
-						if _, ok := dataset.Elements[targetID]; !ok {
+						if _, ok := dataset.ByID[targetID]; !ok {
 							violations = append(violations, Violation{
 								ObjectID: id,
 								RuleID:   "sm600:All-DanglingReferences",
@@ -229,7 +229,7 @@ func CheckStateVariablesInstantiated(dataset *cimstructs.CIMDataset) []Violation
 	}
 
 	// 3. Check SvStatus for all energized ConductingEquipment
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		energized := false
 		for _, term := range dataset.Terminals {
 			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
@@ -330,7 +330,7 @@ func CheckSvShuntCompensatorSectionsSync(dataset *cimstructs.CIMDataset) []Viola
 			continue
 		}
 		scID := strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#")
-		scObj, ok := dataset.Elements[scID]
+		scObj, ok := dataset.ByID[scID]
 		if !ok {
 			continue
 		}
@@ -403,7 +403,7 @@ func CheckSvTapStepPositionSync(dataset *cimstructs.CIMDataset) []Violation {
 			continue
 		}
 		tcID := strings.TrimPrefix(svts.TapChanger.MRID, "#")
-		tcObj, ok := dataset.Elements[tcID]
+		tcObj, ok := dataset.ByID[tcID]
 		if !ok {
 			continue
 		}
@@ -462,7 +462,7 @@ func CheckSvStatusInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		typeName := goTypeName(obj)
 		isCE := strings.HasPrefix(typeName, "Synchronous") || strings.HasPrefix(typeName, "Asynchronous") ||
 			strings.HasPrefix(typeName, "Energy") || strings.HasPrefix(typeName, "Line") ||
@@ -521,7 +521,7 @@ func CheckSvShuntCompensatorSectionsInstance(dataset *cimstructs.CIMDataset) []V
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.LinearShuntCompensator, *cimstructs.NonlinearShuntCompensator:
 		default:
@@ -578,7 +578,7 @@ func CheckSvTapStepInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.RatioTapChanger, *cimstructs.PhaseTapChangerLinear,
 			*cimstructs.PhaseTapChangerSymmetrical, *cimstructs.PhaseTapChangerAsymmetrical,
@@ -593,7 +593,7 @@ func CheckSvTapStepInstance(dataset *cimstructs.CIMDataset) []Violation {
 		if f := val.FieldByName("TransformerEnd"); f.IsValid() && !f.IsNil() {
 			teID = strings.TrimPrefix(f.Elem().FieldByName("MRID").String(), "#")
 		}
-		if teObj, ok := dataset.Elements[teID]; ok {
+		if teObj, ok := dataset.ByID[teID]; ok {
 			teVal := reflect.ValueOf(teObj).Elem()
 			if f := teVal.FieldByName("Terminal"); f.IsValid() && !f.IsNil() {
 				termID := strings.TrimPrefix(f.Elem().FieldByName("MRID").String(), "#")
@@ -687,7 +687,7 @@ func CheckRegulatingControlSameIsland(dataset *cimstructs.CIMDataset) []Violatio
 		}
 
 		// 2. TapChangers
-		for tcID, obj := range dataset.Elements {
+		for tcID, obj := range dataset.ByID {
 			var tcc *struct {
 				MRID string "xml:\"resource,attr\""
 			}
@@ -725,7 +725,7 @@ func CheckRegulatingControlSameIsland(dataset *cimstructs.CIMDataset) []Violatio
 			}
 
 			if tcc != nil && strings.TrimPrefix(tcc.MRID, "#") == id {
-				if teObj, ok := dataset.Elements[teID]; ok {
+				if teObj, ok := dataset.ByID[teID]; ok {
 					teVal := reflect.ValueOf(teObj).Elem()
 					termField := teVal.FieldByName("Terminal")
 					if termField.IsValid() && !termField.IsNil() {

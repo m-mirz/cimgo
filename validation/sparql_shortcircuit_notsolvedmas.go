@@ -27,7 +27,7 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMDataset) []Vi
 			return "", nil, false
 		}
 		termID := strings.TrimPrefix(termRef.MRID, "#")
-		termObj, ok := dataset.Elements[termID]
+		termObj, ok := dataset.ByID[termID]
 		if !ok {
 			return "", nil, false
 		}
@@ -36,14 +36,14 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMDataset) []Vi
 			return "", nil, false
 		}
 		eqID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
-		eqObj, ok := dataset.Elements[eqID]
+		eqObj, ok := dataset.ByID[eqID]
 		if !ok {
 			return eqID, nil, true
 		}
 		return eqID, eqObj, true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		mc, ok := obj.(*cimstructs.MutualCoupling)
 		if !ok {
 			continue

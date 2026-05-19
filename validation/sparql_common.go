@@ -35,7 +35,7 @@ func CheckMRIDUniqueness(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 	seenMRIDs := make(map[string]string) // mRID -> first object ID found with it
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		io, ok := getIdentifiedObject(obj)
 		if !ok || io.MRID == "" {
 			continue
@@ -106,7 +106,7 @@ var urnUuidRegex = regexp.MustCompile("(?i)^urn:uuid:[0-9A-F]{8}-[0-9A-F]{4}-[0-
 // Description: IEC 61970-301 strongly recommends to use UUID, as specified in RFC 4122, for the .mRID. CGMES requires the usage of UUID.
 func CheckIDUUID(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		rawID := id
 		cleanID := rawID
 		if strings.Contains(rawID, "#_") {
@@ -142,7 +142,7 @@ func CheckIDUUID(dataset *cimstructs.CIMDataset) []Violation {
 // Description: (deprecated) Transition rule for ID length and underscore prefix.
 func CheckIDDeprecated(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		if strings.HasPrefix(id, "urn:uuid:") {
 			continue
 		}
@@ -174,7 +174,7 @@ func CheckIDDeprecated(dataset *cimstructs.CIMDataset) []Violation {
 // Description: European exchanges shall refer to UTC (marked with Z suffix).
 func CheckModelDateTimeUTC(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -222,7 +222,7 @@ func CheckModelDateTimeUTC(dataset *cimstructs.CIMDataset) []Violation {
 // Description: Float attributes are restricted not to use INF and NaN values.
 func CheckFloatSpecialValues(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -277,7 +277,7 @@ func CheckFloatSpecialValues(dataset *cimstructs.CIMDataset) []Violation {
 // Description: The modelingAuthoritySet property in the header must not be empty.
 func CheckModelingAuthoritySetNotEmpty(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		val := reflect.ValueOf(obj)
 		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
@@ -307,7 +307,7 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimstructs.CIMDataset) []Violati
 // Description: Validates maximum string lengths for various IdentifiedObject attributes.
 func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		io, ok := getIdentifiedObject(obj)
 		if !ok {
 			continue

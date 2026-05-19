@@ -100,7 +100,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMDataset) []Violation 
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		// Extract Retained flag
 		retained := false
 		class := ""
@@ -158,7 +158,7 @@ func CheckSwitchSameTopologicalNode(dataset *cimstructs.CIMDataset) []Violation 
 			}
 			if t.ConnectivityNode != nil {
 				cnID := strings.TrimPrefix(t.ConnectivityNode.MRID, "#")
-				if cn, ok := dataset.Elements[cnID].(*cimstructs.ConnectivityNode); ok && cn.TopologicalNode != nil {
+				if cn, ok := dataset.ByID[cnID].(*cimstructs.ConnectivityNode); ok && cn.TopologicalNode != nil {
 					return strings.TrimPrefix(cn.TopologicalNode.MRID, "#")
 				}
 			}

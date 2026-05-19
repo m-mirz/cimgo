@@ -31,7 +31,7 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	tapChangerStep := func(id string) (low, high int, ok bool) {
-		obj, found := dataset.Elements[id]
+		obj, found := dataset.ByID[id]
 		if !found {
 			return 0, 0, false
 		}
@@ -47,7 +47,7 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 		return int(lowField.Int()), int(highField.Int()), true
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		sv, ok := obj.(*cimstructs.SvTapStep)
 		if !ok || sv.TapChanger == nil {
 			continue
@@ -85,7 +85,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Vi
 			continue
 		}
 		scID := strings.TrimPrefix(svsc.ShuntCompensator.MRID, "#")
-		scObj, ok := dataset.Elements[scID]
+		scObj, ok := dataset.ByID[scID]
 		if !ok {
 			continue
 		}
@@ -99,7 +99,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Vi
 		rcField := val.FieldByName("RegulatingControl")
 		if rcField.IsValid() && rcField.Kind() == reflect.Ptr && !rcField.IsNil() {
 			rcID := strings.TrimPrefix(rcField.Elem().FieldByName("MRID").String(), "#")
-			if rcObj, ok := dataset.Elements[rcID]; ok {
+			if rcObj, ok := dataset.ByID[rcID]; ok {
 				rc, _ = rcObj.(*cimstructs.RegulatingControl)
 			}
 		}
@@ -134,7 +134,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 			continue
 		}
 		tcID := strings.TrimPrefix(svts.TapChanger.MRID, "#")
-		tcObj, ok := dataset.Elements[tcID]
+		tcObj, ok := dataset.ByID[tcID]
 		if !ok {
 			continue
 		}
@@ -148,7 +148,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 		tccField := val.FieldByName("TapChangerControl")
 		if tccField.IsValid() && tccField.Kind() == reflect.Ptr && !tccField.IsNil() {
 			tccID := strings.TrimPrefix(tccField.Elem().FieldByName("MRID").String(), "#")
-			if tccObj, ok := dataset.Elements[tccID]; ok {
+			if tccObj, ok := dataset.ByID[tccID]; ok {
 				tcc, _ = tccObj.(*cimstructs.TapChangerControl)
 			}
 		}
@@ -178,7 +178,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 func CheckSvSwitchInstance(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.Switch, *cimstructs.Breaker, *cimstructs.LoadBreakSwitch,
 			*cimstructs.Disconnector, *cimstructs.Fuse, *cimstructs.Jumper,
@@ -231,7 +231,7 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.NonConformLoad, *cimstructs.EquivalentInjection, *cimstructs.EnergySource,
 			*cimstructs.ExternalNetworkInjection, *cimstructs.PowerElectronicsConnection,
@@ -360,7 +360,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 			// Find all CurveData for this curve
 			rccID := strings.TrimPrefix(sm.InitialReactiveCapabilityCurve.MRID, "#")
 			var y1vals, y2vals []float64
-			for _, cdObj := range dataset.Elements {
+			for _, cdObj := range dataset.ByID {
 				if cd, ok := cdObj.(*cimstructs.CurveData); ok && cd.Curve != nil {
 					if strings.TrimPrefix(cd.Curve.MRID, "#") == rccID {
 						y1vals = append(y1vals, cd.Y1value)

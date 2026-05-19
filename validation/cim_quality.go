@@ -468,7 +468,7 @@ func CheckRegulatingControlTargetVoltageMismatch(dataset *cimstructs.CIMDataset)
 	}
 
 	var violations []Violation
-	for id, obj := range dataset.Elements {
+	for id, obj := range dataset.ByID {
 		rc, ok := obj.(*cimstructs.RegulatingControl)
 		if !ok {
 			continue

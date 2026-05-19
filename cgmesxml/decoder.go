@@ -79,7 +79,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimst
 // MergeInto adds all elements from src into dst, merging any objects with
 // matching mRIDs via DeepMerge.
 func MergeInto(dst, src *cimstructs.CIMDataset) error {
-	for _, elem := range src.Elements {
+	for _, elem := range src.ByID {
 		if err := dst.AddElement(elem); err != nil {
 			return err
 		}

@@ -47,8 +47,8 @@ func TestJSONRoundTrip_ElementCount(t *testing.T) {
 		t.Fatalf("unmarshalWithType: %v", err)
 	}
 
-	if len(recovered.Elements) != len(original.Elements) {
-		t.Errorf("element count: got %d, want %d", len(recovered.Elements), len(original.Elements))
+	if len(recovered.ByID) != len(original.ByID) {
+		t.Errorf("element count: got %d, want %d", len(recovered.ByID), len(original.ByID))
 	}
 }
 
@@ -154,8 +154,8 @@ func TestJSONRoundTrip_MultiFile(t *testing.T) {
 		t.Fatalf("unmarshalWithType: %v", err)
 	}
 
-	if len(recovered.Elements) != len(original.Elements) {
-		t.Errorf("element count: got %d, want %d", len(recovered.Elements), len(original.Elements))
+	if len(recovered.ByID) != len(original.ByID) {
+		t.Errorf("element count: got %d, want %d", len(recovered.ByID), len(original.ByID))
 	}
 }
 

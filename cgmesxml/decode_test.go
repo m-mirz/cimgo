@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"cimgo/cimstructs"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
@@ -222,4 +224,44 @@ func TestMergeProfiles(t *testing.T) {
 	if term.TopologicalNode == nil || term.TopologicalNode.MRID != "#N0" {
 		t.Errorf("Terminal.TopologicalNode after merge: got %v, want MRID=#N0", term.TopologicalNode)
 	}
+}
+
+var benchDataset *cimstructs.CIMDataset
+
+func BenchmarkImportRealGrid(b *testing.B) {
+	const dir = "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged"
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		b.Skipf("test data not available: %v", err)
+	}
+	var xmlFiles []string
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) == ".xml" {
+			xmlFiles = append(xmlFiles, filepath.Join(dir, e.Name()))
+		}
+	}
+
+	var total time.Duration
+	var iters int
+	for b.Loop() {
+		start := time.Now()
+		dataset := cimstructs.NewCIMDataset()
+		for _, file := range xmlFiles {
+			raw, err := os.ReadFile(file)
+			if err != nil {
+				b.Fatal(err)
+			}
+			isolated, err := DecodeProfile(bytes.NewReader(raw), nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if err := MergeInto(dataset, isolated); err != nil {
+				b.Fatal(err)
+			}
+		}
+		total += time.Since(start)
+		iters++
+		benchDataset = dataset
+	}
+	b.ReportMetric(float64(total.Milliseconds())/float64(iters), "ms/op")
 }

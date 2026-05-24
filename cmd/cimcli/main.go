@@ -20,7 +20,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 || os.Args[1] == "-h" || os.Args[1] == "--help" {
-		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Convert CGMES XML files to JSON, proto, or back to XML\n")
+		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Convert CGMES XML files to JSON, proto, or back to XML\n  import    Parse CGMES XML files and print element counts\n")
 		os.Exit(1)
 	}
 
@@ -29,8 +29,10 @@ func main() {
 		runValidate(os.Args[2:])
 	case "convert":
 		runConvert(os.Args[2:])
+	case "import":
+		runImport(os.Args[2:])
 	default:
-		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Convert CGMES XML files to JSON, proto, or back to XML\n\nunknown command: %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "Usage: cimcli <command> [options]\n\nCommands:\n  validate  Validate CGMES XML files against SHACL and SPARQL rules\n  convert   Convert CGMES XML files to JSON, proto, or back to XML\n  import    Parse CGMES XML files and print element counts\n\nunknown command: %s\n", os.Args[1])
 		os.Exit(1)
 	}
 }
@@ -166,6 +168,77 @@ func runValidate(args []string) {
 
 	if hasViolations {
 		os.Exit(1)
+	}
+}
+
+func runImport(args []string) {
+	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	var jsonOutput bool
+	fs.BoolVar(&jsonOutput, "json", false, "Output results in JSON format.")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: cimcli import [options] <xml-file1> [<xml-file2> ...]\n\nOptions:\n")
+		fs.PrintDefaults()
+	}
+	fs.Parse(args)
+
+	files := fs.Args()
+	if len(files) == 0 {
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	dataset := cimstructs.NewCIMDataset()
+	perFile := make([]map[string]interface{}, 0, len(files))
+	for _, file := range files {
+		b, err := os.ReadFile(file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
+			os.Exit(1)
+		}
+		isolated, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
+			os.Exit(1)
+		}
+		perFile = append(perFile, map[string]interface{}{
+			"file":  filepath.Base(file),
+			"count": len(isolated.ByID),
+		})
+		if err := cgmesxml.MergeInto(dataset, isolated); err != nil {
+			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
+			os.Exit(1)
+		}
+	}
+
+	typeCounts := make(map[string]int)
+	for _, elem := range dataset.ByID {
+		typeCounts[reflect.TypeOf(elem).Elem().Name()]++
+	}
+
+	if jsonOutput {
+		result := map[string]interface{}{
+			"total":      len(dataset.ByID),
+			"files":      perFile,
+			"type_counts": typeCounts,
+		}
+		data, _ := json.MarshalIndent(result, "", "  ")
+		fmt.Println(string(data))
+	} else {
+		fmt.Printf("Total elements: %d (from %d file(s))\n\n", len(dataset.ByID), len(files))
+		for _, f := range perFile {
+			fmt.Printf("  %s: %d elements\n", f["file"], f["count"])
+		}
+		if len(typeCounts) > 0 {
+			fmt.Println("\nBy type:")
+			types := make([]string, 0, len(typeCounts))
+			for t := range typeCounts {
+				types = append(types, t)
+			}
+			sort.Strings(types)
+			for _, t := range types {
+				fmt.Printf("  %-45s %d\n", t, typeCounts[t])
+			}
+		}
 	}
 }
 

@@ -1,6 +1,6 @@
 package shaclimport
 
-const DefaultSHACLPattern = "application-profiles-library/CGMES/CurrentRelease/SHACL/TTL/*.ttl"
+const DefaultSHACLPattern = "application-profiles-library/CGMES/CurrentRelease/SHACL/*.ttl"
 
 // ConstraintInfo is the simplified representation of a single SHACL constraint,
 // produced by ProcessFileToResults + SimplifyFileResults and consumed by callers.

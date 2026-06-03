@@ -294,6 +294,58 @@ func refClassInCondition(refSegs []string, startType reflect.Type, payload any) 
 	return b.String(), "!isAllowedClass", nil
 }
 
+// sliceRefClassInCondition handles sh:In along a path whose sole reference hop
+// is a slice-of-anonymous-MRID-struct field (e.g. Model.DependentOn,
+// Model.Supersedes). walkForwardRefChain cannot handle slice fields, so this
+// function emits a complete self-contained inner for-loop that looks up each
+// MRID in dataset.ByID and appends violations directly. The caller must set
+// SelfContained on the checkSpec so the template skips the outer
+// `if Condition { violations = append }` block.
+func sliceRefClassInCondition(field reflect.StructField, classes []string, cs checkSpec) (string, error) {
+	if field.Type.Kind() != reflect.Slice {
+		return "", fmt.Errorf("expected slice field, got %s", field.Type.Kind())
+	}
+	elemType := field.Type.Elem()
+	if elemType.Kind() != reflect.Struct {
+		return "", fmt.Errorf("slice element is not a struct")
+	}
+	var mridFieldName string
+	for i := 0; i < elemType.NumField(); i++ {
+		if f := elemType.Field(i); f.Type.Kind() == reflect.String {
+			mridFieldName = f.Name
+			break
+		}
+	}
+	if mridFieldName == "" {
+		return "", fmt.Errorf("slice element struct has no string (MRID) field")
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "\t\tfor _, ref := range v.%s {\n", field.Name)
+	fmt.Fprintf(&b, "\t\t\tmrid := strings.TrimPrefix(ref.%s, \"#\")\n", mridFieldName)
+	b.WriteString("\t\t\ttarget, found := dataset.ByID[mrid]\n")
+	b.WriteString("\t\t\tif !found {\n\t\t\t\tcontinue\n\t\t\t}\n")
+	b.WriteString("\t\t\tisAllowedClass := false\n")
+	b.WriteString("\t\t\tswitch target.(type) {")
+	for _, cls := range classes {
+		fmt.Fprintf(&b, "\n\t\t\tcase *cimstructs.%s:\n\t\t\t\tisAllowedClass = true", cls)
+	}
+	b.WriteString("\n\t\t\t}\n")
+	b.WriteString("\t\t\tif !isAllowedClass {\n")
+	b.WriteString("\t\t\t\tviolations = append(violations, shaclmodel.Violation{\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tObjectID:    id,\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tRuleID:      %q,\n", cs.RuleID)
+	fmt.Fprintf(&b, "\t\t\t\t\tClass:       %q,\n", cs.Class)
+	fmt.Fprintf(&b, "\t\t\t\t\tProperty:    %q,\n", cs.Property)
+	fmt.Fprintf(&b, "\t\t\t\t\tMessage:     %q,\n", cs.Message)
+	fmt.Fprintf(&b, "\t\t\t\t\tSeverity:    %q,\n", cs.Severity)
+	fmt.Fprintf(&b, "\t\t\t\t\tName:        %q,\n", cs.RuleName)
+	fmt.Fprintf(&b, "\t\t\t\t\tDescription: %q,\n", cs.Description)
+	b.WriteString("\t\t\t\t})\n")
+	b.WriteString("\t\t\t}\n")
+	b.WriteString("\t\t}")
+	return b.String(), nil
+}
+
 // classListFromValues parses a SHACL `Values` payload into a list of Go
 // struct names, normalising the `<cim:Foo>`/`cim100.Foo` IRI forms and
 // verifying each name resolves to a generated struct. Abstract base classes

@@ -60,6 +60,7 @@ func {{.Name}}(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 {{- if .Guard}}
 {{.Guard}}
 {{- end}}
+{{- if not .SelfContained}}
 		if {{.Condition}} {
 			violations = append(violations, shaclmodel.Violation{
 				ObjectID:    id,
@@ -72,6 +73,7 @@ func {{.Name}}(dataset *cimstructs.CIMDataset) []shaclmodel.Violation {
 				Description: {{printf "%q" .Description}},
 			})
 		}
+{{- end}}
 	}
 {{- end}}
 	return violations

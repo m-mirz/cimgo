@@ -239,7 +239,7 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 6 | `sh:minCount 0` + `sh:maxCount 1` → synthetic `sh:Optional` | The pair means "0 or 1 values". `sh:minCount 0` is dropped by Rule 3; the matching `sh:maxCount 1` is replaced by a single `Optional` sentinel to record the upper bound without implying a presence requirement. |
 | 7 | `sh:minCount 1` + `sh:maxCount 1` → synthetic `sh:Required` | The pair means "exactly 1 value". Both constraints are collapsed into a single `Required` sentinel, avoiding duplicate presence checks. |
 
-### Structurally satisfied (4948 skips)
+### Structurally satisfied (4944 skips)
 
 | Count | Constraint | Reason |
 |------:|-----------|--------|
@@ -252,7 +252,6 @@ that matches a rule is either dropped or rewritten and is not passed on to
 | 15 | Inverse `sh:class` | The asserted class is an ancestor of every concrete target subclass; Go struct embedding guarantees the constraint is always satisfied. |
 | 11 | `sh:nodeKind` on `rdf:type` paths | The Go struct type is fixed at decode time, so the RDF type is always correct. |
 | 2 | `sh:datatype xsd:anyURI` on slice fields | A slice field (e.g. `Profile []string`) holds zero or more values; per-element URI format validation requires iterating the slice, which `shaclgen` does not generate for datatype checks. URI format is not validated by the Go XML decoder either, so this is an acknowledged gap rather than a false negative. |
-| 4 | `sh:in (dm:DifferenceModel md:FullModel)` on `Supersedes`/`DependentOn` | The constraint checks that each referenced model's `rdf:type` is either `FullModel` or `DifferenceModel`. `CIMElementList` stores models in two typed maps (`FullModels map[string]*FullModel`, `DifferenceModels map[string]*DifferenceModel`); any MRID that resolves within the dataset is guaranteed to be in one of those two types. |
 | 3 | `sh:hasValue rdf:type rdf:Statements` on `forwardDifferences`/`reverseDifferences`/`preconditions` | The CGMES difference model format mandates that all elements in these collections are `rdf:Statement` resources. The referenced objects are not decoded into `CIMElementList` (they are RDF graph metadata, not CIM elements), so the constraint cannot be checked at runtime — but it cannot be violated by any well-formed CGMES difference model file. |
 | 3 | Multi-segment `sh:required` on `rdf:Statements.subject/predicate/object` | The RDF specification mandates that every `rdf:Statement` resource has `subject`, `predicate`, and `object` predicates. Any `rdf:Statement` instance loaded from a valid RDF document already satisfies these constraints by definition. |
 

@@ -377,6 +377,21 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		case "sh:InConstraintComponent":
 			guard, cond, err := refClassInCondition(refSegs, structType, c.Payload["Values"])
 			if err != nil {
+				// Fallback: first hop may be a slice-of-MRID-struct (e.g. DependentOn, Supersedes).
+				if len(refSegs) == 1 {
+					seg, _ := stripCIMPrefix(refSegs[0])
+					if sliceField, ok2 := findFieldByXMLTag(structType, seg); ok2 && sliceField.Type.Kind() == reflect.Slice {
+						rawVals, _ := c.Payload["Values"].([]any)
+						if classes, classErr := classListFromValues(rawVals); classErr == nil {
+							if sliceGuard, sliceErr := sliceRefClassInCondition(sliceField, classes, cs); sliceErr == nil {
+								cs.Guard = sliceGuard
+								cs.SelfContained = true
+								imports = append(imports, "strings")
+								return cs, imports, nil
+							}
+						}
+					}
+				}
 				return checkSpec{}, nil, err
 			}
 			cs.Guard, cs.Condition = guard, cond

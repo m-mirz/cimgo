@@ -34,7 +34,8 @@ type checkSpec struct {
 	Decl         string // optional package-level declaration emitted before the function
 	Prelude      string // optional block emitted before the main loop (e.g. inverse-ref index)
 	NoV          bool   // suppress the v binding when the loop body doesn't use it
-	Guard        string // tab-indented, may span multiple lines; empty if none
-	Condition    string // single expression; opens the violation block as `if <Condition> {`
-	DatasetCheck bool   // emit a single dataset-level check (no per-element loop) when true
+	Guard         string // tab-indented, may span multiple lines; empty if none
+	Condition     string // single expression; opens the violation block as `if <Condition> {`
+	DatasetCheck  bool   // emit a single dataset-level check (no per-element loop) when true
+	SelfContained bool   // Guard appends violations directly; skip the outer `if Condition` block
 }

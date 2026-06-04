@@ -8,73 +8,73 @@ import (
 
 type skipCategory struct {
 	Label   string
-	Section string // "structurally_satisfied" | "cannot_be_conducted" | "other"
+	Section string // "skipped" | "cannot_be_conducted" | "other"
 	match   func(e skipEntry) bool
 }
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
 var skipCategories = []skipCategory{
-	// Structurally satisfied — ordered to match README table rows
-	{
-		Label:   "`sh:maxCount 1` on scalar fields",
-		Section: "structurally_satisfied",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "MaxCount=1 on scalar field is structurally satisfied") },
-	},
+	// Skipped — ordered to match README table rows
 	{
 		Label:   "`sh:required` on `float` fields",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match:   func(e skipEntry) bool { return contains(e.Reason, "float Required is unreliable") },
 	},
 	{
+		Label:   "`sh:maxCount 1` on scalar fields",
+		Section: "skipped",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "MaxCount=1 on scalar field is structurally satisfied") },
+	},
+	{
 		Label:   "`sh:required` on `bool` fields",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match:   func(e skipEntry) bool { return contains(e.Reason, "bool Required is structurally satisfied") },
 	},
 	{
 		Label:   "`sh:maxCount 1` on pointer fields",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match:   func(e skipEntry) bool { return contains(e.Reason, "MaxCount=1 on pointer field is structurally satisfied") },
 	},
 	{
 		Label:   "`sh:maxCount 1` on multi-hop paths",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match:   func(e skipEntry) bool { return contains(e.Reason, "multi-segment MaxCount=1 is structurally satisfied") },
 	},
 	{
-		Label:   "Cross-class `sh:lessThan` on sibling subtypes",
-		Section: "structurally_satisfied",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "sibling class") },
+		Label:   "`sh:nodeKind` on `rdf:type` paths",
+		Section: "skipped",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "NodeKind on path ending in rdf:type") },
 	},
 	{
 		Label:   "Inverse `sh:class`",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match: func(e skipEntry) bool {
 			return contains(e.Reason, "inverse Class") && contains(e.Reason, "structurally satisfied")
 		},
 	},
 	{
-		Label:   "`sh:nodeKind` on `rdf:type` paths",
-		Section: "structurally_satisfied",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "NodeKind on path ending in rdf:type") },
-	},
-	{
-		Label:   "`sh:datatype xsd:anyURI` on slice fields",
-		Section: "structurally_satisfied",
-		match: func(e skipEntry) bool {
-			return contains(e.Reason, "anyURI") && contains(e.Reason, "slice")
-		},
+		Label:   "Cross-class `sh:lessThan` on sibling subtypes",
+		Section: "skipped",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "sibling class") },
 	},
 	{
 		Label:   "`sh:hasValue rdf:type rdf:Statements`",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match: func(e skipEntry) bool {
 			return contains(e.Reason, "HasValue rdf:type") && contains(e.Reason, "rdf:Statements")
 		},
 	},
 	{
+		Label:   "`sh:datatype xsd:anyURI` on slice fields",
+		Section: "skipped",
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "anyURI") && contains(e.Reason, "slice")
+		},
+	},
+	{
 		Label:   "Multi-segment `sh:required` on `rdf:Statements`",
-		Section: "structurally_satisfied",
+		Section: "skipped",
 		match:   func(e skipEntry) bool { return contains(e.Reason, "multi-segment Required path ending in rdf:") },
 	},
 
@@ -161,7 +161,7 @@ func printGlobalSummary(w io.Writer, counts map[string]int) {
 		title string
 		key   string
 	}{
-		{"Structurally satisfied", "structurally_satisfied"},
+		{"Skipped", "skipped"},
 		{"Cannot be conducted", "cannot_be_conducted"},
 		{"Other (not in README)", "other"},
 	}

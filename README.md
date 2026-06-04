@@ -242,23 +242,23 @@ engines and are specific to this tool.*
 | 6 | `sh:minCount 0` + `sh:maxCount 1` → synthetic `sh:Optional` | The pair means "0 or 1 values". `sh:minCount 0` is dropped by Rule 3; the matching `sh:maxCount 1` is replaced by a single `Optional` sentinel to record the upper bound without implying a presence requirement. |
 | 7 | `sh:minCount 1` + `sh:maxCount 1` → synthetic `sh:Required` | The pair means "exactly 1 value". Both constraints are collapsed into a single `Required` sentinel, avoiding duplicate presence checks. |
 
-### Structurally satisfied (4944 skips)
+### Structurally satisfied (3198 skips)
 
 | Count | Constraint | Reason |
 |------:|-----------|--------|
-| 1302 | `sh:maxCount 1` on scalar fields | Scalar fields (`int`, `float`, `bool`, `string`) hold exactly one value; MaxCount ≥ 1 is vacuously true. |
-| 2787 | `sh:required` on `float` fields | Float fields use `omitempty`; `0.0` is indistinguishable from absent after XML decode. This makes presence checks unreliable: a legitimately-zero physical quantity (e.g. `bch=0`, `r=0`, `b=0`) would always trigger a false positive. Range constraints (`sh:minExclusive`, `sh:minInclusive`) cover the must-be-positive subset where zero is genuinely invalid. Fixing the general case would require switching all float fields to `*float64`. |
-| 413 | `sh:required` on `bool` fields | Bool fields use `omitempty`; `false` is indistinguishable from absent after XML decode. Fixing would require switching all bool fields to `*bool`. |
-| 334 | `sh:maxCount 1` on pointer fields | Pointer fields are either nil (0 values) or non-nil (1 value). |
-| 56 | `sh:maxCount 1` on multi-hop paths | Every hop in a CIM reference path is a 0..1 pointer, so the count is always ≤ 1. |
-| 18 | Cross-class `sh:lessThan` on sibling subtypes | The SHACL property shape reuses the same comparison across multiple target classes. The compared field (`xDirectSubtrans`, `xQuadSubtrans`, `xpp`) exists only on a sibling subtype (`SynchronousMachineTimeConstantReactance` or `AsynchronousMachineTimeConstantReactance`). These subtypes are mutually exclusive in valid CGMES data — a machine is either `SynchronousMachineTimeConstantReactance` or `SynchronousMachineEquivalentCircuit`, never both — so both operands can never be visible at the same time. The same-class cases (`SynchronousMachineTimeConstantReactance.statorLeakageReactance < xDirectSubtrans`, etc.) are generated normally. |
-| 15 | Inverse `sh:class` | The asserted class is an ancestor of every concrete target subclass; Go struct embedding guarantees the constraint is always satisfied. |
-| 11 | `sh:nodeKind` on `rdf:type` paths | The Go struct type is fixed at decode time, so the RDF type is always correct. |
-| 2 | `sh:datatype xsd:anyURI` on slice fields | A slice field (e.g. `Profile []string`) holds zero or more values; per-element URI format validation requires iterating the slice, which `shaclgen` does not generate for datatype checks. URI format is not validated by the Go XML decoder either, so this is an acknowledged gap rather than a false negative. |
+| 223 | `sh:maxCount 1` on scalar fields | Scalar fields (`int`, `float`, `bool`, `string`) hold exactly one value; MaxCount ≥ 1 is vacuously true. |
+| 2701 | `sh:required` on `float` fields | Float fields use `omitempty`; `0.0` is indistinguishable from absent after XML decode. This makes presence checks unreliable: a legitimately-zero physical quantity (e.g. `bch=0`, `r=0`, `b=0`) would always trigger a false positive. Range constraints (`sh:minExclusive`, `sh:minInclusive`) cover the must-be-positive subset where zero is genuinely invalid. Fixing the general case would require switching all float fields to `*float64`. |
+| 115 | `sh:required` on `bool` fields | Bool fields use `omitempty`; `false` is indistinguishable from absent after XML decode. Fixing would require switching all bool fields to `*bool`. |
+| 111 | `sh:maxCount 1` on pointer fields | Pointer fields are either nil (0 values) or non-nil (1 value). |
+| 28 | `sh:maxCount 1` on multi-hop paths | Every hop in a CIM reference path is a 0..1 pointer, so the count is always ≤ 1. |
+| 3 | Cross-class `sh:lessThan` on sibling subtypes | The SHACL property shape reuses the same comparison across multiple target classes. The compared field (`xDirectSubtrans`, `xQuadSubtrans`, `xpp`) exists only on a sibling subtype (`SynchronousMachineTimeConstantReactance` or `AsynchronousMachineTimeConstantReactance`). These subtypes are mutually exclusive in valid CGMES data — a machine is either `SynchronousMachineTimeConstantReactance` or `SynchronousMachineEquivalentCircuit`, never both — so both operands can never be visible at the same time. The same-class cases (`SynchronousMachineTimeConstantReactance.statorLeakageReactance < xDirectSubtrans`, etc.) are generated normally. |
+| 5 | Inverse `sh:class` | These are `sh:class` sub-constraints on property shapes that also carry `sh:minCount`/`sh:maxCount` (e.g. `C:301:EQ:Switch:numberOfTerminals`). The count sub-constraint is generated normally. The `sh:class` sub-constraint is skipped because the inverse index prelude already type-asserts each scanned object to the referrer class — every object that reaches the check has already passed that assertion, so the class constraint is tautological. |
+| 7 | `sh:nodeKind` on `rdf:type` paths | The Go struct type is fixed at decode time, so the RDF type is always correct. |
+| 1 | `sh:datatype xsd:anyURI` on slice fields | A slice field (e.g. `Profile []string`) holds zero or more values; per-element URI format validation requires iterating the slice, which `shaclgen` does not generate for datatype checks. URI format is not validated by the Go XML decoder either, so this is an acknowledged gap rather than a false negative. |
 | 3 | `sh:hasValue rdf:type rdf:Statements` on `forwardDifferences`/`reverseDifferences`/`preconditions` | The CGMES difference model format mandates that all elements in these collections are `rdf:Statement` resources. The referenced objects are not decoded into `CIMElementList` (they are RDF graph metadata, not CIM elements), so the constraint cannot be checked at runtime — but it cannot be violated by any well-formed CGMES difference model file. |
-| 3 | Multi-segment `sh:required` on `rdf:Statements.subject/predicate/object` | The RDF specification mandates that every `rdf:Statement` resource has `subject`, `predicate`, and `object` predicates. Any `rdf:Statement` instance loaded from a valid RDF document already satisfies these constraints by definition. |
+| 1 | Multi-segment `sh:required` on `rdf:Statements.subject/predicate/object` | The RDF specification mandates that every `rdf:Statement` resource has `subject`, `predicate`, and `object` predicates. Any `rdf:Statement` instance loaded from a valid RDF document already satisfies these constraints by definition. |
 
-### Cannot be conducted (22 skips)
+### Cannot be conducted (13 skips)
 
 #### Upstream SHACL TTL defects
 
@@ -271,7 +271,7 @@ engines and are specific to this tool.*
 | `C:302:DY:ExcDC1A.efdmin:valueRangePair` | `sh:lessThan cim:ExcDC1A.edfmax` — letters transposed; should be `efdmax` |
 | `C:302:DY:PssIEEE4B.vhmin:valueRangePair` | `sh:lessThan cim:PssIEEE4V.vhmax` — class suffix wrong; should be `PssIEEE4B.vhmax` |
 
-**Class name typo** — one property shape in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` references a misspelled class in its inverse path, generating 4 skip instances (one per concrete target class):
+**Class name typo** — one property shape in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` references a misspelled class in its inverse path (reported as one entry covering all 4 concrete target classes):
 
 | Rule (`sh:name`) | Defect |
 |------------------|--------|
@@ -284,11 +284,11 @@ engines and are specific to this tool.*
 | `dy457cpe:CSCDynamics.CSConverter-valueType` | `sh:in (cim:CSConverter)` — should be `cim:CsConverter` |
 | `dy457cpi:CSCDynamics.CSConverter-valueType` | same defect in the implicit cross-profile file |
 
-**Wrong field names in inverse paths** — four property shapes in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` reference field names that do not match the RDFS schema, generating 8 skip instances:
+**Wrong field names in inverse paths** — four property shapes in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` reference field names that do not match the RDFS schema:
 
 | Rule (`sh:name`) | Defect |
 |------------------|--------|
-| `SynchronousMachineDynamics.CrossCompoundTurbineGovernorDynamics-cardinality` | `sh:inversePath cim:CrossCompoundTurbineGovernorDynamics.SynchronousMachineDynamics` — no such field; RDFS defines `HighPressureSynchronousMachineDynamics` and `LowPressureSynchronousMachineDynamics`; applied to 4 concrete target classes |
+| `SynchronousMachineDynamics.CrossCompoundTurbineGovernorDynamics-cardinality` | `sh:inversePath cim:CrossCompoundTurbineGovernorDynamics.SynchronousMachineDynamics` — no such field; RDFS defines `HighPressureSynchronousMachineDynamics` and `LowPressureSynchronousMachineDynamics`; applies to 4 concrete target classes |
 | `CsConverter.CSCDynamics-cardinality` | `sh:inversePath cim:CSCDynamics.CsConverter` — capitalisation wrong; RDFS defines `CSCDynamics.CSConverter` |
 | `VCompIEEEType2.GenICompensationForGenJ-cardinality` | `sh:inversePath cim:GenICompensationForGenJ.VCompIEEEType2` — capitalisation wrong; RDFS defines `GenICompensationForGenJ.VcompIEEEType2` |
 | `WindContQIEC.WindTurbineType3or4IEC-cardinality` | `sh:inversePath cim:WindTurbineType3or4IEC.WindContQIEC` — capitalisation wrong; RDFS defines `WindTurbineType3or4IEC.WIndContQIEC` |
@@ -301,7 +301,7 @@ engines and are specific to this tool.*
 
 **Non-existent target class** — one property shape in `61970-600-2_Dynamics-AP-Con-Complex-InverseAssociation-SHACL.ttl` lists `cim:GovHydroIEEE1` in its `sh:targetClass` alongside several real classes. No such class exists in the CIM standard or in `cimstructs`; `shaclgen` silently skips it when resolving concrete target classes.
 
-**Empty `sh:in` list** — one property shape in `61970-600-2_Operation-AP-Con-Simple-SHACL.ttl` has `sh:in ()`, generating 4 skip instances (one per concrete target class):
+**Empty `sh:in` list** — one property shape in `61970-600-2_Operation-AP-Con-Simple-SHACL.ttl` has `sh:in ()` (reported as one entry covering all 4 concrete target classes):
 
 | Rule (`sh:name`) | Defect |
 |------------------|--------|
@@ -369,5 +369,3 @@ These have no CGMES rule ID and appear to be CIMdesk's own heuristics. They are 
 
 - `sh:maxCount 1` on scalar fields Scalar fields (`int`, `float`, `bool`, `string`) hold exactly one value; MaxCount ≥ 1 is vacuously true.
   - The current approach is to silently override scalar fields if there is more than one occurence. We could detect multiple occurences and emit a violation, either by modifying the XML parser or by a two pass approach where we parse into hashmaps first.
-- Inverse `sh:class`: The asserted class is an ancestor of every concrete target subclass; Go struct embedding guarantees the constraint is always satisfied.
-  - This is not structurally satisfied and needs to be moved somewhere else.

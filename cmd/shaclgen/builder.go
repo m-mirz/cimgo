@@ -40,7 +40,7 @@ func resolveConcreteClasses(targets []shaclimport.TargetInfo) []string {
 	return result[:j+1]
 }
 
-func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string) {
+func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []skipEntry) {
 	stem := profileStem(fr.FileName)
 	stemCamel := camelCaseFromStem(stem)
 	spec := fileSpec{
@@ -48,7 +48,8 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 		Pkg:              pkg,
 		OrchestratorName: "ValidateGenerated" + stemCamel + "Profile",
 	}
-	var skipReasons []string
+	var skipEntries []skipEntry
+	skipIndex := map[string]int{}
 	used := map[string]int{}
 	importSet := map[string]struct{}{
 		"cimgo/cimstructs": {},
@@ -77,7 +78,19 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 						if len(c.Path) > 0 {
 							prop = "." + c.Path[0]
 						}
-						skipReasons = append(skipReasons, fmt.Sprintf("%s%s [%s]: %v", concrete, prop, c.Component, err))
+						key := prop + "\x00" + c.Component + "\x00" + c.Name
+						if i, ok := skipIndex[key]; ok {
+							skipEntries[i].Classes = append(skipEntries[i].Classes, concrete)
+						} else {
+							skipIndex[key] = len(skipEntries)
+							skipEntries = append(skipEntries, skipEntry{
+								Classes:   []string{concrete},
+								Prop:      prop,
+								Component: c.Component,
+								Name:      c.Name,
+								Reason:    err.Error(),
+							})
+						}
 						continue
 					}
 					for _, imp := range imports {
@@ -102,7 +115,7 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []string)
 		spec.Imports = append(spec.Imports, imp)
 	}
 	sort.Strings(spec.Imports)
-	return spec, skipReasons
+	return spec, skipEntries
 }
 
 func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Type, c shaclimport.ConstraintInfo, used map[string]int) (checkSpec, []string, error) {

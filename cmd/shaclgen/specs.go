@@ -1,5 +1,27 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
+// skipEntry groups one or more focus classes that share the same skip reason.
+type skipEntry struct {
+	Classes   []string
+	Prop      string
+	Component string
+	Name      string
+	Reason    string
+}
+
+func (s skipEntry) String() string {
+	if len(s.Classes) == 1 {
+		return fmt.Sprintf("%s%s [%s] %q: %s", s.Classes[0], s.Prop, s.Component, s.Name, s.Reason)
+	}
+	return fmt.Sprintf("%s [%s] %q (%s): %s",
+		s.Prop, s.Component, s.Name, strings.Join(s.Classes, ", "), s.Reason)
+}
+
 // fileSpec is the data passed to validation_file.tmpl.
 type fileSpec struct {
 	FileName         string

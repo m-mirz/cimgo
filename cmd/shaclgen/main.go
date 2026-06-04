@@ -72,6 +72,7 @@ func main() {
 
 	var orchestrators []string
 	totalChecks, totalSkipped, totalFiles := 0, 0, 0
+	globalCounts := map[string]int{}
 	for _, src := range matches {
 		fr, err := loadFromTTL(src)
 		if err != nil {
@@ -87,6 +88,8 @@ func main() {
 				for _, r := range skipReasons {
 					fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
 				}
+				printFileSummary(os.Stderr, spec.FileName, 0, skipReasons)
+				accumulateCounts(globalCounts, skipReasons)
 			}
 			continue
 		}
@@ -106,6 +109,8 @@ func main() {
 			for _, r := range skipReasons {
 				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
 			}
+			printFileSummary(os.Stderr, spec.FileName, len(spec.Checks), skipReasons)
+			accumulateCounts(globalCounts, skipReasons)
 		}
 		fmt.Printf("Generated %s (%d checks, %d skipped)\n", spec.FileName, len(spec.Checks), len(skipReasons))
 	}
@@ -115,6 +120,9 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("Total: %d files, %d checks, %d skipped\n", totalFiles, totalChecks, totalSkipped)
+	if *skipReport {
+		printGlobalSummary(os.Stderr, globalCounts)
+	}
 }
 
 // loadFromTTL parses one SHACL Turtle file and runs the simplify pipeline,

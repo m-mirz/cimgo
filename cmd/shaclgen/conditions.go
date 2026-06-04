@@ -245,6 +245,49 @@ func inCondition(field reflect.StructField, payload any) (string, string, error)
 	return b.String(), cond, nil
 }
 
+// sliceStringInCondition handles sh:In for []string slice fields. It emits a
+// self-contained inner for-loop that checks each element against the allowed
+// set and appends violations directly. The caller must set SelfContained on
+// the checkSpec.
+func sliceStringInCondition(field reflect.StructField, rawValues []any, cs checkSpec) (string, error) {
+	if field.Type.Kind() != reflect.Slice || field.Type.Elem().Kind() != reflect.String {
+		return "", fmt.Errorf("expected []string field, got %s", field.Type)
+	}
+	values := make([]string, 0, len(rawValues))
+	for _, v := range rawValues {
+		s, ok := v.(string)
+		if !ok {
+			return "", fmt.Errorf("In list contains non-string %v", v)
+		}
+		values = append(values, strings.TrimPrefix(strings.TrimSuffix(s, ">"), "<"))
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "\t\tfor _, val := range v.%s {\n", field.Name)
+	b.WriteString("\t\t\tif val == \"\" {\n\t\t\t\tcontinue\n\t\t\t}\n")
+	b.WriteString("\t\t\tallowed := map[string]bool{")
+	for i, val := range values {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		fmt.Fprintf(&b, "%q: true", val)
+	}
+	b.WriteString("}\n")
+	b.WriteString("\t\t\tif !allowed[val] {\n")
+	b.WriteString("\t\t\t\tviolations = append(violations, shaclmodel.Violation{\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tObjectID:    id,\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tRuleID:      %q,\n", cs.RuleID)
+	fmt.Fprintf(&b, "\t\t\t\t\tClass:       %q,\n", cs.Class)
+	fmt.Fprintf(&b, "\t\t\t\t\tProperty:    %q,\n", cs.Property)
+	fmt.Fprintf(&b, "\t\t\t\t\tMessage:     %q,\n", cs.Message)
+	fmt.Fprintf(&b, "\t\t\t\t\tSeverity:    %q,\n", cs.Severity)
+	fmt.Fprintf(&b, "\t\t\t\t\tName:        %q,\n", cs.RuleName)
+	fmt.Fprintf(&b, "\t\t\t\t\tDescription: %q,\n", cs.Description)
+	b.WriteString("\t\t\t\t})\n")
+	b.WriteString("\t\t\t}\n")
+	b.WriteString("\t\t}")
+	return b.String(), nil
+}
+
 // enumURIFieldConst inspects field for the enum-as-IRI shape (pointer to a
 // struct with a single string field named URI). When the shape matches, the
 // returned constIdent is the cimstructs constant identifier corresponding

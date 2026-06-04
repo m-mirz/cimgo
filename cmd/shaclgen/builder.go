@@ -125,6 +125,44 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	// multi-segment shapes ([ref, rdf:type]) are recognised as a class-of-
 	// referenced-object check; everything else is currently skipped.
 	if len(c.Path) == 0 {
+		// Compound constraints (sh:Or, sh:And, sh:Xone) carry no top-level path;
+		// their sub-shapes each have their own paths.
+		switch c.Component {
+		case "sh:OrConstraintComponent", "sh:AndConstraintComponent", "sh:XoneConstraintComponent":
+			result, err := buildCompoundCheck(c, structType)
+			if err != nil {
+				return checkSpec{}, nil, err
+			}
+			cs := checkSpec{
+				Name:        "Check" + stemCamel + structName + camelize(strings.TrimPrefix(strings.TrimSuffix(c.Component, "ConstraintComponent"), "sh:")),
+				ShapeID:     shapeID,
+				RuleID:      shapeID,
+				RuleName:    c.Name,
+				Description: c.Description,
+				Class:       structName,
+				Tag:         c.Component,
+				Component:   c.Component,
+				Property:    c.Component,
+				Message:     strings.Trim(c.Message, "\""),
+				Severity:    c.Severity,
+				Prelude:     result.Prelude,
+				Guard:       result.Guard,
+				Condition:   result.Condition,
+			}
+			if cs.Severity == "" {
+				cs.Severity = "sh:Violation"
+			}
+			// Only bind v when the generated code actually uses it.
+			if !strings.Contains(cs.Guard, "v.") && !strings.Contains(cs.Condition, "v.") {
+				cs.NoV = true
+			}
+			used[cs.Name]++
+			if used[cs.Name] > 1 {
+				cs.Name = fmt.Sprintf("%s_%d", cs.Name, used[cs.Name])
+			}
+			imports := result.Imports
+			return cs, imports, nil
+		}
 		return checkSpec{}, nil, fmt.Errorf("empty path")
 	}
 
@@ -383,6 +421,30 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		case "sh:HasValueConstraintComponent":
 			guard, cond, err := refClassEqualCondition(refSegs, structType, c.Payload["Value"])
 			if err != nil {
+				// Fallback: first hop may be a slice-of-MRID-struct.
+				if len(refSegs) == 1 {
+					seg, _ := stripCIMPrefix(refSegs[0])
+					if sliceField, ok2 := findFieldByXMLTag(structType, seg); ok2 && sliceField.Type.Kind() == reflect.Slice {
+						want, _ := c.Payload["Value"].(string)
+						want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
+						if wantClass, ok3 := stripCIMPrefix(want); ok3 {
+							var classes []string
+							if _, ok4 := cimstructs.StructMap[wantClass]; ok4 {
+								classes = []string{wantClass}
+							} else {
+								classes = concreteSubclassesEmbedding(wantClass)
+							}
+							if len(classes) > 0 {
+								if sliceGuard, sliceErr := sliceRefClassInCondition(sliceField, classes, cs); sliceErr == nil {
+									cs.Guard = sliceGuard
+									cs.SelfContained = true
+									imports = append(imports, "strings")
+									return cs, imports, nil
+								}
+							}
+						}
+					}
+				}
 				return checkSpec{}, nil, err
 			}
 			cs.Guard, cs.Condition = guard, cond
@@ -539,6 +601,15 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	case "sh:InConstraintComponent":
 		guard, cond, err := inCondition(field, c.Payload["Values"])
 		if err != nil {
+			// Fallback: []string slice field (e.g. Model.Profile).
+			if field.Type.Kind() == reflect.Slice && field.Type.Elem().Kind() == reflect.String {
+				rawVals, _ := c.Payload["Values"].([]any)
+				if sliceGuard, sliceErr := sliceStringInCondition(field, rawVals, cs); sliceErr == nil {
+					cs.Guard = sliceGuard
+					cs.SelfContained = true
+					return cs, imports, nil
+				}
+			}
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
@@ -578,6 +649,27 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	case "sh:ClassConstraintComponent":
 		guard, cond, err := classCondition(field, c.Payload["Class"])
 		if err != nil {
+			// Fallback: slice-of-MRID-struct field.
+			if field.Type.Kind() == reflect.Slice {
+				want, _ := c.Payload["Class"].(string)
+				want = strings.TrimPrefix(strings.TrimSuffix(want, ">"), "<")
+				if wantClass, ok2 := stripCIMPrefix(want); ok2 {
+					var classes []string
+					if _, ok3 := cimstructs.StructMap[wantClass]; ok3 {
+						classes = []string{wantClass}
+					} else {
+						classes = concreteSubclassesEmbedding(wantClass)
+					}
+					if len(classes) > 0 {
+						if sliceGuard, sliceErr := sliceRefClassInCondition(field, classes, cs); sliceErr == nil {
+							cs.Guard = sliceGuard
+							cs.SelfContained = true
+							imports = append(imports, "strings")
+							return cs, imports, nil
+						}
+					}
+				}
+			}
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond

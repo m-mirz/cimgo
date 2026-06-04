@@ -27,6 +27,28 @@
     <cim:ACLineSegment.x>0.2</cim:ACLineSegment.x>
     <cim:ACLineSegment.bch>0.001</cim:ACLineSegment.bch>
   </cim:ACLineSegment>
+  <!-- Terminals for ACLineSegment.OK (required by ConductingEquipment:twoTerminals) -->
+  <cim:Terminal rdf:ID="Terminal.OK.1">
+    <cim:IdentifiedObject.mRID>Terminal.OK.1</cim:IdentifiedObject.mRID>
+    <cim:Terminal.ConductingEquipment rdf:resource="#ACLineSegment.OK"/>
+    <cim:Terminal.sequenceNumber>1</cim:Terminal.sequenceNumber>
+  </cim:Terminal>
+  <cim:Terminal rdf:ID="Terminal.OK.2">
+    <cim:IdentifiedObject.mRID>Terminal.OK.2</cim:IdentifiedObject.mRID>
+    <cim:Terminal.ConductingEquipment rdf:resource="#ACLineSegment.OK"/>
+    <cim:Terminal.sequenceNumber>2</cim:Terminal.sequenceNumber>
+  </cim:Terminal>
+  <!-- Terminals for ACLineSegment.BAD (satisfies twoTerminals so only length violation fires) -->
+  <cim:Terminal rdf:ID="Terminal.BAD.1">
+    <cim:IdentifiedObject.mRID>Terminal.BAD.1</cim:IdentifiedObject.mRID>
+    <cim:Terminal.ConductingEquipment rdf:resource="#ACLineSegment.BAD"/>
+    <cim:Terminal.sequenceNumber>1</cim:Terminal.sequenceNumber>
+  </cim:Terminal>
+  <cim:Terminal rdf:ID="Terminal.BAD.2">
+    <cim:IdentifiedObject.mRID>Terminal.BAD.2</cim:IdentifiedObject.mRID>
+    <cim:Terminal.ConductingEquipment rdf:resource="#ACLineSegment.BAD"/>
+    <cim:Terminal.sequenceNumber>2</cim:Terminal.sequenceNumber>
+  </cim:Terminal>
   <!-- BaseVoltage.nominalVoltage must be > 0 (sh:minExclusive 0) -->
   <cim:BaseVoltage rdf:ID="BaseVoltage.OK">
     <cim:IdentifiedObject.mRID>BaseVoltage.OK</cim:IdentifiedObject.mRID>

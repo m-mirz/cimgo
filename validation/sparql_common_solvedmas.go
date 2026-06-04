@@ -126,9 +126,12 @@ func CheckDanglingReferences(dataset *cimstructs.CIMDataset) []Violation {
 				// Check for association struct { MRID string }
 				mridField := field.Elem().FieldByName("MRID")
 				if mridField.IsValid() && mridField.Kind() == reflect.String {
-					targetID := strings.TrimPrefix(mridField.String(), "#")
-					// Skip if it's an external URI or empty
-					if targetID != "" && !strings.Contains(targetID, "://") && !strings.HasPrefix(targetID, "http") {
+					rawID := mridField.String()
+					targetID := strings.TrimPrefix(rawID, "#")
+					isCIMID := strings.HasPrefix(rawID, "urn:uuid:") ||
+						strings.Contains(rawID, "#_") ||
+						strings.HasSuffix(rawID, "#")
+					if targetID != "" && isCIMID {
 						if _, ok := dataset.ByID[targetID]; !ok {
 							violations = append(violations, Violation{
 								ObjectID: id,

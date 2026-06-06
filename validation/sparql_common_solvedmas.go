@@ -129,6 +129,8 @@ func CheckDanglingReferences(dataset *cimstructs.CIMDataset) []Violation {
 					rawID := mridField.String()
 					targetID := strings.TrimPrefix(rawID, "#")
 					isCIMID := strings.HasPrefix(rawID, "urn:uuid:") ||
+						strings.HasPrefix(rawID, "#") ||
+						strings.HasPrefix(rawID, "_") ||
 						strings.Contains(rawID, "#_") ||
 						strings.HasSuffix(rawID, "#")
 					if targetID != "" && isCIMID {

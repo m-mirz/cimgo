@@ -104,8 +104,67 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 		if data.SuperType != "" {
 			fmt.Fprintf(f, "    %s <|-- %s\n", data.SuperType, name)
 		}
+		superType, superTypeExists := allClasses[data.SuperType]
+		if superTypeExists && len(superType.Attributes) != 0 {
+			for _, attr := range superType.Attributes {
+				attrType := attr.DataType
+				if attrType == "" {
+					attrType = attr.RDFRange
+				}
+				if attrType == "" {
+					attrType = "N/A"
+				}
+
+				multi := ""
+				if strings.Contains(attr.CIMMultiplicity, "#M:") {
+					parts := strings.Split(attr.CIMMultiplicity, "#M:")
+					multi = parts[len(parts)-1]
+				}
+
+				fmt.Fprintf(f, "    %s : +%s %s[%s]\n", data.SuperType, attrType, attr.Label, multi)
+			}
+		}
 		for _, sub := range subtypes[name] {
 			fmt.Fprintf(f, "    %s <|-- %s\n", name, sub)
+			subType, subTypeExists := allClasses[sub]
+			if subTypeExists && len(subType.Attributes) != 0 {
+				for _, attr := range subType.Attributes {
+					attrType := attr.DataType
+					if attrType == "" {
+						attrType = attr.RDFRange
+					}
+					if attrType == "" {
+						attrType = "N/A"
+					}
+
+					multi := ""
+					if strings.Contains(attr.CIMMultiplicity, "#M:") {
+						parts := strings.Split(attr.CIMMultiplicity, "#M:")
+						multi = parts[len(parts)-1]
+					}
+
+					fmt.Fprintf(f, "    %s : +%s %s[%s]\n", sub, attrType, attr.Label, multi)
+				}
+			}
+		}
+		if len(data.Attributes) != 0 {
+			for _, attr := range data.Attributes {
+				attrType := attr.DataType
+				if attrType == "" {
+					attrType = attr.RDFRange
+				}
+				if attrType == "" {
+					attrType = "N/A"
+				}
+
+				multi := ""
+				if strings.Contains(attr.CIMMultiplicity, "#M:") {
+					parts := strings.Split(attr.CIMMultiplicity, "#M:")
+					multi = parts[len(parts)-1]
+				}
+
+				fmt.Fprintf(f, "    %s : +%s %s[%s]\n", name, attrType, attr.Label, multi)
+			}
 		}
 		fmt.Fprintf(f, "```\n")
 		fmt.Fprintf(f, "<button class=\"mermaid-enlarge-button\">Enlarge Diagram</button>\n\n")

@@ -126,7 +126,8 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 
 	if data.SuperType != "" || len(subtypes[name]) > 0 {
 		fmt.Fprintf(f, "## Inheritance\n\n")
-		fmt.Fprintf(f, "```mermaid\nclassDiagram\n")
+		fmt.Fprintf(f, "```mermaid\n---\n  config:\n    class:\n      hideEmptyMembersBox: true\n---\nclassDiagram\n")
+
 		if data.SuperType != "" {
 			fmt.Fprintf(f, "    %s <|-- %s\n", data.SuperType, name)
 			superType, superTypeExists := allClasses[data.SuperType]

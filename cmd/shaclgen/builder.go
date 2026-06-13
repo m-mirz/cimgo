@@ -76,7 +76,7 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []skipEnt
 					if err != nil {
 						prop := ""
 						if len(c.Path) > 0 {
-							prop = "." + c.Path[0]
+							prop = "." + strings.Join(c.Path, "/")
 						}
 						key := prop + "\x00" + c.Component + "\x00" + c.Name
 						if i, ok := skipIndex[key]; ok {
@@ -143,6 +143,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 				Tag:         c.Component,
 				Component:   c.Component,
 				Property:    c.Component,
+				PathKey:     "",
 				Message:     strings.Trim(c.Message, "\""),
 				Severity:    c.Severity,
 				Prelude:     result.Prelude,
@@ -300,6 +301,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		Tag:         tag,
 		Component:   c.Component,
 		Property:    tag,
+		PathKey:     strings.Join(c.Path, "/"),
 		Message:     strings.Trim(c.Message, "\""),
 		Severity:    severity,
 	}

@@ -71,14 +71,184 @@ func ProcessFileToResults(file string) (*FileResults, error) {
 }
 
 func SimplifyFileResults(fr *FileResults) *FileResults {
+	result, _ := SimplifyFileResultsWithDrops(fr)
+	return result
+}
+
+// SimplifyFileResultsWithDrops is like SimplifyFileResults but also returns
+// every constraint dropped during simplification so callers can report them.
+func SimplifyFileResultsWithDrops(fr *FileResults) (*FileResults, []SimplifiedDrop) {
 	simplified := &FileResults{
 		FileName: fr.FileName,
 		Shapes:   make([]ShapeInfo, 0, len(fr.Shapes)),
 	}
+	var drops []SimplifiedDrop
 	for _, s := range fr.Shapes {
-		simplified.Shapes = append(simplified.Shapes, simplifyShape(s))
+		var classes []string
+		for _, t := range s.Targets {
+			if name := shapeLocalName(t.Value); name != "" {
+				classes = append(classes, name)
+			}
+		}
+		simplified.Shapes = append(simplified.Shapes, simplifyShapeTracked(s, classes, &drops))
 	}
-	return simplified
+	return simplified, drops
+}
+
+func shapeLocalName(iri string) string {
+	if i := strings.LastIndexAny(iri, ":#"); i >= 0 {
+		return iri[i+1:]
+	}
+	return iri
+}
+
+func simplifyShapeTracked(s ShapeInfo, classes []string, drops *[]SimplifiedDrop) ShapeInfo {
+	var path string
+	if len(s.Path) > 0 {
+		path = strings.Join(s.Path, "/")
+	}
+	s.Constraints = simplifyConstraintsTracked(s.Constraints, classes, path, drops)
+	for i := range s.Properties {
+		s.Properties[i] = simplifyShapeTracked(s.Properties[i], classes, drops)
+	}
+	return s
+}
+
+func simplifyConstraintsTracked(constraints []ConstraintInfo, classes []string, path string, drops *[]SimplifiedDrop) []ConstraintInfo {
+	drop := func(c ConstraintInfo, reason string) {
+		if len(classes) == 0 {
+			return
+		}
+		*drops = append(*drops, SimplifiedDrop{
+			Classes:   classes,
+			Prop:      path,
+			Component: c.Component,
+			Name:      c.Name,
+			Reason:    reason,
+		})
+	}
+
+	hasAnyDatatype := false
+	hasMinCount0 := false
+	hasMinCount1 := false
+	hasMaxCount1 := false
+	for _, c := range constraints {
+		switch c.Component {
+		case "sh:DatatypeConstraintComponent":
+			hasAnyDatatype = true
+		case "sh:MinCountConstraintComponent":
+			switch AnyToFloat(c.Payload["MinCount"]) {
+			case 0:
+				hasMinCount0 = true
+			case 1:
+				hasMinCount1 = true
+			}
+		case "sh:MaxCountConstraintComponent":
+			if AnyToFloat(c.Payload["MaxCount"]) == 1 {
+				hasMaxCount1 = true
+			}
+		}
+	}
+	mergeRequired := hasMinCount1 && hasMaxCount1
+	mergeOptional := hasMinCount0 && hasMaxCount1
+
+	var result []ConstraintInfo
+	requiredAdded := false
+	optionalAdded := false
+	for _, c := range constraints {
+		if hasAnyDatatype && c.Component == "sh:NodeKindConstraintComponent" {
+			if nk, ok := c.Payload["NodeKind"].(string); ok && nk == "sh:Literal" {
+				drop(c, "NodeKind=Literal structurally satisfied: datatype constraint implies literal")
+				continue
+			}
+		}
+		if c.Component == "sh:NodeKindConstraintComponent" {
+			if nk, ok := c.Payload["NodeKind"].(string); ok {
+				nk = strings.TrimPrefix(nk, "sh:")
+				if nk == "BlankNodeOrIRI" || nk == "IRI" {
+					drop(c, "NodeKind structurally satisfied by Go type system")
+					continue
+				}
+			}
+		}
+		if c.Component == "sh:MinCountConstraintComponent" && AnyToFloat(c.Payload["MinCount"]) == 0 {
+			drop(c, "MinCount=0 vacuously true")
+			continue
+		}
+		if c.Component == "sh:DatatypeConstraintComponent" {
+			if dt, ok := c.Payload["Datatype"].(string); ok {
+				switch strings.TrimPrefix(dt, "xsd:") {
+				case "integer", "int", "long", "short", "byte",
+					"nonNegativeInteger", "positiveInteger",
+					"nonPositiveInteger", "negativeInteger",
+					"unsignedInt", "unsignedLong", "unsignedShort", "unsignedByte",
+					"float", "double", "decimal",
+					"boolean",
+					"string", "normalizedString", "token":
+					drop(c, "Datatype structurally satisfied by Go type system")
+					continue
+				}
+			}
+		}
+		if c.Component == "sh:InConstraintComponent" {
+			if vals, ok := c.Payload["Values"].([]any); ok && len(vals) == 1 {
+				result = append(result, ConstraintInfo{
+					Path:        c.Path,
+					Severity:    c.Severity,
+					Message:     c.Message,
+					Name:        c.Name,
+					Description: c.Description,
+					Component:   "sh:HasValueConstraintComponent",
+					Payload:     map[string]any{"Value": vals[0]},
+				})
+				continue
+			}
+		}
+		if mergeOptional && c.Component == "sh:MaxCountConstraintComponent" && AnyToFloat(c.Payload["MaxCount"]) == 1 {
+			if !optionalAdded {
+				result = append(result, ConstraintInfo{
+					Path:        c.Path,
+					Severity:    c.Severity,
+					Message:     c.Message,
+					Name:        c.Name,
+					Description: c.Description,
+					Component:   "sh:OptionalConstraintComponent",
+				})
+				optionalAdded = true
+			}
+			drop(c, "Optional (minCount=0 + maxCount=1) structurally satisfied by pointer field")
+			continue
+		}
+		if mergeRequired {
+			if c.Component == "sh:MinCountConstraintComponent" && AnyToFloat(c.Payload["MinCount"]) == 1 {
+				if !requiredAdded {
+					result = append(result, ConstraintInfo{
+						Path:        c.Path,
+						Severity:    c.Severity,
+						Message:     c.Message,
+						Name:        c.Name,
+						Description: c.Description,
+						Component:   "sh:RequiredConstraintComponent",
+					})
+					requiredAdded = true
+				}
+				continue
+			}
+			if c.Component == "sh:MaxCountConstraintComponent" && AnyToFloat(c.Payload["MaxCount"]) == 1 {
+				continue
+			}
+		}
+		result = append(result, c)
+	}
+	for i := range result {
+		if result[i].Severity == "sh:Violation" {
+			result[i].Severity = ""
+		}
+		for k, v := range result[i].Payload {
+			result[i].Payload[k] = stripSHPrefix(v)
+		}
+	}
+	return result
 }
 
 // ---- internal types ----
@@ -373,135 +543,6 @@ func resolveShapeConstraints(sw *shapeWrapper, allWrapped map[string]*shapeWrapp
 	return constraints
 }
 
-func simplifyShape(s ShapeInfo) ShapeInfo {
-	s.Constraints = simplifyConstraints(s.Constraints)
-	for i := range s.Properties {
-		s.Properties[i] = simplifyShape(s.Properties[i])
-	}
-	return s
-}
-
-func simplifyConstraints(constraints []ConstraintInfo) []ConstraintInfo {
-	hasAnyDatatype := false
-	hasMinCount0 := false
-	hasMinCount1 := false
-	hasMaxCount1 := false
-	for _, c := range constraints {
-		switch c.Component {
-		case "sh:DatatypeConstraintComponent":
-			hasAnyDatatype = true
-		case "sh:MinCountConstraintComponent":
-			switch AnyToFloat(c.Payload["MinCount"]) {
-			case 0:
-				hasMinCount0 = true
-			case 1:
-				hasMinCount1 = true
-			}
-		case "sh:MaxCountConstraintComponent":
-			if AnyToFloat(c.Payload["MaxCount"]) == 1 {
-				hasMaxCount1 = true
-			}
-		}
-	}
-	mergeRequired := hasMinCount1 && hasMaxCount1
-	mergeOptional := hasMinCount0 && hasMaxCount1
-
-	var result []ConstraintInfo
-	requiredAdded := false
-	optionalAdded := false
-	for _, c := range constraints {
-		// Rule 1: any sh:datatype implies sh:Literal — drop redundant NodeKind=Literal
-		if hasAnyDatatype && c.Component == "sh:NodeKindConstraintComponent" {
-			if nk, ok := c.Payload["NodeKind"].(string); ok && nk == "sh:Literal" {
-				continue
-			}
-		}
-		// Rule 2: drop NodeKind=BlankNodeOrIRI and NodeKind=IRI — the Go type system
-		// already enforces the IRI shape; the runtime check can never fail on
-		// well-formed Go data.
-		if c.Component == "sh:NodeKindConstraintComponent" {
-			if nk, ok := c.Payload["NodeKind"].(string); ok {
-				nk = strings.TrimPrefix(nk, "sh:")
-				if nk == "BlankNodeOrIRI" || nk == "IRI" {
-					continue
-				}
-			}
-		}
-		// Rule 3: minCount=0 is vacuously true — drop it
-		if c.Component == "sh:MinCountConstraintComponent" && AnyToFloat(c.Payload["MinCount"]) == 0 {
-			continue
-		}
-		// Drop sh:datatype for xsd types that map to native Go scalars.
-		if c.Component == "sh:DatatypeConstraintComponent" {
-			if dt, ok := c.Payload["Datatype"].(string); ok {
-				switch strings.TrimPrefix(dt, "xsd:") {
-				case "integer", "int", "long", "short", "byte",
-					"nonNegativeInteger", "positiveInteger",
-					"nonPositiveInteger", "negativeInteger",
-					"unsignedInt", "unsignedLong", "unsignedShort", "unsignedByte",
-					"float", "double", "decimal",
-					"boolean",
-					"string", "normalizedString", "token":
-					continue
-				}
-			}
-		}
-		// sh:in with a single value is equivalent to sh:hasValue.
-		if c.Component == "sh:InConstraintComponent" {
-			if vals, ok := c.Payload["Values"].([]any); ok && len(vals) == 1 {
-				result = append(result, ConstraintInfo{
-					Path:      c.Path,
-					Severity:  c.Severity,
-					Message:   c.Message,
-					Component: "sh:HasValueConstraintComponent",
-					Payload:   map[string]any{"Value": vals[0]},
-				})
-				continue
-			}
-		}
-		// Rule 4: minCount=0 + maxCount=1 → Optional
-		if mergeOptional && c.Component == "sh:MaxCountConstraintComponent" && AnyToFloat(c.Payload["MaxCount"]) == 1 {
-			if !optionalAdded {
-				result = append(result, ConstraintInfo{
-					Path:      c.Path,
-					Severity:  c.Severity,
-					Message:   c.Message,
-					Component: "sh:OptionalConstraintComponent",
-				})
-				optionalAdded = true
-			}
-			continue
-		}
-		// Rule 5: minCount=1 + maxCount=1 → Required
-		if mergeRequired {
-			if c.Component == "sh:MinCountConstraintComponent" && AnyToFloat(c.Payload["MinCount"]) == 1 {
-				if !requiredAdded {
-					result = append(result, ConstraintInfo{
-						Path:      c.Path,
-						Severity:  c.Severity,
-						Message:   c.Message,
-						Component: "sh:RequiredConstraintComponent",
-					})
-					requiredAdded = true
-				}
-				continue
-			}
-			if c.Component == "sh:MaxCountConstraintComponent" && AnyToFloat(c.Payload["MaxCount"]) == 1 {
-				continue
-			}
-		}
-		result = append(result, c)
-	}
-	for i := range result {
-		if result[i].Severity == "sh:Violation" {
-			result[i].Severity = ""
-		}
-		for k, v := range result[i].Payload {
-			result[i].Payload[k] = stripSHPrefix(v)
-		}
-	}
-	return result
-}
 
 func stripSHPrefix(v any) any {
 	switch val := v.(type) {

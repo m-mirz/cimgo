@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cimgo/shaclimport"
 	"fmt"
 	"strings"
 )
@@ -12,6 +13,51 @@ type skipEntry struct {
 	Component string
 	Name      string
 	Reason    string
+}
+
+// uniqueCheckPatterns counts unique (PathKey, Component, RuleName) triples —
+// the same deduplication key used for skip entries — so that the check count
+// is comparable to the skip count regardless of how many classes share a pattern.
+// PathKey is the full constraint path joined with "/" (matching cimoxide's dedup).
+func uniqueCheckPatterns(checks []checkSpec) int {
+	seen := map[string]bool{}
+	for _, c := range checks {
+		seen[c.PathKey+"\x00"+c.Component+"\x00"+c.RuleName] = true
+	}
+	return len(seen)
+}
+
+func dropsToSkipEntries(drops []shaclimport.SimplifiedDrop) []skipEntry {
+	// Deduplicate by (prop, component, name): same as buildFileSpec's skipIndex.
+	index := map[string]int{}
+	var entries []skipEntry
+	for _, d := range drops {
+		key := d.Prop + "\x00" + d.Component + "\x00" + d.Name
+		if i, ok := index[key]; ok {
+			for _, c := range d.Classes {
+				found := false
+				for _, existing := range entries[i].Classes {
+					if existing == c {
+						found = true
+						break
+					}
+				}
+				if !found {
+					entries[i].Classes = append(entries[i].Classes, c)
+				}
+			}
+		} else {
+			index[key] = len(entries)
+			entries = append(entries, skipEntry{
+				Classes:   d.Classes,
+				Prop:      d.Prop,
+				Component: d.Component,
+				Name:      d.Name,
+				Reason:    d.Reason,
+			})
+		}
+	}
+	return entries
 }
 
 func (s skipEntry) String() string {
@@ -51,6 +97,7 @@ type checkSpec struct {
 	Tag          string
 	Component    string
 	Property     string
+	PathKey      string // full path joined with "/" for dedup only; not emitted into generated code
 	Message      string
 	Severity     string
 	Decl         string // optional package-level declaration emitted before the function

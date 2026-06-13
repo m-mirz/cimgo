@@ -74,6 +74,7 @@ func buildDatasetCardinalityCheck(stemCamel, structName, shapeID string, c shacl
 		Tag:          "^rdf:type",
 		Component:    c.Component,
 		Property:     "^rdf:type",
+		PathKey:      strings.Join(c.Path, "/"),
 		Message:      strings.Trim(c.Message, "\""),
 		Severity:     severity,
 		Prelude:      b.String(),

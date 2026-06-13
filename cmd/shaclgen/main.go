@@ -74,23 +74,30 @@ func main() {
 	totalChecks, totalSkipped, totalFiles := 0, 0, 0
 	globalCounts := map[string]int{}
 	for _, src := range matches {
-		fr, err := loadFromTTL(src)
+		fr, drops, err := loadFromTTL(src)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", src, err)
 			os.Exit(1)
 		}
 
 		spec, skipReasons := buildFileSpec(*pkg, fr)
+		skipReasons = append(dropsToSkipEntries(drops), skipReasons...)
+
+		fileCheckCount := uniqueCheckPatterns(spec.Checks)
+		totalChecks += fileCheckCount
+		totalSkipped += len(skipReasons)
+
+		if *skipReport {
+			fmt.Fprintf(os.Stderr, "PERFILE\t%s\t%d\t%d\n", spec.FileName, fileCheckCount, len(skipReasons))
+			for _, r := range skipReasons {
+				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
+			}
+			printFileSummary(os.Stderr, spec.FileName, fileCheckCount, skipReasons)
+			accumulateCounts(globalCounts, skipReasons)
+		}
+		fmt.Printf("Generated %s (%d checks, %d skipped)\n", spec.FileName, fileCheckCount, len(skipReasons))
 
 		if len(spec.Checks) == 0 {
-			totalSkipped += len(skipReasons)
-			if *skipReport {
-				for _, r := range skipReasons {
-					fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
-				}
-				printFileSummary(os.Stderr, spec.FileName, 0, skipReasons)
-				accumulateCounts(globalCounts, skipReasons)
-			}
 			continue
 		}
 
@@ -101,18 +108,7 @@ func main() {
 		}
 
 		orchestrators = append(orchestrators, spec.OrchestratorName)
-		totalChecks += len(spec.Checks)
-		totalSkipped += len(skipReasons)
 		totalFiles++
-
-		if *skipReport {
-			for _, r := range skipReasons {
-				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
-			}
-			printFileSummary(os.Stderr, spec.FileName, len(spec.Checks), skipReasons)
-			accumulateCounts(globalCounts, skipReasons)
-		}
-		fmt.Printf("Generated %s (%d checks, %d skipped)\n", spec.FileName, len(spec.Checks), len(skipReasons))
 	}
 
 	if err := writeIndex(*outDir, *pkg, orchestrators); err != nil {
@@ -127,12 +123,13 @@ func main() {
 
 // loadFromTTL parses one SHACL Turtle file and runs the simplify pipeline,
 // keeping the result in memory.
-func loadFromTTL(file string) (*shaclimport.FileResults, error) {
+func loadFromTTL(file string) (*shaclimport.FileResults, []shaclimport.SimplifiedDrop, error) {
 	fr, err := shaclimport.ProcessFileToResults(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return shaclimport.SimplifyFileResults(fr), nil
+	simplified, drops := shaclimport.SimplifyFileResultsWithDrops(fr)
+	return simplified, drops, nil
 }
 
 // writeGeneratedFile writes the spec to a generated_*.go file.

@@ -51,6 +51,15 @@ type FileResults struct {
 	Shapes   []ShapeInfo `json:"shapes"`
 }
 
+// SimplifiedDrop records a constraint dropped during SimplifyFileResults.
+type SimplifiedDrop struct {
+	Classes   []string
+	Prop      string
+	Component string
+	Name      string
+	Reason    string
+}
+
 type FileStats struct {
 	Name         string
 	ShaclPath    string

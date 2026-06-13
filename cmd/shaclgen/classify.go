@@ -8,13 +8,36 @@ import (
 
 type skipCategory struct {
 	Label   string
-	Section string // "skipped" | "cannot_be_conducted" | "other"
+	Section string // "simplified" | "skipped" | "cannot_be_conducted" | "other"
 	match   func(e skipEntry) bool
 }
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
 var skipCategories = []skipCategory{
+	// Simplified — dropped in SimplifyFileResults before code generation
+	{
+		Label:   "`sh:nodeKind` simplified (type-system guarantee)",
+		Section: "simplified",
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "NodeKind=Literal") || contains(e.Reason, "NodeKind structurally satisfied by")
+		},
+	},
+	{
+		Label:   "`sh:datatype` simplified (native Go type)",
+		Section: "simplified",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "Datatype structurally satisfied") },
+	},
+	{
+		Label:   "`sh:minCount=0` vacuously true",
+		Section: "simplified",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "MinCount=0 vacuously true") },
+	},
+	{
+		Label:   "`sh:optional` (minCount=0 + maxCount=1) structurally satisfied",
+		Section: "simplified",
+		match:   func(e skipEntry) bool { return contains(e.Reason, "Optional") && contains(e.Reason, "structurally satisfied") },
+	},
 	// Skipped — ordered to match README table rows
 	{
 		Label:   "`sh:required` on `float` fields",
@@ -142,12 +165,12 @@ func accumulateCounts(counts map[string]int, entries []skipEntry) {
 }
 
 func printFileSummary(w io.Writer, fileName string, checks int, entries []skipEntry) {
+	fmt.Fprintf(w, "-- %s (%d checks, %d skipped) --\n", fileName, checks, len(entries))
 	if len(entries) == 0 {
 		return
 	}
 	counts := map[string]int{}
 	accumulateCounts(counts, entries)
-	fmt.Fprintf(w, "-- %s (%d checks, %d skipped) --\n", fileName, checks, len(entries))
 	for _, cat := range append(skipCategories, skipCategoryOther) {
 		n := counts[cat.Label]
 		if n > 0 {
@@ -161,6 +184,7 @@ func printGlobalSummary(w io.Writer, counts map[string]int) {
 		title string
 		key   string
 	}{
+		{"Simplified (type-system guarantees)", "simplified"},
 		{"Skipped", "skipped"},
 		{"Cannot be conducted", "cannot_be_conducted"},
 		{"Other (not in README)", "other"},

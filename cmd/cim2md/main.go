@@ -81,6 +81,32 @@ func sanitizeFilename(name string) string {
 	return strings.ReplaceAll(strings.TrimSpace(sb.String()), " ", "_")
 }
 
+func stringifyMultiplicity(attribute *cimgen.CIMAttribute) string {
+	multi := ""
+	if strings.Contains(attribute.CIMMultiplicity, "#M:") {
+		parts := strings.Split(attribute.CIMMultiplicity, "#M:")
+		multi = parts[len(parts)-1]
+	}
+	return multi
+}
+
+func stringifyCIMDataType(attribute *cimgen.CIMAttribute) string {
+	attrType := attribute.DataType
+	if attrType == "" {
+		attrType = attribute.RDFRange
+	}
+	if attrType == "" {
+		attrType = "N/A"
+	}
+	return attrType
+}
+
+func generateAttributesForMermaid(f *os.File, className string, attributes []*cimgen.CIMAttribute) {
+	for _, attr := range attributes {
+		fmt.Fprintf(f, "    %s : +%s %s[%s]\n", className, stringifyCIMDataType(attr), attr.Label, stringifyMultiplicity(attr))
+	}
+}
+
 func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtypes map[string][]string, enums map[string]*cimgen.CIMEnum, allClasses map[string]*cimgen.CIMType) {
 	filename := filepath.Join(outDir, sanitizeFilename(name)+".md")
 	label := data.Label
@@ -100,13 +126,24 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 
 	if data.SuperType != "" || len(subtypes[name]) > 0 {
 		fmt.Fprintf(f, "## Inheritance\n\n")
-		fmt.Fprintf(f, "```mermaid\nclassDiagram\n")
+		fmt.Fprintf(f, "```mermaid\n---\n  config:\n    class:\n      hideEmptyMembersBox: true\n---\nclassDiagram\n")
+
 		if data.SuperType != "" {
 			fmt.Fprintf(f, "    %s <|-- %s\n", data.SuperType, name)
+			superType, superTypeExists := allClasses[data.SuperType]
+			if superTypeExists && len(superType.Attributes) != 0 {
+				generateAttributesForMermaid(f, data.SuperType, superType.Attributes)
+			}
 		}
 		for _, sub := range subtypes[name] {
 			fmt.Fprintf(f, "    %s <|-- %s\n", name, sub)
+			subType, subTypeExists := allClasses[sub]
+			if subTypeExists && len(subType.Attributes) != 0 {
+				generateAttributesForMermaid(f, sub, subType.Attributes)
+			}
 		}
+		generateAttributesForMermaid(f, name, data.Attributes)
+
 		fmt.Fprintf(f, "```\n")
 		fmt.Fprintf(f, "<button class=\"mermaid-enlarge-button\">Enlarge Diagram</button>\n\n")
 	}
@@ -119,13 +156,7 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 		fmt.Fprintf(f, "| No attributes | | | |\n")
 	} else {
 		for _, attr := range data.Attributes {
-			attrType := attr.DataType
-			if attrType == "" {
-				attrType = attr.RDFRange
-			}
-			if attrType == "" {
-				attrType = "N/A"
-			}
+			attrType := stringifyCIMDataType(attr)
 
 			typeLink := attrType
 			_, isClass := allClasses[attrType]
@@ -134,14 +165,8 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 				typeLink = fmt.Sprintf("[%s](%s.md)", attrType, sanitizeFilename(attrType))
 			}
 
-			multi := ""
-			if strings.Contains(attr.CIMMultiplicity, "#M:") {
-				parts := strings.Split(attr.CIMMultiplicity, "#M:")
-				multi = parts[len(parts)-1]
-			}
-
 			attrComment := strings.ReplaceAll(attr.Comment, "\n", " ")
-			fmt.Fprintf(f, "| %s | %s | %s | %s |\n", attr.Label, typeLink, multi, attrComment)
+			fmt.Fprintf(f, "| %s | %s | %s | %s |\n", attr.Label, typeLink, stringifyMultiplicity(attr), attrComment)
 		}
 	}
 	fmt.Fprint(f, "\n")

@@ -23,6 +23,7 @@ func ValidateDYProfileSPARQL(dataset *cimstructs.CIMDataset) []Violation {
 	violations = append(violations, CheckRotatingMachineSaturation(dataset)...)
 	violations = append(violations, CheckSynchronousMachineSimplifiedAttributes(dataset)...)
 	violations = append(violations, CheckDynamicsAssociations(dataset)...)
+	violations = append(violations, CheckGovSteamFV3T5(dataset)...)
 	return violations
 }
 
@@ -262,6 +263,34 @@ func CheckExcitationSystemGains(dataset *cimstructs.CIMDataset) []Violation {
 				ObjectID: id, RuleID: "various gain rules for excitation systems", Name: "various gain rules for excitation systems",
 				Class: "ExcIEEEDC4B", Property: "ExcIEEEDC4B.td",
 				Message: "The value negative or zero when ExcIEEEDC4B.kd > 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	// C:302:DY:ExcSEXS.kc:valueRange — kc must be > 0 when tc > 0
+	for id, v := range dataset.ExcSEXSs {
+		if v.Tc > 0 && v.Kc <= 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, RuleID: "various gain rules for excitation systems", Name: "various gain rules for excitation systems",
+				Class: "ExcSEXS", Property: "ExcSEXS.kc",
+				Message: "The value negative or zero when ExcSEXS.tc > 0.", Severity: "sh:Violation",
+			})
+		}
+	}
+	return violations
+}
+
+// CheckGovSteamFV3T5 implements C:302:DY:GovSteamFV3.t5:valueRange
+// Profile: 61970-302_Dynamics-AP-Con-Complex
+// Origin: Derived from a SPARQL constraint.
+// Description: t5 (time constant of second boiler pass/reheater) must be >= 0.
+func CheckGovSteamFV3T5(dataset *cimstructs.CIMDataset) []Violation {
+	var violations []Violation
+	for id, v := range dataset.GovSteamFV3s {
+		if v.T5 < 0 {
+			violations = append(violations, Violation{
+				ObjectID: id, RuleID: "C:302:DY:GovSteamFV3.t5:valueRange", Name: "GovSteamFV3.t5:valueRange",
+				Class: "GovSteamFV3", Property: "GovSteamFV3.t5",
+				Message: "The value is negative.", Severity: "sh:Violation",
 			})
 		}
 	}

@@ -240,10 +240,10 @@ func TestAccumulatorLimitSetConverter_Slices(t *testing.T) {
 	}
 }
 
-// --- Integration: test_001.xml (VoltageLevel + BaseVoltage) ---
+// --- Integration: test_001_EQ.xml (VoltageLevel + BaseVoltage) ---
 
 func TestToProto_VoltageLevel(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_001.xml")
+	b, err := os.ReadFile("../testdata/test_001_EQ.xml")
 	if err != nil {
 		t.Fatalf("read test file: %v", err)
 	}
@@ -281,10 +281,10 @@ func TestToProto_VoltageLevel(t *testing.T) {
 	}
 }
 
-// --- Integration: test_003.xml (Terminal '#' reference stripping) ---
+// --- Integration: test_003_TP.xml (Terminal '#' reference stripping) ---
 
 func TestToProto_TerminalReference(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_003.xml")
+	b, err := os.ReadFile("../testdata/test_003_TP.xml")
 	if err != nil {
 		t.Fatalf("read test file: %v", err)
 	}
@@ -305,10 +305,10 @@ func TestToProto_TerminalReference(t *testing.T) {
 	}
 }
 
-// --- Integration: test_002.xml (Analog enum fields) ---
+// --- Integration: test_002_OP.xml (Analog enum fields) ---
 
 func TestToProto_EnumFields(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_002.xml")
+	b, err := os.ReadFile("../testdata/test_002_OP.xml")
 	if err != nil {
 		t.Fatalf("read test file: %v", err)
 	}
@@ -346,10 +346,10 @@ func TestToProto_EnumFields(t *testing.T) {
 	}
 }
 
-// --- Integration: proto round-trip (test_001.xml) ---
+// --- Integration: proto round-trip (test_001_EQ.xml) ---
 
 func TestToProto_RoundTrip(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_001.xml")
+	b, err := os.ReadFile("../testdata/test_001_EQ.xml")
 	if err != nil {
 		t.Fatalf("read test file: %v", err)
 	}

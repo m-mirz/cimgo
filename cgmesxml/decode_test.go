@@ -3,6 +3,7 @@ package cgmesxml
 import (
 	"bytes"
 	"cimgo/cimstructs"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_001.xml")
+	b, err := os.ReadFile("../testdata/test_001_EQ.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +48,7 @@ func TestDecodeVoltageLevelAndBaseVoltage(t *testing.T) {
 // decoded to the same element map key as rdf:ID, so callers don't need to
 // distinguish the two RDF identification forms.
 func TestDecodeRDFAbout(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_002.xml")
+	b, err := os.ReadFile("../testdata/test_002_OP.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +82,7 @@ func TestDecodeRDFAbout(t *testing.T) {
 }
 
 func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_003.xml")
+	b, err := os.ReadFile("../testdata/test_003_TP.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +116,7 @@ func TestDecodeTerminalTopologicalNodeReference(t *testing.T) {
 // namespace (e.g. eu:IdentifiedObject.shortName) are decoded alongside
 // standard cim: attributes on the same element.
 func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_004.xml")
+	b, err := os.ReadFile("../testdata/test_004_EQ.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,13 +150,18 @@ func TestDecodeEuropeanNamespaceExtension(t *testing.T) {
 }
 
 // TestDecodeBoundaryPoint verifies that elements declared in the eu: namespace
-// (eu:BoundaryPoint) are decoded as concrete Go types.
+// (eu:BoundaryPoint) are decoded as concrete Go types when loaded from separate
+// EQ and EQBD profile files.
 func TestDecodeBoundaryPoint(t *testing.T) {
-	b, err := os.ReadFile("../testdata/test_005.xml")
-	if err != nil {
-		t.Fatal(err)
+	var readers []io.Reader
+	for _, path := range []string{"../testdata/test_005_EQ.xml", "../testdata/test_005_EQBD.xml"} {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		readers = append(readers, bytes.NewReader(b))
 	}
-	cimData, err := DecodeProfile(bytes.NewReader(b), nil)
+	cimData, err := DecodeProfiles(readers, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

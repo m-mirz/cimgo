@@ -36,7 +36,7 @@ func loadXML(t *testing.T, paths ...string) *cimstructs.CIMDataset {
 // --- XML → JSON round-trip ---
 
 func TestJSONRoundTrip_ElementCount(t *testing.T) {
-	original := loadXML(t, "../../testdata/test_001.xml")
+	original := loadXML(t, "../../testdata/test_001_EQ.xml")
 
 	jsonBytes, err := marshalWithType(original)
 	if err != nil {
@@ -53,7 +53,7 @@ func TestJSONRoundTrip_ElementCount(t *testing.T) {
 }
 
 func TestJSONRoundTrip_TypeField(t *testing.T) {
-	original := loadXML(t, "../../testdata/test_001.xml")
+	original := loadXML(t, "../../testdata/test_001_EQ.xml")
 
 	jsonBytes, err := marshalWithType(original)
 	if err != nil {
@@ -76,8 +76,8 @@ func TestJSONRoundTrip_TypeField(t *testing.T) {
 }
 
 func TestJSONRoundTrip_FieldValues(t *testing.T) {
-	// test_001.xml: 1 BaseVoltage (nominalVoltage=20) + 1 VoltageLevel (name="98")
-	original := loadXML(t, "../../testdata/test_001.xml")
+	// test_001_EQ.xml: 1 BaseVoltage (nominalVoltage=20) + 1 VoltageLevel (name="98")
+	original := loadXML(t, "../../testdata/test_001_EQ.xml")
 
 	jsonBytes, err := marshalWithType(original)
 	if err != nil {
@@ -113,8 +113,8 @@ func TestJSONRoundTrip_FieldValues(t *testing.T) {
 }
 
 func TestJSONRoundTrip_EnumField(t *testing.T) {
-	// test_002.xml: Analog with UnitMultiplier and UnitSymbol URI fields
-	original := loadXML(t, "../../testdata/test_002.xml")
+	// test_002_OP.xml: Analog with UnitMultiplier and UnitSymbol URI fields
+	original := loadXML(t, "../../testdata/test_002_OP.xml")
 
 	jsonBytes, err := marshalWithType(original)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestJSONRoundTrip_MultiFile(t *testing.T) {
 // --- XML → proto round-trip ---
 
 func TestProtoRoundTrip_MarshalUnmarshal(t *testing.T) {
-	dataset := loadXML(t, "../../testdata/test_001.xml")
+	dataset := loadXML(t, "../../testdata/test_001_EQ.xml")
 
 	protoList, err := cimconv.ToProto(dataset)
 	if err != nil {
@@ -189,7 +189,7 @@ func TestProtoRoundTrip_MarshalUnmarshal(t *testing.T) {
 
 func TestProtoRoundTrip_FieldValues(t *testing.T) {
 	// Verify that field values survive the proto round-trip.
-	dataset := loadXML(t, "../../testdata/test_001.xml")
+	dataset := loadXML(t, "../../testdata/test_001_EQ.xml")
 
 	protoList, err := cimconv.ToProto(dataset)
 	if err != nil {

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. Dangling Reference -->
+  <cim:Substation rdf:ID="S1">
+    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
+    <cim:Substation.Region rdf:resource="#NON_EXISTENT_REGION" />
+  </cim:Substation>
+
+  <!-- 2. ShuntCompensator Sync: static equipment; controlEnabled and sections (SSH) in SSH file -->
+  <cim:LinearShuntCompensator rdf:ID="LSC.SYNC.BAD" />
+  <cim:Terminal rdf:ID="Term.LSC.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#LSC.SYNC.BAD" />
+  </cim:Terminal>
+
+  <!-- 3. TapChanger Sync: static equipment; controlEnabled and step (SSH) in SSH file -->
+  <cim:RatioTapChanger rdf:ID="RTC.SYNC.BAD">
+    <cim:RatioTapChanger.TransformerEnd rdf:resource="#PTE.1" />
+  </cim:RatioTapChanger>
+  <cim:PowerTransformerEnd rdf:ID="PTE.1">
+    <cim:TransformerEnd.Terminal rdf:resource="#Term.PTE.1" />
+  </cim:PowerTransformerEnd>
+  <cim:Terminal rdf:ID="Term.PTE.1" />
+
+  <!-- 4. Missing state variables for energized equipment -->
+  <cim:SynchronousMachine rdf:ID="SM.ENERGIZED.NO_STATUS" />
+  <cim:Terminal rdf:ID="Term.SM.2">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.ENERGIZED.NO_STATUS" />
+  </cim:Terminal>
+
+  <cim:LinearShuntCompensator rdf:ID="LSC.ENERGIZED.NO_SVSC" />
+  <cim:Terminal rdf:ID="Term.LSC.2">
+    <cim:Terminal.ConductingEquipment rdf:resource="#LSC.ENERGIZED.NO_SVSC" />
+  </cim:Terminal>
+</rdf:RDF>

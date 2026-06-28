@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:SynchronousMachine rdf:ID="SM.1">
+    <cim:RotatingMachine.ratedPowerFactor>0.8</cim:RotatingMachine.ratedPowerFactor>
+    <cim:RotatingMachine.ratedS>100.0</cim:RotatingMachine.ratedS>
+  </cim:SynchronousMachine>
+</rdf:RDF>

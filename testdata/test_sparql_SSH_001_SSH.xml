@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. BAD: EnergySource.activePower must not be set for a consumer -->
+  <cim:EnergySource rdf:about="#ES.CONSUMER">
+    <cim:EnergySource.activePower>10.0</cim:EnergySource.activePower>
+  </cim:EnergySource>
+
+  <!-- 2a. BAD: continuous RC has targetDeadband — only discrete controls may have it -->
+  <cim:RegulatingControl rdf:about="#RC.CONT.WITH.DEAD">
+    <cim:RegulatingControl.targetDeadband>1.0</cim:RegulatingControl.targetDeadband>
+  </cim:RegulatingControl>
+  <!-- 2b. BAD: discrete RC is missing targetDeadband — no SSH extension needed (absence is the violation) -->
+
+  <!-- 3. BAD: CsConverter rectifier with alpha outside [10, 20] range -->
+  <cim:CsConverter rdf:about="#CSC.RECT.BAD.RANGE">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.rectifier" />
+  </cim:CsConverter>
+
+  <!-- 4. BAD: VsConverter with pPccAndUdcDroop control missing required droop/targetUdc -->
+  <cim:VsConverter rdf:about="#VSC.P.BAD.DROOP">
+    <cim:VsConverter.pPccControl rdf:resource="http://iec.ch/TC57/CIM100#VsPpccControlKind.pPccAndUdcDroop" />
+    <cim:ACDCConverter.targetPpcc>100</cim:ACDCConverter.targetPpcc>
+  </cim:VsConverter>
+</rdf:RDF>

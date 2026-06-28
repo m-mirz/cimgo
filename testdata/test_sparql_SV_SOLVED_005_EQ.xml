@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- RegulatingControl: mode and Terminal link are EQ; enabled and targetValue (SSH) in SSH file -->
+  <cim:RegulatingControl rdf:ID="RC.V.1">
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+  </cim:RegulatingControl>
+  <!-- BAD: two enabled voltage RCs targeting the same terminal with different targetValues -->
+  <cim:RegulatingControl rdf:ID="RC.V.2">
+    <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.voltage" />
+    <cim:RegulatingControl.Terminal rdf:resource="#Term.1" />
+  </cim:RegulatingControl>
+
+  <cim:Terminal rdf:ID="Term.1" />
+  <cim:Terminal rdf:ID="Term.2" />
+
+  <!-- SynchronousMachine controlled by RC.V.1 but in a different island -->
+  <cim:SynchronousMachine rdf:ID="SM.ISLAND.BAD">
+    <cim:RegulatingCondEq.RegulatingControl rdf:resource="#RC.V.1" />
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.SM.BAD">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.ISLAND.BAD" />
+  </cim:Terminal>
+
+  <!-- RatioTapChanger controlled by RC.V.1 but in a different island -->
+  <cim:RatioTapChanger rdf:ID="RTC.ISLAND.BAD">
+    <cim:TapChanger.TapChangerControl rdf:resource="#RC.V.1" />
+    <cim:RatioTapChanger.TransformerEnd rdf:resource="#PTE.BAD" />
+  </cim:RatioTapChanger>
+  <cim:PowerTransformerEnd rdf:ID="PTE.BAD">
+    <cim:TransformerEnd.Terminal rdf:resource="#Term.PTE.BAD" />
+  </cim:PowerTransformerEnd>
+  <cim:Terminal rdf:ID="Term.PTE.BAD" />
+</rdf:RDF>

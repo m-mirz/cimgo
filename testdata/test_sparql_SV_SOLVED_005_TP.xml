@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.1" />
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.1" />
+  </cim:TopologicalIsland>
+
+  <cim:TopologicalNode rdf:ID="TN.2" />
+  <cim:TopologicalIsland rdf:ID="TI.2">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.2" />
+  </cim:TopologicalIsland>
+
+  <!-- RC controls Terminal in TI.1 -->
+  <cim:Terminal rdf:about="#Term.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
+  </cim:Terminal>
+
+  <!-- SM and RTC are in TI.2 — island mismatch with RC.V.1 which controls TN.1 -->
+  <cim:Terminal rdf:about="#Term.SM.BAD">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.PTE.BAD">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
+  </cim:Terminal>
+</rdf:RDF>

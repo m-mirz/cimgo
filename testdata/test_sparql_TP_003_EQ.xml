@@ -1,54 +1,41 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <cim:TopologicalNode rdf:ID="TN.1">
-    <cim:IdentifiedObject.name>TN 1</cim:IdentifiedObject.name>
-  </cim:TopologicalNode>
-  <cim:TopologicalNode rdf:ID="TN.2">
-    <cim:IdentifiedObject.name>TN 2</cim:IdentifiedObject.name>
-  </cim:TopologicalNode>
-
-  <!-- OK: retained Switch connected to different TNs -->
+  <!-- OK: retained Switch -->
   <cim:Breaker rdf:ID="SW.OK">
     <cim:Switch.retained>true</cim:Switch.retained>
   </cim:Breaker>
   <cim:Terminal rdf:ID="Term.OK.1">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.OK" />
     <cim:ACDCTerminal.sequenceNumber>1</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
   </cim:Terminal>
   <cim:Terminal rdf:ID="Term.OK.2">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.OK" />
     <cim:ACDCTerminal.sequenceNumber>2</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
   </cim:Terminal>
 
-  <!-- BAD: retained Switch connected to same TN -->
+  <!-- BAD: retained Switch whose two terminals land on the same TopologicalNode -->
   <cim:Breaker rdf:ID="SW.BAD">
     <cim:Switch.retained>true</cim:Switch.retained>
   </cim:Breaker>
   <cim:Terminal rdf:ID="Term.BAD.1">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.BAD" />
     <cim:ACDCTerminal.sequenceNumber>1</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
   </cim:Terminal>
   <cim:Terminal rdf:ID="Term.BAD.2">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.BAD" />
     <cim:ACDCTerminal.sequenceNumber>2</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
   </cim:Terminal>
 
-  <!-- OK: not retained Switch connected to same TN -->
+  <!-- OK: not-retained Switch — rule does not apply -->
   <cim:Breaker rdf:ID="SW.NOT_RETAINED.OK">
     <cim:Switch.retained>false</cim:Switch.retained>
   </cim:Breaker>
   <cim:Terminal rdf:ID="Term.NR.1">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.NOT_RETAINED.OK" />
     <cim:ACDCTerminal.sequenceNumber>1</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
   </cim:Terminal>
   <cim:Terminal rdf:ID="Term.NR.2">
     <cim:Terminal.ConductingEquipment rdf:resource="#SW.NOT_RETAINED.OK" />
     <cim:ACDCTerminal.sequenceNumber>2</cim:ACDCTerminal.sequenceNumber>
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
   </cim:Terminal>
 </rdf:RDF>

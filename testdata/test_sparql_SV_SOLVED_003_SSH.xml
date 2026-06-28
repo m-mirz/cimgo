@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- RC.DISCRETE is enabled — so the discrete-integer checks apply -->
+  <cim:RegulatingControl rdf:about="#RC.DISCRETE">
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+  </cim:RegulatingControl>
+</rdf:RDF>

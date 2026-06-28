@@ -1,15 +1,29 @@
 package validation
 
 import (
+	"cimgo/cgmesxml"
+	"cimgo/cimstructs"
 	"strings"
 	"testing"
 )
 
+func mergeDatasets(tb testing.TB, datasets ...*cimstructs.CIMDataset) *cimstructs.CIMDataset {
+	tb.Helper()
+	result := cimstructs.NewCIMDataset()
+	for _, ds := range datasets {
+		if err := cgmesxml.MergeInto(result, ds); err != nil {
+			tb.Fatalf("merge failed: %v", err)
+		}
+	}
+	return result
+}
+
 func TestValidateDiagramLayoutProfileSPARQL(t *testing.T) {
 	// The rule says DiagramObject.IdentifiedObject must NOT point to:
 	// Diagram, DiagramObject, VisibilityLayer, DiagramStyle, DiagramObjectStyle, TextDiagramObject.
-	dataset := loadDataset(t, "../testdata/test_sparql_DL_001.xml")
-
+	eqDataset := loadDataset(t, "../testdata/test_sparql_DL_001_EQ.xml")
+	dlDataset := loadDataset(t, "../testdata/test_sparql_DL_001_DL.xml")
+	dataset := mergeDatasets(t, eqDataset, dlDataset)
 	byID := indexByID(ValidateDLProfileSPARQL(dataset))
 
 	if got := len(byID["DiagramObject.OK"]); got != 0 {
@@ -161,7 +175,11 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("AngleReference", func(t *testing.T) {
 		// Priority 1 SM must be at the AngleRefTopologicalNode.
-		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002_EQ.xml")
+		sshDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002_SSH.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002_TP.xml")
+		svDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_002_SV.xml")
+		dataset := mergeDatasets(t, eqDataset, sshDataset, tpDataset, svDataset)
 		violations := append(ValidateCommonRulesSolvedMASSPARQL(dataset), ValidateSVSolvedMASProfileSPARQL(dataset)...)
 		byID := indexByID(violations)
 		if got := len(byID["SM.OK"]); got != 0 {
@@ -188,7 +206,11 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("456", func(t *testing.T) {
 		// Various complex SV SolvedMAS 456 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003_EQ.xml")
+		sshDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003_SSH.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003_TP.xml")
+		svDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_003_SV.xml")
+		dataset := mergeDatasets(t, eqDataset, sshDataset, tpDataset, svDataset)
 		byID := indexByID(ValidateSVSolvedMASProfileSPARQL(dataset))
 		for _, id := range []string{
 			"SM.ENERGIZED", // Missing SvPowerFlow
@@ -206,7 +228,11 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("600-1", func(t *testing.T) {
 		// Various complex SV SolvedMAS 600-1 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004_EQ.xml")
+		sshDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004_SSH.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004_TP.xml")
+		svDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_004_SV.xml")
+		dataset := mergeDatasets(t, eqDataset, sshDataset, tpDataset, svDataset)
 		violations := append(ValidateCommonRulesSolvedMASSPARQL(dataset), ValidateSVSolvedMASProfileSPARQL(dataset)...)
 		byID := indexByID(violations)
 		for _, id := range []string{
@@ -225,7 +251,10 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("RegulatingControl-600-2", func(t *testing.T) {
 		// Various complex RC SolvedMAS 600-2 SPARQL rules.
-		dataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_005.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_005_EQ.xml")
+		sshDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_005_SSH.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_SV_SOLVED_005_TP.xml")
+		dataset := mergeDatasets(t, eqDataset, sshDataset, tpDataset)
 		violations := append(ValidateCommonRulesSolvedMASSPARQL(dataset), ValidateSVSolvedMASProfileSPARQL(dataset)...)
 		byID := indexByID(violations)
 		if got := len(byID["RC.V.2"]); got != 1 {
@@ -240,7 +269,9 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 
 func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 	// Various complex SSH NotSolvedMAS rules.
-	dataset := loadDataset(t, "../testdata/test_sparql_SSH_NOTSOLVED_001.xml")
+	eqDataset := loadDataset(t, "../testdata/test_sparql_SSH_NOTSOLVED_001_EQ.xml")
+	sshDataset := loadDataset(t, "../testdata/test_sparql_SSH_NOTSOLVED_001_SSH.xml")
+	dataset := mergeDatasets(t, eqDataset, sshDataset)
 
 	byID := indexByID(ValidateSSHNotSolvedMASProfileSPARQL(dataset))
 
@@ -264,7 +295,9 @@ func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 
 func TestValidateSSHProfileSPARQL(t *testing.T) {
 	// Various complex SSH SPARQL rules.
-	dataset := loadDataset(t, "../testdata/test_sparql_SSH_001.xml")
+	eqDataset := loadDataset(t, "../testdata/test_sparql_SSH_001_EQ.xml")
+	sshDataset := loadDataset(t, "../testdata/test_sparql_SSH_001_SSH.xml")
+	dataset := mergeDatasets(t, eqDataset, sshDataset)
 
 	byID := indexByID(ValidateSSHProfileSPARQL(dataset))
 
@@ -286,7 +319,9 @@ func TestValidateSSHProfileSPARQL(t *testing.T) {
 func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 	t.Run("PhaseCodeConsistency", func(t *testing.T) {
 		// Terminals at the same TopologicalNode must have consistent phase codes.
-		dataset := loadDataset(t, "../testdata/test_sparql_TP_001.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_TP_001_EQ.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_TP_001_TP.xml")
+		dataset := mergeDatasets(t, eqDataset, tpDataset)
 		byID := indexByID(ValidateTPNotSolvedMASProfileSPARQL(dataset))
 		if got := len(byID["TN.OK"]); got != 0 {
 			t.Errorf("TN.OK: expected 0 violations, got %d: %v", got, byID["TN.OK"])
@@ -299,7 +334,9 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("EXCH8TopologicalNode", func(t *testing.T) {
 		// Terminal.TopologicalNode is required if a RegulatingControl is associated.
-		dataset := loadDataset(t, "../testdata/test_sparql_TP_002.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_TP_002_EQ.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_TP_002_TP.xml")
+		dataset := mergeDatasets(t, eqDataset, tpDataset)
 		byID := indexByID(ValidateTPNotSolvedMASProfileSPARQL(dataset))
 		if got := len(byID["Term.OK"]); got != 0 {
 			t.Errorf("Term.OK: expected 0 violations, got %d: %v", got, byID["Term.OK"])
@@ -312,7 +349,9 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 
 	t.Run("SameTopologicalNode", func(t *testing.T) {
 		// Terminals of a retained Switch shall not be connected to the same TopologicalNode.
-		dataset := loadDataset(t, "../testdata/test_sparql_TP_003.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_TP_003_EQ.xml")
+		tpDataset := loadDataset(t, "../testdata/test_sparql_TP_003_TP.xml")
+		dataset := mergeDatasets(t, eqDataset, tpDataset)
 		byID := indexByID(ValidateTPNotSolvedMASProfileSPARQL(dataset))
 		if got := len(byID["SW.OK"]); got != 0 {
 			t.Errorf("SW.OK: expected 0 violations, got %d: %v", got, byID["SW.OK"])
@@ -330,7 +369,9 @@ func TestValidateTopologyNotSolvedMASProfileSPARQL(t *testing.T) {
 func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 	t.Run("MbaseEquation", func(t *testing.T) {
 		// mwbase must equal RotatingMachine.ratedPowerFactor * RotatingMachine.ratedS.
-		dataset := loadDataset(t, "../testdata/test_sparql_DY_001.xml")
+		eqDataset := loadDataset(t, "../testdata/test_sparql_DY_001_EQ.xml")
+		dyDataset := loadDataset(t, "../testdata/test_sparql_DY_001_DY.xml")
+		dataset := mergeDatasets(t, eqDataset, dyDataset)
 		byID := indexByID(ValidateDYProfileSPARQL(dataset))
 		if got := len(byID["GOV.OK"]); got != 0 {
 			t.Errorf("GOV.OK: expected 0 violations, got %d: %v", got, byID["GOV.OK"])

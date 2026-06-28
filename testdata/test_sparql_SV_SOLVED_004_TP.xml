@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.1" />
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.1" />
+  </cim:TopologicalIsland>
+
+  <cim:Terminal rdf:about="#Term.LSC.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.PTE.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.SM.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.LSC.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+</rdf:RDF>

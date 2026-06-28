@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- EnergySource: static declaration; activePower (SSH) in SSH file -->
+  <cim:EnergySource rdf:ID="ES.CONSUMER" />
+
+  <!-- RegulatingControl: discrete is EQ (design); targetDeadband (SSH) in SSH file -->
+  <cim:RegulatingControl rdf:ID="RC.CONT.WITH.DEAD">
+    <cim:RegulatingControl.discrete>false</cim:RegulatingControl.discrete>
+  </cim:RegulatingControl>
+  <cim:RegulatingControl rdf:ID="RC.DISC.WITHOUT.DEAD">
+    <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
+  </cim:RegulatingControl>
+
+  <!-- CsConverter: design limits are EQ; operatingMode (SSH) in SSH file -->
+  <cim:CsConverter rdf:ID="CSC.RECT.BAD.RANGE">
+    <cim:CsConverter.maxAlpha>20.0</cim:CsConverter.maxAlpha>
+    <cim:CsConverter.minAlpha>5.0</cim:CsConverter.minAlpha>
+  </cim:CsConverter>
+
+  <!-- VsConverter: static declaration; pPccControl and targetPpcc (SSH) in SSH file -->
+  <cim:VsConverter rdf:ID="VSC.P.BAD.DROOP" />
+</rdf:RDF>

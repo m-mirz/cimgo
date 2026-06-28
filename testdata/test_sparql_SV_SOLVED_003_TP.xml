@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.1">
+    <cim:IdentifiedObject.name>TN 1</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.1" />
+  </cim:TopologicalIsland>
+  <cim:Terminal rdf:about="#Term.SM.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+
+  <!-- TN.BAD.VOLT: BaseVoltage reference for SvVoltage pu check -->
+  <cim:TopologicalNode rdf:ID="TN.BAD.VOLT">
+    <cim:TopologicalNode.BaseVoltage rdf:resource="#BV.110" />
+  </cim:TopologicalNode>
+</rdf:RDF>

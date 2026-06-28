@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- LSC.SYNC.BAD: SSH sections=1.0, but SvShuntCompensatorSections.sections=2.0 (mismatch) -->
+  <cim:LinearShuntCompensator rdf:about="#LSC.SYNC.BAD">
+    <cim:RegulatingCondEq.controlEnabled>false</cim:RegulatingCondEq.controlEnabled>
+    <cim:ShuntCompensator.sections>1.0</cim:ShuntCompensator.sections>
+  </cim:LinearShuntCompensator>
+
+  <!-- RTC.SYNC.BAD: SSH step=5.0, but SvTapStep.position=6.0 (mismatch) -->
+  <cim:RatioTapChanger rdf:about="#RTC.SYNC.BAD">
+    <cim:TapChanger.controlEnabled>false</cim:TapChanger.controlEnabled>
+    <cim:TapChanger.step>5.0</cim:TapChanger.step>
+  </cim:RatioTapChanger>
+</rdf:RDF>

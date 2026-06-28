@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- Both RCs are enabled and target the same terminal with different values -->
+  <cim:RegulatingControl rdf:about="#RC.V.1">
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.targetValue>110.0</cim:RegulatingControl.targetValue>
+  </cim:RegulatingControl>
+  <!-- BAD: RC.V.2 targets 115.0 — contradicts RC.V.1's 110.0 on the same terminal -->
+  <cim:RegulatingControl rdf:about="#RC.V.2">
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+    <cim:RegulatingControl.targetValue>115.0</cim:RegulatingControl.targetValue>
+  </cim:RegulatingControl>
+</rdf:RDF>

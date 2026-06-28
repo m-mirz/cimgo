@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:Terminal rdf:ID="Term.OK.1">
+    <cim:Terminal.phases rdf:resource="http://iec.ch/TC57/CIM100#PhaseCode.ABC" />
+  </cim:Terminal>
+  <cim:Terminal rdf:ID="Term.OK.2">
+    <cim:Terminal.phases rdf:resource="http://iec.ch/TC57/CIM100#PhaseCode.ABC" />
+  </cim:Terminal>
+
+  <cim:Terminal rdf:ID="Term.BAD.1">
+    <cim:Terminal.phases rdf:resource="http://iec.ch/TC57/CIM100#PhaseCode.ABC" />
+  </cim:Terminal>
+  <cim:Terminal rdf:ID="Term.BAD.2">
+    <cim:Terminal.phases rdf:resource="http://iec.ch/TC57/CIM100#PhaseCode.N" />
+  </cim:Terminal>
+</rdf:RDF>

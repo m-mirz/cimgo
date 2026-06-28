@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- OK: Priority 1 SM at the AngleRefTopologicalNode -->
+  <cim:SynchronousMachine rdf:about="#SM.OK">
+    <cim:SynchronousMachine.referencePriority>1</cim:SynchronousMachine.referencePriority>
+  </cim:SynchronousMachine>
+
+  <!-- BAD: Priority 1 SM connected to a different TopologicalNode -->
+  <cim:SynchronousMachine rdf:about="#SM.BAD.NODE">
+    <cim:SynchronousMachine.referencePriority>1</cim:SynchronousMachine.referencePriority>
+  </cim:SynchronousMachine>
+</rdf:RDF>

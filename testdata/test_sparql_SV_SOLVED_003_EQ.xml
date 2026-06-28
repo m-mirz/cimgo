@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. SvPowerFlow check: SM must have SvPowerFlow when energized -->
+  <cim:SynchronousMachine rdf:ID="SM.ENERGIZED">
+    <cim:IdentifiedObject.name>Energized SM</cim:IdentifiedObject.name>
+  </cim:SynchronousMachine>
+  <cim:Terminal rdf:ID="Term.SM.1">
+    <cim:Terminal.ConductingEquipment rdf:resource="#SM.ENERGIZED" />
+  </cim:Terminal>
+
+  <!-- 2. SvSwitch check: Breaker must have SvSwitch -->
+  <cim:Breaker rdf:ID="SW.1">
+    <cim:IdentifiedObject.name>Breaker 1</cim:IdentifiedObject.name>
+  </cim:Breaker>
+
+  <!-- 3. Integer value checks: RegulatingControl link and design attributes -->
+  <cim:RegulatingControl rdf:ID="RC.DISCRETE">
+    <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
+  </cim:RegulatingControl>
+  <cim:LinearShuntCompensator rdf:ID="LSC.1">
+    <cim:RegulatingCondEq.RegulatingControl rdf:resource="#RC.DISCRETE" />
+  </cim:LinearShuntCompensator>
+  <cim:RatioTapChanger rdf:ID="RTC.1">
+    <cim:TapChanger.TapChangerControl rdf:resource="#RC.DISCRETE" />
+  </cim:RatioTapChanger>
+
+  <!-- 4. SvVoltage limits: BaseVoltage for pu calculation -->
+  <cim:BaseVoltage rdf:ID="BV.110">
+    <cim:BaseVoltage.nominalVoltage>110.0</cim:BaseVoltage.nominalVoltage>
+  </cim:BaseVoltage>
+</rdf:RDF>

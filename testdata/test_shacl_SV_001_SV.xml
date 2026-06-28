@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- SvVoltage.v must be > 0 (sh:minExclusive 0) -->
+  <cim:SvVoltage rdf:ID="SvVoltage.OK">
+    <cim:SvVoltage.v>110.0</cim:SvVoltage.v>
+    <cim:SvVoltage.angle>5.0</cim:SvVoltage.angle>
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TopologicalNode.REF"/>
+  </cim:SvVoltage>
+  <cim:SvVoltage rdf:ID="SvVoltage.BAD">
+    <cim:SvVoltage.v>-1.0</cim:SvVoltage.v>
+    <cim:SvVoltage.angle>5.0</cim:SvVoltage.angle>
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TopologicalNode.REF"/>
+  </cim:SvVoltage>
+</rdf:RDF>

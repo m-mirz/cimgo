@@ -118,7 +118,9 @@ func TestValidateGLProfileSHACL(t *testing.T) {
 func TestValidateDLProfileSHACL(t *testing.T) {
 	t.Run("IdentifiedObject", func(t *testing.T) {
 		// DiagramObject.IdentifiedObject must NOT point to a cim.GeneratingUnit.
-		dataset := loadDataset(t, "../testdata/test_shacl_DL_001.xml")
+		eqDataset := loadDataset(t, "../testdata/test_shacl_DL_001_EQ.xml")
+		dlDataset := loadDataset(t, "../testdata/test_shacl_DL_001_DL.xml")
+		dataset := mergeDatasets(t, eqDataset, dlDataset)
 		byID := indexByID(ValidateGeneratedDiagramlayoutNotsolvedmasProfileSHACL(dataset))
 		if got := len(byID["DiagramObject.OK"]); got != 0 {
 			t.Errorf("DiagramObject.OK (points to SynchronousMachine): expected 0 violations, got %d: %v",
@@ -214,7 +216,9 @@ func TestValidateSCProfileSHACL(t *testing.T) {
 
 func TestValidateSVProfileSHACL(t *testing.T) {
 	// SvVoltage.v must be > 0 (sh:minExclusive 0).
-	dataset := loadDataset(t, "../testdata/test_shacl_SV_001.xml")
+	tpDataset := loadDataset(t, "../testdata/test_shacl_SV_001_TP.xml")
+	svDataset := loadDataset(t, "../testdata/test_shacl_SV_001_SV.xml")
+	dataset := mergeDatasets(t, tpDataset, svDataset)
 	byID := indexByID(ValidateGeneratedStatevariablesProfileSHACL(dataset))
 	if got := len(byID["SvVoltage.OK"]); got != 0 {
 		t.Errorf("SvVoltage.OK (v=110): expected 0 violations, got %d: %v", got, byID["SvVoltage.OK"])
@@ -227,7 +231,9 @@ func TestValidateSVProfileSHACL(t *testing.T) {
 
 func TestValidateDYProfileSHACL(t *testing.T) {
 	// AsynchronousMachineTimeConstantReactance.tppo must be < tpo (sh:lessThan).
-	dataset := loadDataset(t, "../testdata/test_shacl_DY_001.xml")
+	eqDataset := loadDataset(t, "../testdata/test_shacl_DY_001_EQ.xml")
+	dyDataset := loadDataset(t, "../testdata/test_shacl_DY_001_DY.xml")
+	dataset := mergeDatasets(t, eqDataset, dyDataset)
 	byID := indexByID(ValidateGeneratedDynamicsProfileSHACL(dataset))
 	if got := len(byID["AsynchronousMachineTimeConstantReactance.OK"]); got != 0 {
 		t.Errorf("AMTCR.OK (tppo=0.01 < tpo=0.1): expected 0 violations, got %d: %v", got, byID["AsynchronousMachineTimeConstantReactance.OK"])
@@ -253,7 +259,9 @@ func TestValidateOPProfileSHACL(t *testing.T) {
 
 func TestValidateTPProfileSHACL(t *testing.T) {
 	// TopologicalNode.name is required (sh:required).
-	dataset := loadDataset(t, "../testdata/test_shacl_TP_001.xml")
+	eqDataset := loadDataset(t, "../testdata/test_shacl_TP_001_EQ.xml")
+	tpDataset := loadDataset(t, "../testdata/test_shacl_TP_001_TP.xml")
+	dataset := mergeDatasets(t, eqDataset, tpDataset)
 	byID := indexByID(ValidateGeneratedTopologyProfileSHACL(dataset))
 	if got := len(byID["TopologicalNode.OK"]); got != 0 {
 		t.Errorf("TopologicalNode.OK (name present): expected 0 violations, got %d: %v", got, byID["TopologicalNode.OK"])
@@ -266,7 +274,9 @@ func TestValidateTPProfileSHACL(t *testing.T) {
 
 func TestValidateEQBDProfileSHACL(t *testing.T) {
 	// BoundaryPoint.fromEndIsoCode must be a valid European ISO-3166-1-alpha-2 code (sh:in).
-	dataset := loadDataset(t, "../testdata/test_shacl_EQBD_001.xml")
+	eqDataset := loadDataset(t, "../testdata/test_shacl_EQBD_001_EQ.xml")
+	eqbdDataset := loadDataset(t, "../testdata/test_shacl_EQBD_001_EQBD.xml")
+	dataset := mergeDatasets(t, eqDataset, eqbdDataset)
 	byID := indexByID(ValidateGeneratedEquipmentboundaryProfileSHACL(dataset))
 	if got := len(byID["BoundaryPoint.OK"]); got != 0 {
 		t.Errorf("BoundaryPoint.OK (fromEndIsoCode=DE): expected 0 violations, got %d: %v", got, byID["BoundaryPoint.OK"])

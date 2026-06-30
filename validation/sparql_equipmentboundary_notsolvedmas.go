@@ -53,7 +53,7 @@ func CheckBoundaryPointTieFlow(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eqbdn301:BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow",
-					Name:     "BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow",
+					Name:     "C:301:EQBD:BoundaryPoint.isExcludedFromAreaInterchange:requiredTieFlow",
 					Class:    "BoundaryPoint",
 					Property: "isExcludedFromAreaInterchange",
 					Message:  "TieFlow is modelled but isExcludedFromAreaInterchange is true.",
@@ -65,7 +65,7 @@ func CheckBoundaryPointTieFlow(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eqbdn301:BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow",
-					Name:     "BoundaryPoint.isExcludedFromAreaInterchange-requiredTieFlow",
+					Name:     "C:301:EQBD:BoundaryPoint.isExcludedFromAreaInterchange:requiredTieFlow",
 					Class:    "BoundaryPoint",
 					Property: "isExcludedFromAreaInterchange",
 					Message:  "TieFlow is required but not modelled for this BoundaryPoint.",

@@ -35,8 +35,8 @@ func CheckEnergySourceActivePowerConsumer(dataset *cimstructs.CIMDataset) []Viol
 		if es.ActivePower > 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.EnergySource.activePower-consumer",
-				Name:     "EnergySource.activePower-consumer",
+				RuleID:   "sshu:EnergySource.activePower-consumer",
+				Name:     "C:301:SSH:EnergySource.activePower:consumer",
 				Class:    "EnergySource",
 				Property: "EnergySource.activePower",
 				Message:  "EnergySource that is a consumer (activePower > 0).",
@@ -59,8 +59,8 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimstructs.CIMDa
 		if (rc.TargetDeadband != 0 && !rc.Discrete) || (rc.TargetDeadband == 0 && rc.Discrete) {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.RegulatingControl.targetDeadband-applicability",
-				Name:     "RegulatingControl.targetDeadband-applicability",
+				RuleID:   "sshu:RegulatingControl.targetDeadband-applicability",
+				Name:     "C:301:SSH:RegulatingControl.targetDeadband:applicability",
 				Class:    "RegulatingControl",
 				Property: "RegulatingControl.discrete",
 				Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
@@ -72,8 +72,8 @@ func CheckRegulatingControlTargetDeadbandApplicability(dataset *cimstructs.CIMDa
 		if (tcc.TargetDeadband != 0 && !tcc.Discrete) || (tcc.TargetDeadband == 0 && tcc.Discrete) {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.RegulatingControl.targetDeadband-applicability",
-				Name:     "RegulatingControl.targetDeadband-applicability",
+				RuleID:   "sshu:RegulatingControl.targetDeadband-applicability",
+				Name:     "C:301:SSH:RegulatingControl.targetDeadband:applicability",
 				Class:    "TapChangerControl",
 				Property: "RegulatingControl.discrete",
 				Message:  "Either RegulatingControl.targetDeadband is provided for a continuous control or it is not provided for a discrete control.",
@@ -105,8 +105,8 @@ func CheckCsConverterValueRange(dataset *cimstructs.CIMDataset) []Violation {
 			if csc.MaxAlpha > 18 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.CsConverter.maxAlpha-valueRangeTypical",
-					Name:     "CsConverter.maxAlpha-valueRangeTypical",
+					RuleID:   "sshu:CsConverter.maxAlpha-valueRangeTypical",
+					Name:     "C:301:EQ:CsConverter.maxAlpha:valueRangeTypical",
 					Class:    "CsConverter",
 					Property: "CsConverter.maxAlpha",
 					Message:  "The maxAlpha value is greater than 18 for a rectifier.",
@@ -116,8 +116,8 @@ func CheckCsConverterValueRange(dataset *cimstructs.CIMDataset) []Violation {
 			if csc.MinAlpha < 10 || csc.MinAlpha > csc.MaxAlpha {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.CsConverter.minAlpha-valueRangeTypical",
-					Name:     "CsConverter.minAlpha-valueRangeTypical",
+					RuleID:   "sshu:CsConverter.minAlpha-valueRangeTypical",
+					Name:     "C:301:SV:CsConverter.minAlpha:valueRangeTypical",
 					Class:    "CsConverter",
 					Property: "CsConverter.minAlpha",
 					Message:  "The minAlpha value is less than 10 or greater than CsConverter.maxAlpha for a rectifier.",
@@ -128,8 +128,8 @@ func CheckCsConverterValueRange(dataset *cimstructs.CIMDataset) []Violation {
 			if csc.MaxGamma > 20 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.CsConverter.maxGamma-valueRangeTypical",
-					Name:     "CsConverter.maxGamma-valueRangeTypical",
+					RuleID:   "sshu:CsConverter.maxGamma-valueRangeTypical",
+					Name:     "C:301:EQ:CsConverter.maxGamma:valueRangeTypical",
 					Class:    "CsConverter",
 					Property: "CsConverter.maxGamma",
 					Message:  "The maxGamma value is greater than 20 for an inverter.",
@@ -139,8 +139,8 @@ func CheckCsConverterValueRange(dataset *cimstructs.CIMDataset) []Violation {
 			if csc.MinGamma < 17 || csc.MinGamma > csc.MaxGamma {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.CsConverter.minGamma-valueRangeTypical",
-					Name:     "CsConverter.minGamma-valueRangeTypical",
+					RuleID:   "sshu:CsConverter.minGamma-valueRangeTypical",
+					Name:     "C:301:SV:CsConverter.minGamma:valueRangeTypical",
 					Class:    "CsConverter",
 					Property: "CsConverter.minGamma",
 					Message:  "The minGamma value is less than 17 or greater than CsConverter.maxGamma for an inverter.",
@@ -173,8 +173,8 @@ func CheckCsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 		if control == dcCurrent && csc.TargetIdc == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.CsConverter.pPccControl-targetValueIdc",
-				Name:     "CsConverter.pPccControl-targetValueIdc",
+				RuleID:   "sshu:CsConverter.pPccControl-targetValueIdc",
+				Name:     "C:301:SSH:CsPpccControlKind.dcCurrent:targetValueIdc",
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "CsConverter.targetIdc is not provided for a converter with CsPpccControlKind.dcCurrent.",
@@ -183,8 +183,8 @@ func CheckCsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 		} else if control == dcVoltage && csc.TargetUdc == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.CsConverter.pPccControl-targetValueUdc",
-				Name:     "CsConverter.pPccControl-targetValueUdc",
+				RuleID:   "sshu:CsConverter.pPccControl-targetValueUdc",
+				Name:     "C:301:SSH:CsPpccControlKind.dcVoltage:targetValueUdc",
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "ACDCConverter.targetUdc is not provided for a converter with CsPpccControlKind.dcVoltage.",
@@ -193,8 +193,8 @@ func CheckCsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 		} else if control == activePower && csc.TargetPpcc == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc.CsConverter.pPccControl-targetValuePpcc",
-				Name:     "CsConverter.pPccControl-targetValuePpcc",
+				RuleID:   "sshu:CsConverter.pPccControl-targetValuePpcc",
+				Name:     "C:301:SSH:CsPpccControlKind.activePower:targetValuePpcc",
 				Class:    "CsConverter",
 				Property: "CsConverter.pPccControl",
 				Message:  "ACDCConverter.targetPpcc is not provided for a converter with CsPpccControlKind.activePower.",
@@ -226,8 +226,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPpcc == 0 || vsc.TargetUdc == 0 || vsc.Droop == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValuepPccAndUdcDroop",
+					Name:     "C:301:SSH:VsPpccControlKind.pPccAndUdcDroop:targetValuepPccAndUdcDroop",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroop.",
@@ -238,8 +238,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPpcc == 0 || vsc.TargetUdc == 0 || vsc.Droop == 0 || vsc.DroopCompensation == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValuepPccAndUdcDroopWithCompensation",
+					Name:     "C:301:SSH:VsPpccControlKind.pPccAndUdcDroopWithCompensation:targetValuepPccAndUdcDroopWithCompensation",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc, VsConverter.droop and VsConverter.droopCompensation are not provided for VsPpccControlKind.pPccAndUdcDroopWithCompensation.",
@@ -250,8 +250,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPpcc == 0 || vsc.TargetUdc == 0 || vsc.Droop == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValuepPccAndUdcDroopPilot",
+					Name:     "C:301:SSH:VsPpccControlKind.pPccAndUdcDroopPilot:targetValuepPccAndUdcDroopPilot",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "One or all among ACDCConverter.targetPpcc, ACDCConverter.targetUdc and VsConverter.droop are not provided for VsPpccControlKind.pPccAndUdcDroopPilot.",
@@ -262,8 +262,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetUdc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValueUdc",
+					Name:     "C:301:SSH:VsPpccControlKind.udc:targetValueUdc",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "ACDCConverter.targetUdc is not provided for VsPpccControlKind.udc.",
@@ -274,8 +274,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPpcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValuePpcc",
+					Name:     "C:301:SSH:VsPpccControlKind.pPcc:targetValuePpcc",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "ACDCConverter.targetPpcc is not provided for VsPpccControlKind.pPcc.",
@@ -286,8 +286,8 @@ func CheckVsConverterPPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPhasePcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.pPccControl rules",
-					Name:     "VsConverter.pPccControl rules",
+					RuleID:   "sshu:VsConverter.pPccControl-targetValuephasePcc",
+					Name:     "C:301:SSH:VsPpccControlKind.phasePcc:targetValuephasePcc",
 					Class:    "VsConverter",
 					Property: "VsConverter.pPccControl",
 					Message:  "VsConverter.targetPhasePcc is not provided for VsPpccControlKind.phasePcc.",
@@ -320,8 +320,8 @@ func CheckVsConverterQPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPowerFactorPcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.qPccControl rules",
-					Name:     "VsConverter.qPccControl rules",
+					RuleID:   "sshu:VsConverter.qPccControl-targetValuepowerFactorPcc",
+					Name:     "C:301:SSH:VsQpccControlKind.powerFactorPcc:targetValuepowerFactorPcc",
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetPowerFactorPcc is not provided for VsQpccControlKind.powerFactorPcc.",
@@ -332,8 +332,8 @@ func CheckVsConverterQPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetPWMfactor == 0 || vsc.TargetPhasePcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.qPccControl rules",
-					Name:     "VsConverter.qPccControl rules",
+					RuleID:   "sshu:VsConverter.qPccControl-targetValuepulseWidthModulation",
+					Name:     "C:301:SSH:VsQpccControlKind.pulseWidthModulation:targetValuepulseWidthModulation",
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetPWMfactor and/or VsConverter.targetPhasePcc are not provided for VsQpccControlKind.pulseWidthModulation.",
@@ -344,8 +344,8 @@ func CheckVsConverterQPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetQpcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.qPccControl rules",
-					Name:     "VsConverter.qPccControl rules",
+					RuleID:   "sshu:VsConverter.qPccControl-targetValuereactivePcc",
+					Name:     "C:301:SSH:VsQpccControlKind.reactivePcc:targetValuereactivePcc",
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetQpcc is not provided for VsQpccControlKind.reactivePcc.",
@@ -356,8 +356,8 @@ func CheckVsConverterQPccControl(dataset *cimstructs.CIMDataset) []Violation {
 			if vsc.TargetUpcc == 0 {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "sshc.VsConverter.qPccControl rules",
-					Name:     "VsConverter.qPccControl rules",
+					RuleID:   "sshu:VsConverter.qPccControl-targetValuevoltagePcc",
+					Name:     "C:301:SSH:VsQpccControlKind.voltagePcc:targetValuevoltagePcc",
 					Class:    "VsConverter",
 					Property: "VsConverter.qPccControl",
 					Message:  "VsConverter.targetUpcc is not provided for VsQpccControlKind.voltagePcc.",
@@ -381,8 +381,8 @@ func CheckEnergySourcePQ(dataset *cimstructs.CIMDataset) []Violation {
 		if es.VoltageAngle != 0 || es.VoltageMagnitude != 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sshc456:EnergySource-EnergySourcePQ",
-				Name:     "EnergySource-EnergySourcePQ",
+				RuleID:   "ssh456:EnergySource-EnergySourcePQ",
+				Name:     "C:456:SSH:EnergySource:EnergySourcePQ",
 				Class:    "EnergySource",
 				Property: "EnergySource.voltageAngle",
 				Message:  "EnergySource modelled as voltage source (attributes voltageAngle and voltageMagnitude are used). Please assess depending on the use case.",

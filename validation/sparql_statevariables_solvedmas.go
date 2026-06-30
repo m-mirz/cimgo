@@ -60,8 +60,8 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 		if sv.Position < float64(low) || sv.Position > float64(high) {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "SvTapStep.position-valueRange",
-				Name:     "SvTapStep.position-valueRange",
+				RuleID:   "svs301:SvTapStep.position-valueRange",
+				Name:     "C:301:SV:SvTapStep.position:valueRange",
 				Class:    "SvTapStep",
 				Property: "SvTapStep.position",
 				Message:  fmt.Sprintf("The value (%v) is out of range [%d,%d].", sv.Position, low, high),
@@ -109,7 +109,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Vi
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "svs456:SvShuntCompensatorSections.sections-value",
-					Name:     "SvShuntCompensatorSections.sections-value",
+					Name:     "C:456:SV:SvShuntCompensatorSections.sections:value",
 					Class:    "SvShuntCompensatorSections",
 					Property: "SvShuntCompensatorSections.sections",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svsc.Sections),
@@ -158,7 +158,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "svs456:SvTapStep.position-value",
-					Name:     "SvTapStep.position-value",
+					Name:     "C:456:SV:SvTapStep.position:value",
 					Class:    "SvTapStep",
 					Property: "SvTapStep.position",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svts.Position),
@@ -199,7 +199,7 @@ func CheckSvSwitchInstance(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvSwitch-instance",
-				Name:     "SvSwitch-instance",
+				Name:     "C:456:SV:SvSwitch:instance",
 				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvSwitch not instantiated.",
 				Severity: "sh:Violation",
@@ -273,7 +273,7 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow-instance",
-				Name:     "SvPowerFlow-instance",
+				Name:     "R:456:SV:SvPowerFlow:instance",
 				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvPowerFlow is not instantiated for energized equipment.",
 				Severity: "sh:Violation",
@@ -318,7 +318,7 @@ func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow.p-synchronousMachine",
-				Name:     "SvPowerFlow.p-synchronousMachine",
+				Name:     "C:456:SV:SvPowerFlow.p:synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.p",
 				Message:  fmt.Sprintf("Active power (%v) is outside of the range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.P, gu.MinOperatingP, gu.MaxOperatingP, sm.Id),
@@ -388,7 +388,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow.q-synchronousMachine",
-				Name:     "SvPowerFlow.q-synchronousMachine",
+				Name:     "C:456:SV:SvPowerFlow.q:synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.q",
 				Message:  fmt.Sprintf("Reactive power (%v) is outside of the capability range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.Q, minQ, maxQ, sm.Id),
@@ -430,7 +430,7 @@ func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvVoltage.v-absoluteLimit",
-				Name:     "SvVoltage.v-absoluteLimit",
+				Name:     "C:456:SV:SvVoltage.v:absoluteLimit",
 				Class:    "SvVoltage",
 				Property: "SvVoltage.v",
 				Message:  fmt.Sprintf("The value (%v) is <=0.4 pu of nominal voltage (%v).", v, nomV),

@@ -222,11 +222,17 @@ func generateProfilePage(name string, clsNames []string, outDir string, allClass
 				continue
 			}
 
+			// rendering type inheritance inside package
 			super := clsData.SuperType
 			if relevant[super] {
 				fmt.Fprintf(f, "    %s <|-- %s\n", super, n)
+				superType, superTypeExists := allClasses[super]
+				if superTypeExists && len(superType.Attributes) != 0 {
+					generateAttributesForMermaid(f, super, superType.Attributes)
+				}
 			}
 
+			// rendering package internal references
 			for _, attr := range clsData.Attributes {
 				attrType := attr.DataType
 				if attrType == "" {
@@ -236,6 +242,9 @@ func generateProfilePage(name string, clsNames []string, outDir string, allClass
 					fmt.Fprintf(f, "    %s --> %s : %s\n", n, attrType, attr.Label)
 				}
 			}
+
+			// rendering attributes of package objects
+			generateAttributesForMermaid(f, n, clsData.Attributes)
 		}
 		fmt.Fprintf(f, "```\n")
 		fmt.Fprintf(f, "<button class=\"mermaid-enlarge-button\">Enlarge Diagram</button>\n\n")

@@ -35,11 +35,24 @@ import (
 //go:embed all:templates
 var templatesFS embed.FS
 
+// fileCount is one row of the -rule-report "Per-File Rule Counts" table --
+// the same (checks, skipped) totals cimoxide's --rule-report prints per
+// file, in the same PERFILE\t<name>\t<checks>\t<skipped> format, so the two
+// tools' outputs can be directly grepped/diffed against each other without
+// an external script.
+type fileCount struct {
+	Name    string
+	Checks  int
+	Skipped int
+}
+
 func main() {
 	shaclPattern := flag.String("shacl", shaclimport.DefaultSHACLPattern, "glob pattern for SHACL Turtle files")
 	outDir := flag.String("out", "shaclgen", "output directory for generated Go files")
 	pkg := flag.String("pkg", "shaclgen", "package name in generated files")
 	skipReport := flag.Bool("skip-report", false, "instead of writing files, print every skip reason to stderr")
+	ruleReport := flag.Bool("rule-report", false, "print hand-written + generated rule counts for README.md")
+	validationDir := flag.String("validation-dir", "validation", "directory of hand-written SPARQL validation Go source, used by -rule-report")
 	flag.Parse()
 
 	matches, err := filepath.Glob(*shaclPattern)
@@ -73,6 +86,9 @@ func main() {
 	var orchestrators []string
 	totalChecks, totalSkipped, totalFiles := 0, 0, 0
 	globalCounts := map[string]int{}
+	groupChecks := map[string]int{}
+	groupSkipped := map[string]int{}
+	var perFile []fileCount
 	for _, src := range matches {
 		fr, drops, err := loadFromTTL(src)
 		if err != nil {
@@ -87,14 +103,19 @@ func main() {
 		totalChecks += fileCheckCount
 		totalSkipped += len(skipReasons)
 
+		group := ttlGroupLabel(filepath.Base(src))
+		groupChecks[group] += fileCheckCount
+		groupSkipped[group] += len(skipReasons)
+		perFile = append(perFile, fileCount{Name: spec.FileName, Checks: fileCheckCount, Skipped: len(skipReasons)})
+
 		if *skipReport {
 			fmt.Fprintf(os.Stderr, "PERFILE\t%s\t%d\t%d\n", spec.FileName, fileCheckCount, len(skipReasons))
 			for _, r := range skipReasons {
 				fmt.Fprintf(os.Stderr, "%s\t%s\n", spec.FileName, r)
 			}
 			printFileSummary(os.Stderr, spec.FileName, fileCheckCount, skipReasons)
-			accumulateCounts(globalCounts, skipReasons)
 		}
+		accumulateCounts(globalCounts, skipReasons)
 		fmt.Printf("Generated %s (%d checks, %d skipped)\n", spec.FileName, fileCheckCount, len(skipReasons))
 
 		if len(spec.Checks) == 0 {
@@ -115,9 +136,84 @@ func main() {
 		fmt.Fprintf(os.Stderr, "index: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Total: %d files, %d checks, %d skipped\n", totalFiles, totalChecks, totalSkipped)
+	if !*ruleReport {
+		// Under -rule-report, this exact total (and more, broken down by profile) is
+		// already in the "Generated SHACL Rules by Profile" table below.
+		fmt.Printf("Total: %d files, %d checks, %d skipped\n", totalFiles, totalChecks, totalSkipped)
+	}
 	if *skipReport {
 		printGlobalSummary(os.Stderr, globalCounts)
+	}
+
+	if *ruleReport {
+		fmt.Fprintln(os.Stderr, "\n########## README rule-count report ##########")
+		printGlobalSummary(os.Stderr, globalCounts)
+
+		fmt.Fprintln(os.Stderr, "\n=== Generated SHACL Rules by Profile ===")
+		fmt.Fprintf(os.Stderr, "  %-32s %10s %9s %8s\n", "Profile Group", "Generated", "Skipped", "Total")
+		genTotal, skipTotal := 0, 0
+		for _, g := range ttlGroupLabelOrder {
+			checks, skipped := groupChecks[g], groupSkipped[g]
+			genTotal += checks
+			skipTotal += skipped
+			fmt.Fprintf(os.Stderr, "  %-32s %10d %9d %8d\n", g, checks, skipped, checks+skipped)
+		}
+		fmt.Fprintln(os.Stderr, "  -----")
+		fmt.Fprintf(os.Stderr, "  %-32s %10d %9d %8d\n", "Total", genTotal, skipTotal, genTotal+skipTotal)
+
+		// Per-file breakdown, for diffing directly against cimoxide's --rule-report
+		// output (same PERFILE\t<name>\t<checks>\t<skipped>\t<total> line format on
+		// both sides): `grep PERFILE cimgo.log | sort > a; grep PERFILE cimoxide.log
+		// | sort > b; diff a b` finds every field-level difference, or to compare
+		// just the per-file Total (the meaningful cross-tool check -- Generated vs
+		// Skipped legitimately differs by codegen capability even when Total
+		// agrees): `awk -F'\t' '{print $2, $5}' a | diff - <(awk -F'\t' '{print $2,
+		// $5}' b)`. No external script needed either way.
+		fmt.Fprintln(os.Stderr, "\n=== Per-File Rule Counts (grep PERFILE to diff against cimoxide) ===")
+		sort.Slice(perFile, func(i, j int) bool { return perFile[i].Name < perFile[j].Name })
+		for _, f := range perFile {
+			fmt.Fprintf(os.Stderr, "PERFILE\t%s\t%d\t%d\t%d\n", f.Name, f.Checks, f.Skipped, f.Checks+f.Skipped)
+		}
+
+		groups, err := sparqlReport(*validationDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "rule-report: %v\n", err)
+			os.Exit(1)
+		}
+		ttl, err := ttlSparqlNames(*shaclPattern)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "rule-report: %v\n", err)
+			os.Exit(1)
+		}
+		rows := combineCoverage(groups, ttl)
+
+		fmt.Fprintf(os.Stderr, "\n=== SPARQL Check Coverage (%s vs %s) ===\n", *validationDir, *shaclPattern)
+		fmt.Fprintf(os.Stderr, "  %-32s %12s %10s %9s\n", "Profile Group", "Implemented", "TTL Total", "Coverage")
+		totalImpl, totalTTL := 0, 0
+		for _, r := range rows {
+			if r.TTLTotal < 0 {
+				fmt.Fprintf(os.Stderr, "  %-32s %12d %10s %9s\n", r.Label, r.Implemented, "n/a", "n/a")
+				continue
+			}
+			totalImpl += r.Implemented
+			totalTTL += r.TTLTotal
+			coverage := 100 * float64(r.Implemented) / float64(r.TTLTotal)
+			fmt.Fprintf(os.Stderr, "  %-32s %12d %10d %8.1f%%\n", r.Label, r.Implemented, r.TTLTotal, coverage)
+		}
+		fmt.Fprintln(os.Stderr, "  -----")
+		if totalTTL > 0 {
+			fmt.Fprintf(os.Stderr, "  %-32s %12d %10d %8.1f%%\n", "Total", totalImpl, totalTTL, 100*float64(totalImpl)/float64(totalTTL))
+		}
+
+		for _, r := range rows {
+			if len(r.Missing) == 0 {
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "\n  Not yet implemented in %s:\n", r.Label)
+			for _, m := range r.Missing {
+				fmt.Fprintf(os.Stderr, "    %s\n", m)
+			}
+		}
 	}
 }
 

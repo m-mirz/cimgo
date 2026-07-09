@@ -141,7 +141,14 @@ var skipCategories = []skipCategory{
 
 	// Other
 	{
-		Label:   "SPARQL (not in README)",
+		// See SPARQL Check Coverage in the README: this total isn't directly
+		// comparable to that table's TTL Total, even though both are "how much
+		// SPARQL is there" counts -- this one is every distinct (property,
+		// component, sh:name) skip entry, deduped per TTL file (a fresh
+		// skipIndex per buildFileSpec call) and *not* split on "|" for compound
+		// sh:name values, whereas ttl_report.go's sh:name-based count is deduped
+		// per profile group across all its files and does split on "|".
+		Label:   "SPARQL (see SPARQL Check Coverage below)",
 		Section: "other",
 		match:   func(e skipEntry) bool { return e.Component == "sh:SPARQLConstraintComponent" },
 	},
@@ -187,7 +194,7 @@ func printGlobalSummary(w io.Writer, counts map[string]int) {
 		{"Simplified (type-system guarantees)", "simplified"},
 		{"Skipped", "skipped"},
 		{"Cannot be conducted", "cannot_be_conducted"},
-		{"Other (not in README)", "other"},
+		{"Other", "other"},
 	}
 	for _, sec := range sections {
 		total := 0

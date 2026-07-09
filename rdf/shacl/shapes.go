@@ -74,6 +74,8 @@ func (k TargetKind) String() string {
 		return "implicitClassTarget"
 	case TargetWhere:
 		return "targetWhere"
+	case TargetSPARQL:
+		return "sparqlTarget"
 	}
 	return "unknown"
 }
@@ -230,6 +232,23 @@ func parseShapeBasic(g *Graph, s *Shape, shapes map[string]*Shape) {
 	}
 	for _, to := range g.Objects(id, IRI(SH+"targetObjectsOf")) {
 		s.Targets = append(s.Targets, Target{Kind: TargetObjectsOf, Value: to})
+	}
+
+	// sh:target [ a sh:SPARQLTarget ; sh:select "..." ] — the generic SHACL
+	// extension point for a custom SPARQL-defined target, distinct from the
+	// sh:targetNode-with-select shorthand handled above.
+	sparqlTargetType := IRI(SH + "SPARQLTarget")
+	for _, tgt := range g.Objects(id, IRI(SH+"target")) {
+		if !g.HasType(tgt, sparqlTargetType) {
+			continue
+		}
+		if sels := g.Objects(tgt, selectPred); len(sels) > 0 {
+			prefixes := ""
+			if prefs := g.Objects(tgt, IRI(SH+"prefixes")); len(prefs) > 0 {
+				prefixes = resolvePrefixes(g, prefs[0])
+			}
+			s.Targets = append(s.Targets, Target{Kind: TargetSPARQL, Select: prefixes + sels[0].Value()})
+		}
 	}
 
 	// Implicit class targets: if shape is also an rdfs:Class or sh:ShapeClass

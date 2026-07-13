@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- sh:required on a float field: b0ch=0 is a legitimate value, must not be
+       mistaken for "missing" (regression case for the whole FieldOccurrences fix). -->
+  <cim:ACLineSegment rdf:ID="ACL.B0CH.ZERO.OK">
+    <cim:ACLineSegment.b0ch>0</cim:ACLineSegment.b0ch>
+  </cim:ACLineSegment>
+  <!-- b0ch tag entirely absent: genuinely missing, must fire. -->
+  <cim:ACLineSegment rdf:ID="ACL.B0CH.MISSING">
+    <cim:IdentifiedObject.name>ACL-missing-b0ch</cim:IdentifiedObject.name>
+  </cim:ACLineSegment>
+
+  <!-- sh:required on a bool field: grounded=false is a legitimate value. -->
+  <cim:PowerTransformerEnd rdf:ID="PTE.GROUNDED.FALSE.OK">
+    <cim:TransformerEnd.grounded>false</cim:TransformerEnd.grounded>
+  </cim:PowerTransformerEnd>
+  <!-- grounded tag entirely absent: genuinely missing, must fire. -->
+  <cim:PowerTransformerEnd rdf:ID="PTE.GROUNDED.MISSING">
+    <cim:IdentifiedObject.name>PTE-missing-grounded</cim:IdentifiedObject.name>
+  </cim:PowerTransformerEnd>
+
+  <!-- sh:maxCount 1 on a scalar (string) field: duplicated tag must fire. -->
+  <cim:Diagram rdf:ID="DIAGRAM.DESC.DUP">
+    <cim:IdentifiedObject.description>first</cim:IdentifiedObject.description>
+    <cim:IdentifiedObject.description>second</cim:IdentifiedObject.description>
+  </cim:Diagram>
+  <cim:Diagram rdf:ID="DIAGRAM.DESC.OK">
+    <cim:IdentifiedObject.description>only</cim:IdentifiedObject.description>
+  </cim:Diagram>
+
+  <!-- sh:maxCount 1 on a pointer/reference field: duplicated tag must fire. -->
+  <cim:Diagram rdf:ID="DIAGRAM.STYLE.DUP">
+    <cim:Diagram.DiagramStyle rdf:resource="#Style.A"/>
+    <cim:Diagram.DiagramStyle rdf:resource="#Style.B"/>
+  </cim:Diagram>
+  <cim:Diagram rdf:ID="DIAGRAM.STYLE.OK">
+    <cim:Diagram.DiagramStyle rdf:resource="#Style.A"/>
+  </cim:Diagram>
+  <cim:DiagramStyle rdf:ID="Style.A">
+  </cim:DiagramStyle>
+  <cim:DiagramStyle rdf:ID="Style.B">
+  </cim:DiagramStyle>
+
+  <!-- Embedded-field regression: RatioTapChanger.ControlEnabled is declared on
+       the embedded TapChanger struct, tagged "TapChanger.controlEnabled". -->
+  <cim:RatioTapChanger rdf:ID="RTC.CONTROLENABLED.DUP">
+    <cim:TapChanger.controlEnabled>true</cim:TapChanger.controlEnabled>
+    <cim:TapChanger.controlEnabled>false</cim:TapChanger.controlEnabled>
+  </cim:RatioTapChanger>
+  <cim:RatioTapChanger rdf:ID="RTC.CONTROLENABLED.OK">
+    <cim:TapChanger.controlEnabled>false</cim:TapChanger.controlEnabled>
+  </cim:RatioTapChanger>
+</rdf:RDF>

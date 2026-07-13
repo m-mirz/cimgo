@@ -645,6 +645,9 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			return checkSpec{}, nil, err
 		}
 		cs.Condition = cond
+		if k := field.Type.Kind(); k == reflect.Float32 || k == reflect.Float64 || k == reflect.Bool {
+			cs.NoV = true
+		}
 	case "sh:MinCountConstraintComponent":
 		guard, cond, err := minCountCondition(field, c.Payload["MinCount"])
 		if err != nil {
@@ -657,6 +660,9 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
+		if int(shaclimport.AnyToFloat(c.Payload["MaxCount"])) >= 1 {
+			cs.NoV = true
+		}
 	case "sh:HasValueConstraintComponent":
 		guard, cond, err := hasValueCondition(field, c.Payload["Value"])
 		if err != nil {

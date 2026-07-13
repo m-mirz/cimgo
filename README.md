@@ -243,11 +243,23 @@ engines and are specific to this tool.*
 
 ### Skipped constraints
 
-The two tables below summarise every skipped-constraint category and count as reported by `go run ./cmd/shaclgen -skip-report`, split by whether the skip represents work left to do; their totals sum to 9998, matching the ["Generated SHACL Rules by Profile"](#generated-shacl-rules-by-profile) table's `Skipped` column below exactly. The two `sh:nodeKind`/`sh:datatype` rows are the constraints dropped by Rules 1, 2, and 4 above. The SPARQL row is not a type-system tautology — those constraints are implemented separately as hand-written Go functions (see ["SPARQL Check Coverage"](#sparql-check-coverage) below). The `Upstream SHACL TTL defects` row is individually broken out after the table.
+The table below summarises every skipped-constraint category and count as reported by `go run ./cmd/shaclgen -skip-report`; the total (6847) matches the ["Generated SHACL Rules by Profile"](#generated-shacl-rules-by-profile) table's `Skipped` column below exactly. Every remaining skip category holds in the decoded Go representation — either the type system makes it vacuously true, the decoder's `FieldOccurrences` side-channel (see below) already lets a generated check evaluate it correctly, or it's implemented separately as a hand-written function. The two `sh:nodeKind`/`sh:datatype` rows are the constraints dropped by Rules 1, 2, and 4 above. The SPARQL row is not a type-system tautology — those constraints are implemented separately as hand-written Go functions (see ["SPARQL Check Coverage"](#sparql-check-coverage) below). The `Upstream SHACL TTL defects` row is individually broken out after the table.
 
 Row labels below are kept in sync with cimoxide's equivalent table where the underlying reason
 is the same — see ["Comparing skip categories with cimoxide"](#comparing-skip-categories-with-cimoxide)
 right after the table for how the two tools' categories do (and don't) line up.
+
+`sh:required` on `float`/`bool` fields and `sh:maxCount 1` on scalar/pointer fields — previously
+skipped because `omitempty` decode can't tell "0.0"/`false`/absent apart, or because a repeated
+XML tag silently overwrote the field with no signal — are no longer skip categories at all: the
+decoder now maintains `CIMDataset.FieldOccurrences`, a `map[mRID]map[xmlTag]int` populated as a
+side effect of the existing single-pass decode (`cimxml.Decoder.recordOccurrence`, called from
+`cimxml/cimxmlread.go`'s `unmarshalPath`). Generated checks consult
+`dataset.FieldOccurrences[id]["Class.attr"]` instead of the Go field's zero value to distinguish
+"tag absent" (count `== 0`) from "tag present with a legitimate zero/false value" (count `== 1`)
+from "tag repeated" (count `> 1`), closing all four categories cimoxide already covered via its
+`Option<f64>`/`Option<bool>` fields and per-field duplicate tracking — see ["Comparing skip
+categories with cimoxide"](#comparing-skip-categories-with-cimoxide) below.
 
 #### Does not require fix
 
@@ -270,16 +282,6 @@ never fire, or defects in the upstream ENTSO-E TTL files that only ENTSO-E can f
 | 3 | Multi-segment `sh:required` on `rdf:Statements.subject/predicate/object` | The RDF specification mandates that every `rdf:Statement` resource has `subject`, `predicate`, and `object` predicates. Any `rdf:Statement` instance loaded from a valid RDF document already satisfies these constraints by definition. Cross-tool: part of the "Multi-hop / multi-segment path constraints" group, see below. |
 | **6847** | **Total** | |
 
-#### Might require fix
-
-| Count | Constraint | Reason | Fix |
-|------:|-----------|--------|-----|
-| 2702 | `sh:required` on `float` fields | Float fields use `omitempty`; `0.0` is indistinguishable from absent after XML decode. A legitimately-zero physical quantity (e.g. `bch=0`, `r=0`, `b=0`) would always trigger a false positive. Range constraints (`sh:minExclusive`, `sh:minInclusive`) cover the must-be-positive subset where zero is genuinely invalid. **No cimoxide equivalent** — cimoxide's generated fields are `Option<f64>`, so presence is distinguishable from a genuine zero and it generates this check instead of skipping it. | Switch all float fields to `*float64`. |
-| 223 | `sh:maxCount 1` on scalar fields | Duplicate XML elements silently overwrite the field; no violation is emitted. **No cimoxide equivalent** — cimoxide's decoder tracks per-field duplicate XML occurrences and generates this check instead of skipping it. | Detect multiple occurrences in the XML parser, or use a two-pass approach that parses into hashmaps first. |
-| 115 | `sh:required` on `bool` fields | Bool fields use `omitempty`; `false` is indistinguishable from absent after XML decode. **No cimoxide equivalent** — cimoxide's generated fields are `Option<bool>`, so it generates this check instead of skipping it. | Switch all bool fields to `*bool`. |
-| 111 | `sh:maxCount 1` on pointer fields | Pointer fields are either nil (0 values) or non-nil (1 value). **No cimoxide equivalent** — cimoxide's decoder tracks per-field duplicate XML occurrences and generates this check instead of skipping it. | Detect multiple occurrences in the XML parser, or use a two-pass approach that parses into hashmaps first. |
-| **3151** | **Total** | | |
-
 #### Comparing skip categories with cimoxide
 
 cimgo's and cimoxide's skip-category tables cover the same 74 TTL files and the same 12,270
@@ -295,12 +297,14 @@ matching wording and cross-referenced inline above:
 - The SPARQL-derived-constraints row (182) and `targetSubjectsOf`/`targetObjectsOf` (5) match
   cimoxide's identically-named rows exactly, including the same underlying `sh:name` sets
   (181/18 distinct names).
-- `sh:required` on `float`/`bool` fields (2702 + 115) and `sh:maxCount 1` on scalar/pointer
-  fields (223 + 111) have no cimoxide row at all, because cimoxide's generated fields are
-  `Option<f64>`/`Option<bool>` and its decoder tracks per-field duplicate XML occurrences —
-  both let cimoxide generate real checks instead of skipping them. This is exactly the "Fix"
-  already listed for these rows above. There is no cimoxide-only row with no cimgo
-  equivalent.
+- `sh:required` on `float`/`bool` fields and `sh:maxCount 1` on scalar/pointer fields used to be
+  the one place the two tools genuinely diverged: cimoxide's generated fields are
+  `Option<f64>`/`Option<bool>`, and its decoder tracks per-field duplicate XML occurrences via
+  `RdfBlock`, so it always generated real checks for these instead of skipping them. cimgo now
+  does too, via a different mechanism (`CIMDataset.FieldOccurrences`, see above) that reaches
+  the same outcome — presence/absence and duplicate detection independent of the Go field's
+  zero value — without migrating any `cimstructs` field to a pointer type. There is no longer a
+  cimoxide-only skip row with no cimgo equivalent, or vice versa.
 
 #### Upstream SHACL TTL defects
 
@@ -370,7 +374,7 @@ This per-group `Total` (though not the `Generated`/`Skipped` split — see below
 cimoxide's equivalent table exactly on every row, which is a useful independent cross-check
 that both tools' importers agree on how many distinct constraints the schema actually
 defines per profile — the remaining `Generated`/`Skipped` split difference reflects a genuine
-gap in codegen capability between the two tools (e.g. Dynamics: cimgo generates 1600 of the
+gap in codegen capability between the two tools (e.g. Dynamics: cimgo generates 4304 of the
 9815, cimoxide generates 4299), not a counting discrepancy.
 
 `-rule-report` also prints a per-file breakdown ("=== Per-File Rule Counts ===", one
@@ -382,16 +386,16 @@ grep PERFILE cimoxide.log | sort > b; awk -F'\t' '{print $2, $5}' a | diff - <(a
 
 | Profile Group | Generated | Skipped | Total |
 |---------------|----------:|--------:|------:|
-| Equipment (EQ) | 404 | 797 | 1201 |
-| Steady State Hypothesis (SSH) | 49 | 215 | 264 |
-| Dynamics (DY) | 1600 | 8215 | 9815 |
-| State Variables (SV) | 52 | 90 | 142 |
-| Short Circuit (SC) | 21 | 312 | 333 |
-| Common / AllProfiles | 35 | 149 | 184 |
-| Topology (TP) | 19 | 29 | 48 |
-| DiagramLayout (DL) | 21 | 67 | 88 |
-| Operation (OP) | 71 | 124 | 195 |
-| **Total** | **2272** | **9998** | **12270** |
+| Equipment (EQ) | 618 | 583 | 1201 |
+| Steady State Hypothesis (SSH) | 104 | 160 | 264 |
+| Dynamics (DY) | 4304 | 5511 | 9815 |
+| State Variables (SV) | 70 | 72 | 142 |
+| Short Circuit (SC) | 120 | 213 | 333 |
+| Common / AllProfiles | 39 | 145 | 184 |
+| Topology (TP) | 25 | 23 | 48 |
+| DiagramLayout (DL) | 40 | 48 | 88 |
+| Operation (OP) | 103 | 92 | 195 |
+| **Total** | **5423** | **6847** | **12270** |
 
 ### SPARQL Check Coverage
 

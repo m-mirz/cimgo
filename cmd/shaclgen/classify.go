@@ -54,30 +54,6 @@ var skipCategories = []skipCategory{
 	},
 	// Skipped — ordered to match README table rows
 	{
-		Label:   "`sh:required` on `float` fields",
-		Section: "skipped",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "float Required is unreliable") },
-	},
-	{
-		Label:   "`sh:maxCount 1` on scalar fields",
-		Section: "skipped",
-		match: func(e skipEntry) bool {
-			return contains(e.Reason, "MaxCount=1 on scalar field is structurally satisfied")
-		},
-	},
-	{
-		Label:   "`sh:required` on `bool` fields",
-		Section: "skipped",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "bool Required is structurally satisfied") },
-	},
-	{
-		Label:   "`sh:maxCount 1` on pointer fields",
-		Section: "skipped",
-		match: func(e skipEntry) bool {
-			return contains(e.Reason, "MaxCount=1 on pointer field is structurally satisfied")
-		},
-	},
-	{
 		Label:   "`sh:maxCount 1` on multi-hop paths",
 		Section: "skipped",
 		match: func(e skipEntry) bool {

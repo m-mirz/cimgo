@@ -5,6 +5,7 @@
   <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.OK">
     <cim:IdentifiedObject.mRID>AsynchronousMachineTimeConstantReactance.OK</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>AMTCR-OK</cim:IdentifiedObject.name>
+    <cim:DynamicsFunctionBlock.enabled>true</cim:DynamicsFunctionBlock.enabled>
     <cim:AsynchronousMachineDynamics.AsynchronousMachine rdf:resource="#AsynchronousMachine.REF"/>
     <cim:RotatingMachineDynamics.damping>0.1</cim:RotatingMachineDynamics.damping>
     <cim:RotatingMachineDynamics.inertia>3.0</cim:RotatingMachineDynamics.inertia>
@@ -20,6 +21,7 @@
   <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.BAD">
     <cim:IdentifiedObject.mRID>AsynchronousMachineTimeConstantReactance.BAD</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>AMTCR-BAD</cim:IdentifiedObject.name>
+    <cim:DynamicsFunctionBlock.enabled>true</cim:DynamicsFunctionBlock.enabled>
     <cim:AsynchronousMachineDynamics.AsynchronousMachine rdf:resource="#AsynchronousMachine.REF"/>
     <cim:RotatingMachineDynamics.damping>0.1</cim:RotatingMachineDynamics.damping>
     <cim:RotatingMachineDynamics.inertia>3.0</cim:RotatingMachineDynamics.inertia>

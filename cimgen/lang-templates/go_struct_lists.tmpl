@@ -8,6 +8,13 @@ import (
 
 type CIMDataset struct {
 	ByID map[string]interface{}
+	// FieldOccurrences counts, per (mRID, xml tag e.g. "ACLineSegment.bch"),
+	// how many times that XML element was seen while decoding the source
+	// profile file(s) for this object. See cimxml.Decoder.FieldOccurrences
+	// and cgmesxml's mergeOccurrences for how it's populated; consulted by
+	// generated SHACL checks (cmd/shaclgen/conditions.go) to distinguish
+	// "tag absent" from "tag present with zero value" from "tag repeated".
+	FieldOccurrences map[string]map[string]int
 	{{- range .Types}}
 	{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 	{{.Id}}s map[string]*{{.Id}}
@@ -17,7 +24,8 @@ type CIMDataset struct {
 
 func NewCIMDataset() *CIMDataset {
 	return &CIMDataset{
-		ByID: make(map[string]interface{}),
+		ByID:             make(map[string]interface{}),
+		FieldOccurrences: make(map[string]map[string]int),
 		{{- range .Types}}
 		{{- if or (eq .CIMStereotype "concrete") (eq .CIMStereotype "Compound")}}
 		{{.Id}}s: make(map[string]*{{.Id}}),

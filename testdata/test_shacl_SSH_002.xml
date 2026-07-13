@@ -3,12 +3,14 @@
   <!-- EnergyConsumer.p must be >= 0 (sh:minInclusive 0) -->
   <cim:EnergyConsumer rdf:ID="EnergyConsumer.OK">
     <cim:IdentifiedObject.mRID>EnergyConsumer.OK</cim:IdentifiedObject.mRID>
+    <cim:Equipment.inService>true</cim:Equipment.inService>
     <cim:EnergyConsumer.p>100.0</cim:EnergyConsumer.p>
     <cim:EnergyConsumer.q>50.0</cim:EnergyConsumer.q>
   </cim:EnergyConsumer>
   <!-- p=-10 violates sh:minInclusive 0 -->
   <cim:EnergyConsumer rdf:ID="EnergyConsumer.BAD">
     <cim:IdentifiedObject.mRID>EnergyConsumer.BAD</cim:IdentifiedObject.mRID>
+    <cim:Equipment.inService>true</cim:Equipment.inService>
     <cim:EnergyConsumer.p>-10.0</cim:EnergyConsumer.p>
     <cim:EnergyConsumer.q>50.0</cim:EnergyConsumer.q>
   </cim:EnergyConsumer>

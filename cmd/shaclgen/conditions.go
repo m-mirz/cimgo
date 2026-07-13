@@ -42,10 +42,16 @@ func requiredCondition(field reflect.StructField) (string, error) {
 		return fmt.Sprintf("v.%s == \"\"", field.Name), nil
 	case reflect.Int, reflect.Int32, reflect.Int64:
 		return fmt.Sprintf("v.%s == 0", field.Name), nil
-	case reflect.Float32, reflect.Float64:
-		return "", fmt.Errorf("float Required is unreliable: zero is indistinguishable from absent")
-	case reflect.Bool:
-		return "", fmt.Errorf("bool Required is structurally satisfied: false is indistinguishable from absent")
+	case reflect.Float32, reflect.Float64, reflect.Bool:
+		// omitempty decode can't tell "0.0"/"false" from "absent" on the Go
+		// field itself, but the decoder's FieldOccurrences side-channel
+		// (cimxml.Decoder.recordOccurrence) counts every XML occurrence of
+		// the tag independent of its value, so absence is dataset.FieldOccurrences[id][tag] == 0.
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return fmt.Sprintf("dataset.FieldOccurrences[id][%q] == 0", tag), nil
 	default:
 		return "", fmt.Errorf("unsupported required kind %s", field.Type.Kind())
 	}
@@ -79,13 +85,21 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 		if max == 0 {
 			return "", fmt.Sprintf("v.%s != nil", field.Name), nil
 		}
-		return "", "", fmt.Errorf("MaxCount=%d on pointer field is structurally satisfied", max)
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return "", fmt.Sprintf("dataset.FieldOccurrences[id][%q] > %d", tag, max), nil
 	case reflect.String, reflect.Int, reflect.Int32, reflect.Int64,
 		reflect.Float32, reflect.Float64, reflect.Bool:
 		if max == 0 {
 			return "", fmt.Sprintf("v.%s != %s", field.Name, zeroLiteralFor(field.Type.Kind())), nil
 		}
-		return "", "", fmt.Errorf("MaxCount=%d on scalar field is structurally satisfied", max)
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return "", fmt.Sprintf("dataset.FieldOccurrences[id][%q] > %d", tag, max), nil
 	default:
 		return "", "", fmt.Errorf("MaxCount on %s field not supported", field.Type.Kind())
 	}

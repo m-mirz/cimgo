@@ -231,6 +231,32 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
+	// Index terminals by their conducting equipment's mRID, and collect the
+	// set of terminal mRIDs that have an SvPowerFlow instance — both built
+	// once up front so the per-equipment lookups below are O(1) instead of
+	// a full scan of dataset.Terminals/SvPowerFlows for every equipment
+	// object (this loop previously ran in O(equipment × terminals +
+	// equipment × SvPowerFlows), which dominates RunValidation's time on
+	// RealGrid-scale datasets).
+	type terminalRef struct {
+		id   string
+		term *cimstructs.Terminal
+	}
+	terminalsByCE := make(map[string][]terminalRef)
+	for termID, term := range dataset.Terminals {
+		if term.ConductingEquipment != nil {
+			ceID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
+			terminalsByCE[ceID] = append(terminalsByCE[ceID], terminalRef{termID, term})
+		}
+	}
+
+	svPowerFlowTerminalIDs := make(map[string]bool)
+	for _, svpf := range dataset.SvPowerFlows {
+		if svpf.Terminal != nil {
+			svPowerFlowTerminalIDs[strings.TrimPrefix(svpf.Terminal.MRID, "#")] = true
+		}
+	}
+
 	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.NonConformLoad, *cimstructs.EquivalentInjection, *cimstructs.EnergySource,
@@ -246,13 +272,13 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 			continue
 		}
 
+		terms := terminalsByCE[id]
+
 		energized := false
-		for _, term := range dataset.Terminals {
-			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
-				if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
-					energized = true
-					break
-				}
+		for _, tr := range terms {
+			if tr.term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(tr.term.TopologicalNode.MRID, "#")] {
+				energized = true
+				break
 			}
 		}
 		if !energized {
@@ -260,13 +286,10 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 
 		found := false
-		for _, svpf := range dataset.SvPowerFlows {
-			if svpf.Terminal != nil {
-				tID := strings.TrimPrefix(svpf.Terminal.MRID, "#")
-				if t, ok := dataset.Terminals[tID]; ok && t.ConductingEquipment != nil && strings.TrimPrefix(t.ConductingEquipment.MRID, "#") == id {
-					found = true
-					break
-				}
+		for _, tr := range terms {
+			if svPowerFlowTerminalIDs[tr.id] {
+				found = true
+				break
 			}
 		}
 		if !found {

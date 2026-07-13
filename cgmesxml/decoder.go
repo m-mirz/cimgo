@@ -24,10 +24,46 @@ func normalizeRDFAbout(t *xml.StartElement) {
 	}
 }
 
-// DecodeProfiles decodes each reader concurrently into a separate CIMDataset,
-// then merges them into cimData in input order. Callers control merge precedence
-// by ordering the readers slice (earlier entries win on field conflicts).
-func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
+// mridFromAttrs extracts the mRID from a start element's already-normalized
+// attributes (see normalizeRDFAbout) — the same "ID" local-name lookup that
+// cimbase.Base's xml:"ID,attr" field uses, computed ahead of decode so the
+// decoder can attribute FieldOccurrences correctly without waiting for the
+// decoded node.
+func mridFromAttrs(attrs []xml.Attr) string {
+	for _, a := range attrs {
+		if a.Name.Local == "ID" {
+			return a.Value
+		}
+	}
+	return ""
+}
+
+// mergeOccurrences overwrites per-(mRID, tag) counts in dst with src's,
+// matching cimbase.DeepMerge's "later file wins" policy for the scalar value
+// itself. Not summed across files — cross-file duplicate detection is out of
+// scope (see plan doc); only a single file's single parse of one element is
+// ever meaningful for sh:maxCount purposes.
+func mergeOccurrences(dst, src map[string]map[string]int) {
+	for mrid, tags := range src {
+		dstTags := dst[mrid]
+		if dstTags == nil {
+			dstTags = make(map[string]int, len(tags))
+			dst[mrid] = dstTags
+		}
+		for tag, n := range tags {
+			dstTags[tag] = n
+		}
+	}
+}
+
+// DecodeProfilesSeparate decodes each reader concurrently (one goroutine per
+// reader) into its own CIMDataset, returned in the same order as readers,
+// without merging. Callers that need both a merged view and per-file
+// isolation (e.g. cmd/cimcli, which detects each file's profile and pulls
+// EQBD BaseVoltage IDs from the isolated EQBD dataset before merging) should
+// call this directly instead of DecodeProfiles, which discards the
+// individual results after merging.
+func DecodeProfilesSeparate(readers []io.Reader) ([]*cimstructs.CIMDataset, error) {
 	results := make([]*cimstructs.CIMDataset, len(readers))
 	errs := make([]error, len(readers))
 
@@ -46,6 +82,17 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimst
 			return nil, err
 		}
 	}
+	return results, nil
+}
+
+// DecodeProfiles decodes each reader concurrently into a separate CIMDataset,
+// then merges them into cimData in input order. Callers control merge precedence
+// by ordering the readers slice (earlier entries win on field conflicts).
+func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIMDataset, error) {
+	results, err := DecodeProfilesSeparate(readers)
+	if err != nil {
+		return nil, err
+	}
 
 	if cimData == nil {
 		cimData = cimstructs.NewCIMDataset()
@@ -61,6 +108,7 @@ func DecodeProfiles(readers []io.Reader, cimData *cimstructs.CIMDataset) (*cimst
 // MergeInto adds all elements from src into dst, merging any objects with
 // matching mRIDs via DeepMerge.
 func MergeInto(dst, src *cimstructs.CIMDataset) error {
+	mergeOccurrences(dst.FieldOccurrences, src.FieldOccurrences)
 	for _, elem := range src.ByID {
 		if err := dst.AddElement(elem); err != nil {
 			return err
@@ -83,6 +131,7 @@ func DecodeProfile(r io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIM
 
 		if err == io.EOF {
 			// slog.Debug("Reached end of file")
+			mergeOccurrences(cimData.FieldOccurrences, dec.FieldOccurrences)
 			return cimData, nil
 		}
 
@@ -95,6 +144,7 @@ func DecodeProfile(r io.Reader, cimData *cimstructs.CIMDataset) (*cimstructs.CIM
 			if _, ok := cimstructs.StructMap[labelEnd]; ok {
 				node := cimstructs.StructMap[labelEnd]()
 
+				dec.CurrentMRID = mridFromAttrs(t.Attr)
 				if err := dec.DecodeElement(node, &t); err != nil {
 					return cimData, err
 				}

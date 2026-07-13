@@ -627,6 +627,35 @@ func BenchmarkRealGridValidation(b *testing.B) {
 	}
 }
 
+// BenchmarkRealGridValidationSolved mirrors BenchmarkRealGridValidation but with Solved:
+// true, matching what cmd/cimcli actually runs against RealGrid in practice (its Config
+// auto-detects Solved from the dataset's SV profile header, which RealGrid-Merged always
+// carries) — BenchmarkRealGridValidation's zero-value Solved/NotSolved skips every
+// *SolvedMAS/*NotSolvedMAS validator, which understates real-world validation cost.
+func BenchmarkRealGridValidationSolved(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	cfg := Config{
+		Profiles: []string{"EQ", "SSH", "TP", "SV"},
+		Common:   true,
+		Solved:   true,
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		_ = RunValidation(dataset, cfg)
+	}
+}
+
+// BenchmarkRealGridValidateSVSolvedMAS isolates the one validator
+// BenchmarkRealGridValidation's config never exercises (see BenchmarkRealGridValidationSolved).
+func BenchmarkRealGridValidateSVSolvedMAS(b *testing.B) {
+	dataset := loadDirectory(b, "../CGMES-Test-Configurations/v3.0/RealGrid/RealGrid-Merged/")
+	b.ResetTimer()
+	for b.Loop() {
+		_ = ValidateSVSolvedMASProfile(dataset)
+	}
+}
+
 // BenchmarkSmallGridValidation measures RunValidation on SmallGrid (7 profiles, ~14 MB),
 // which has more parallelism headroom than RealGrid and is closer to a typical dataset.
 func BenchmarkSmallGridValidation(b *testing.B) {

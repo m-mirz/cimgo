@@ -225,11 +225,10 @@ func andCheck(subShapes [][]shaclimport.ConstraintInfo, structType reflect.Type)
 				if !ok {
 					return compoundResult{}, fmt.Errorf("sh:And sub-shape %d: no field %q", i, seg)
 				}
-				_, err := requiredCondition(f)
+				cond, err := requiredCondition(f)
 				if err != nil {
 					return compoundResult{}, fmt.Errorf("sh:And sub-shape %d: %w", i, err)
 				}
-				cond := fmt.Sprintf("v.%s == %s", f.Name, zeroLiteralFor(f.Type.Kind()))
 				failConds = append(failConds, cond)
 				continue
 			}

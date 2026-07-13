@@ -1,19 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <cim:TopologicalNode rdf:ID="TN.1">
-    <cim:IdentifiedObject.name>TN 1</cim:IdentifiedObject.name>
-  </cim:TopologicalNode>
-
-  <cim:Terminal rdf:ID="Term.OK">
-    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
-  </cim:Terminal>
+  <cim:Terminal rdf:ID="Term.OK" />
   <cim:RegulatingControl rdf:ID="RC.OK">
     <cim:RegulatingControl.Terminal rdf:resource="#Term.OK" />
   </cim:RegulatingControl>
 
-  <cim:Terminal rdf:ID="Term.BAD">
-    <!-- Missing TopologicalNode -->
-  </cim:Terminal>
+  <!-- BAD: RegulatingControl.Terminal has no TopologicalNode assignment -->
+  <cim:Terminal rdf:ID="Term.BAD" />
   <cim:RegulatingControl rdf:ID="RC.BAD">
     <cim:RegulatingControl.Terminal rdf:resource="#Term.BAD" />
   </cim:RegulatingControl>

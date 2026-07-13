@@ -91,7 +91,7 @@ func prof10violation(id, msg, severity string) Violation {
 		Message:     msg,
 		Severity:    severity,
 		RuleID:      "prof10:PROF10",
-		Name:        "PROF10",
+		Name:        "C:600:ALL:NA:PROF10",
 		Description: "CGMES instance file (distribution) dependency shall be declared by md:Model.DependentOn in the header according to Figure 1 and the associated rules.",
 	}
 }

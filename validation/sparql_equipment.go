@@ -3,6 +3,7 @@ package validation
 import (
 	"cimgo/cimstructs"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 )
@@ -138,8 +139,8 @@ func CheckACDCTerminalSequenceNumbering(dataset *cimstructs.CIMDataset) []Violat
 		if failed {
 			violations = append(violations, Violation{
 				ObjectID: eqID,
-				RuleID:   "eqc.ACDCTerminal.sequenceNumber-numbering",
-				Name:     "ACDCTerminal.sequenceNumber-numbering",
+				RuleID:   "equ:ACDCTerminal.sequenceNumber-numbering",
+				Name:     "C:301:EQ:ACDCTerminal.sequenceNumber:numbering",
 				Class:    "ConductingEquipment",
 				Property: "ACDCTerminal.sequenceNumber",
 				Message:  "There is no terminal with sequenceNumber=1 or the numbering is not unique.",
@@ -208,8 +209,8 @@ func CheckTerminalPhasesConsistencyEquipment(dataset *cimstructs.CIMDataset) []V
 		if failed {
 			violations = append(violations, Violation{
 				ObjectID: eqID,
-				RuleID:   "eqc.Terminal.phases-consistencyEquipment",
-				Name:     "Terminal.phases-consistencyEquipment",
+				RuleID:   "equ:Terminal.phases-consistencyEquipment",
+				Name:     "C:301:EQ:Terminal.phases:consistencyEquipment",
 				Class:    "ConductingEquipment",
 				Property: "Terminal.phases",
 				Message:  fmt.Sprintf("The phase codes for terminals of 2-terminal equipment are not consistent. Terminal 1 code:%s Terminal 2 code: %s.", val1, val2),
@@ -258,8 +259,8 @@ func CheckConductingEquipmentBaseVoltageUsage(dataset *cimstructs.CIMDataset) []
 				if goTypeName(ecObj) == "VoltageLevel" {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.ConductingEquipment.BaseVoltage-usage",
-						Name:     "ConductingEquipment.BaseVoltage-usage",
+						RuleID:   "equ:ConductingEquipment.BaseVoltage-usage",
+						Name:     "C:301:EQ:ConductingEquipment.BaseVoltage:usage",
 						Class:    typeName,
 						Property: "Equipment.EquipmentContainer",
 						Message:  "The association ConductingEquipment.BaseVoltage is defined for a ConductingEquipment contained in a VoltageLevel.",
@@ -309,8 +310,8 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimstructs.CIMDataset) []Viol
 		if duplicate {
 			violations = append(violations, Violation{
 				ObjectID: ptID,
-				RuleID:   "eqc.TransformerEnd.endNumber-unique",
-				Name:     "TransformerEnd.endNumber-unique",
+				RuleID:   "equ:TransformerEnd.endNumber-unique",
+				Name:     "C:301:EQ:TransformerEnd.endNumber:unique",
 				Class:    "PowerTransformer",
 				Property: "TransformerEnd.endNumber",
 				Message:  "The PowerTransformer has TransformerEnd.endNumber which is not unique.",
@@ -328,8 +329,8 @@ func CheckPowerTransformerEndNumberUnique(dataset *cimstructs.CIMDataset) []Viol
 			if !foundMaxAt1 {
 				violations = append(violations, Violation{
 					ObjectID: ptID,
-					RuleID:   "eqc.TransformerEnd.endNumber-unique",
-					Name:     "TransformerEnd.endNumber-unique",
+					RuleID:   "equ:TransformerEnd.endNumber-unique",
+					Name:     "C:301:EQ:TransformerEnd.endNumber:unique",
 					Class:    "PowerTransformer",
 					Property: "TransformerEnd.endNumber",
 					Message:  "The PowerTransformerEnd with endNumber 1 is not the highest voltage winding.",
@@ -371,8 +372,8 @@ func CheckPowerTransformerEndTerminalConsistency(dataset *cimstructs.CIMDataset)
 		if termPtID != ptID {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.PowerTransformerEnd-terminalConsistency",
-				Name:     "PowerTransformerEnd-terminalConsistency",
+				RuleID:   "equ:PowerTransformerEnd-terminalConsistency",
+				Name:     "C:301:EQ:PowerTransformerEnd:terminalConsistency",
 				Class:    "PowerTransformerEnd",
 				Property: "TransformerEnd.Terminal",
 				Message:  "The Terminal referenced by TransformerEnd.Terminal points to a PowerTransformer which is different than the referenced element via PowerTransformerEnd.PowerTransformer.",
@@ -397,8 +398,8 @@ func CheckOperationalLimitTypeDuration(dataset *cimstructs.CIMDataset) []Violati
 		if olt.IsInfiniteDuration && olt.AcceptableDuration != 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.OperationalLimitType.acceptableDuration-usage",
-				Name:     "OperationalLimitType.acceptableDuration-usage",
+				RuleID:   "equ:OperationalLimitType.acceptableDuration-usage",
+				Name:     "C:301:EQ:OperationalLimitType.acceptableDuration:usage",
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute acceptableDuration is present and isInfiniteDuration is set to true.",
@@ -411,8 +412,8 @@ func CheckOperationalLimitTypeDuration(dataset *cimstructs.CIMDataset) []Violati
 		if !olt.IsInfiniteDuration && olt.AcceptableDuration == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.OperationalLimitType.isInfiniteDuration-usage",
-				Name:     "OperationalLimitType.isInfiniteDuration-usage",
+				RuleID:   "equ:OperationalLimitType.isInfiniteDuration-usage",
+				Name:     "C:301:EQ:OperationalLimitType.isInfiniteDuration:usage",
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute acceptableDuration is not present when isInfiniteDuration is set to false.",
@@ -449,8 +450,8 @@ func CheckPowerTransformerTwoWindingEndValues(dataset *cimstructs.CIMDataset) []
 				if end.R != 0 || end.R0 != 0 || end.X != 0 || end.X0 != 0 {
 					violations = append(violations, Violation{
 						ObjectID: ptID,
-						RuleID:   "eqc.PowerTransformerEnd-secondWindingValues",
-						Name:     "PowerTransformerEnd-secondWindingValues",
+						RuleID:   "equ:PowerTransformerEnd-secondWindingValues",
+						Name:     "C:301:EQ:PowerTransformerEnd:secondWindingValues",
 						Class:    "PowerTransformer",
 						Property: "PowerTransformerEnd-secondWindingValues",
 						Message:  fmt.Sprintf("Non-zero values for the PowerTransformerEnd with TransformerEnd.endNumber=2 (R=%v, R0=%v, X=%v, X0=%v) for a two Terminal PowerTransformer.", end.R, end.R0, end.X, end.X0),
@@ -482,8 +483,8 @@ func CheckPhaseTapChangerLinearXMinConsistency(dataset *cimstructs.CIMDataset) [
 				if ptcl.XMin != end.X {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.PhaseTapChangerLinear.xMin-valueRangePair",
-						Name:     "PhaseTapChangerLinear.xMin-valueRangePair",
+						RuleID:   "equ:PhaseTapChangerLinear.xMin-valueRangePair",
+						Name:     "C:301:EQ:PhaseTapChangerLinear.xMin:valueRangePair",
 						Class:    "PhaseTapChangerLinear",
 						Property: "PhaseTapChangerLinear.xMin",
 						Message:  fmt.Sprintf("Inconsistency between PowerTransformerEnd.x (%v) and PhaseTapChangerLinear.xMin (%v).", end.X, ptcl.XMin),
@@ -516,8 +517,8 @@ func CheckPhaseTapChangerNonLinearXMinConsistency(dataset *cimstructs.CIMDataset
 				if ptcnl.XMin != end.X {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.PhaseTapChangerNonLinear.xMin-valueRangePair",
-						Name:     "PhaseTapChangerNonLinear.xMin-valueRangePair",
+						RuleID:   "equ:PhaseTapChangerNonLinear.xMin-valueRangePair",
+						Name:     "C:301:EQ:PhaseTapChangerNonLinear.xMin:valueRangePair",
 						Class:    "PhaseTapChangerNonLinear",
 						Property: "PhaseTapChangerNonLinear.xMin",
 						Message:  fmt.Sprintf("Inconsistency between PowerTransformerEnd.x (%v) and PhaseTapChangerNonLinear.xMin (%v).", end.X, ptcnl.XMin),
@@ -554,8 +555,8 @@ func CheckPowerTransformerEndRatedS2Winding(dataset *cimstructs.CIMDataset) []Vi
 		if ends[0].RatedS != ends[1].RatedS {
 			violations = append(violations, Violation{
 				ObjectID: ptID,
-				RuleID:   "eqc.PowerTransformerEnd.ratedS-valueRange2winding",
-				Name:     "PowerTransformerEnd.ratedS-valueRange2winding",
+				RuleID:   "equ:PowerTransformerEnd.ratedS-valueRange2winding",
+				Name:     "C:301:EQ:PowerTransformerEnd.ratedS:valueRange2winding",
 				Class:    "PowerTransformer",
 				Property: "PowerTransformerEnd.ratedS",
 				Message:  fmt.Sprintf("The RatedS value is different for a two-winding transformer. End 1: %v, End 2: %v.", ends[0].RatedS, ends[1].RatedS),
@@ -578,8 +579,8 @@ func CheckPowerTransformerBaseVoltageAssociation(dataset *cimstructs.CIMDataset)
 		if pt.BaseVoltage != nil {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.PowerTransformer-associationNotUsed",
-				Name:     "PowerTransformer-associationNotUsed",
+				RuleID:   "equ:PowerTransformer-associationNotUsed",
+				Name:     "C:301:EQ:PowerTransformer:associationNotUsed",
 				Class:    "PowerTransformer",
 				Property: "ConductingEquipment.BaseVoltage",
 				Message:  "The inherited association ConductingEquipment.BaseVoltage is used.",
@@ -609,8 +610,8 @@ func CheckPowerTransformerEndRValueRange(dataset *cimstructs.CIMDataset) []Viola
 				if !pt.Aggregate && end.R < 0 {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.PowerTransformerEnd.r-valueRange",
-						Name:     "PowerTransformerEnd.r-valueRange",
+						RuleID:   "equ:PowerTransformerEnd.r-valueRange",
+						Name:     "C:301:EQ:PowerTransformerEnd.r:valueRange",
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.r",
 						Message:  "The value is negative for a non-equivalent transformer.",
@@ -642,8 +643,8 @@ func CheckRegulatingControlTerminalConnectivityNode(dataset *cimstructs.CIMDatas
 				if term.ConnectivityNode == nil {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.RegulatingControl-terminalConnectivityNode",
-						Name:     "RegulatingControl-terminalConnectivityNode",
+						RuleID:   "equ:RegulatingControl-terminalConnectivityNode",
+						Name:     "C:301:EQ:RegulatingControl:terminalConnectivityNode",
 						Class:    "RegulatingControl",
 						Property: "RegulatingControl.Terminal",
 						Message:  "The Terminal referenced by the RegulatingControl is not associated with a ConnectivityNode.",
@@ -673,8 +674,8 @@ func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMDataset) []Violation {
 		if !tc.LtcFlag && tc.TapChangerControl != nil {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.TapChanger.ltcFlag-tapChangerControl",
-				Name:     "TapChanger.ltcFlag-tapChangerControl",
+				RuleID:   "equ:TapChanger.ltcFlag-tapChangerControl",
+				Name:     "C:301:EQ:TapChanger.ltcFlag:tapChangerControl",
 				Class:    "TapChanger",
 				Property: "TapChanger.ltcFlag",
 				Message:  "An artificial tap changer is used to simulate control behaviour in power flow (ltcFlag is false but TapChangerControl is present).",
@@ -689,57 +690,67 @@ func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMDataset) []Violation {
 // CheckLoadResponseCharacteristicExponentModel implements eqc.LoadResponseCharacteristic.exponentModel-exponentCoefficient
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
-// Description: Validates both the exponent and coefficient models, ensuring all required attributes
-// are present for the chosen model, no mixture of attributes exists, and sums of coefficients equal 1.
+// Description: Validates both the exponent and coefficient models: no mixture of attributes from the
+// other model exists, and (for the coefficient model) the P and Q coefficient sums equal 1.
+// Covers three sh:name branches from one compound shape: :exponent (exponentModel=true must not carry
+// coefficient-model attributes), :coefficient (exponentModel=false must not carry exponent-model
+// attributes), and :coefficientSum (when the coefficient model has no mixture, its P and Q sums must
+// equal 1). The upstream SPARQL also requires all attributes of the *chosen* model to be present, but
+// that direction isn't checked here: these are plain `float64` fields (`omitempty`), so a legitimate
+// 0 is indistinguishable from absent after decode — the same limitation documented for `sh:required`
+// on float fields elsewhere in this codebase. "Non-zero" unambiguously means present, so the mixture
+// checks below (which only need that direction) are sound; a "some required attribute is missing"
+// check would not be.
 func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, lrc := range dataset.LoadResponseCharacteristics {
-		// Exponent model attributes (active/reactive voltage/frequency exponents)
-		// Note: In cimstructs, these are typically float64, so we check if they are provided (non-zero).
-		// However, 0 is a valid value for an exponent.
-		// For simplicity in this implementation, we assume if they are part of the exchange, they are present.
-		// In a real RDF/XML dataset, "missing" would mean the tag is absent.
-		// Since cimstructs is a flat structure from XML, we might need to check if they were actually in the XML.
-		// But here we'll follow the logic of the SPARQL which checks for existence.
+		anyExponentBound := lrc.PFrequencyExponent != 0 || lrc.PVoltageExponent != 0 ||
+			lrc.QFrequencyExponent != 0 || lrc.QVoltageExponent != 0
+		anyCoeffBound := lrc.PConstantCurrent != 0 || lrc.PConstantImpedance != 0 || lrc.PConstantPower != 0 ||
+			lrc.QConstantCurrent != 0 || lrc.QConstantImpedance != 0 || lrc.QConstantPower != 0
 
-		// For the sake of the rule, we'll check if the model is consistent.
 		if lrc.ExponentModel {
-			// Exponential model: pFrequencyExponent, pVoltageExponent, qFrequencyExponent, qVoltageExponent required.
-			// Coefficient model attributes should NOT be present (should be 0 or default).
-			// This is tricky with Go structs if we don't have "IsSet" flags.
-			// Assuming non-zero means present for now, though it's imperfect.
-			// A better way would be to check if the sum of coefficients is non-zero.
-			if lrc.PConstantCurrent != 0 || lrc.PConstantImpedance != 0 || lrc.PConstantPower != 0 ||
-				lrc.QConstantCurrent != 0 || lrc.QConstantImpedance != 0 || lrc.QConstantPower != 0 {
+			if anyCoeffBound {
 				violations = append(violations, Violation{
 					ObjectID: id,
-					RuleID:   "eqc.LoadResponseCharacteristic.exponentModel-exponentCoefficient",
-					Name:     "LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+					RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+					Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:exponent",
 					Class:    "LoadResponseCharacteristic",
 					Property: "LoadResponseCharacteristic.exponentModel",
 					Message:  "Mixture of exponential and coefficient model attributes when exponentModel is true.",
 					Severity: "sh:Violation",
 				})
 			}
-		} else {
-			// Coefficient model: pConstantCurrent, pConstantImpedance, pConstantPower, qConstantCurrent, qConstantImpedance, qConstantPower required.
-			// Sums must equal 1.
-			pSum := lrc.PConstantCurrent + lrc.PConstantImpedance + lrc.PConstantPower
-			qSum := lrc.QConstantCurrent + lrc.QConstantImpedance + lrc.QConstantPower
+			continue
+		}
 
-			epsilon := 1e-6
-			if (pSum < 1-epsilon || pSum > 1+epsilon) || (qSum < 1-epsilon || qSum > 1+epsilon) {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					RuleID:   "eqc.LoadResponseCharacteristic.exponentModel-exponentCoefficient",
-					Name:     "LoadResponseCharacteristic.exponentModel-exponentCoefficient",
-					Class:    "LoadResponseCharacteristic",
-					Property: "LoadResponseCharacteristic.exponentModel",
-					Message:  fmt.Sprintf("The sum of coefficients does not equal 1 (P sum: %v, Q sum: %v).", pSum, qSum),
-					Severity: "sh:Violation",
-				})
-			}
+		if anyExponentBound {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+				Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficient",
+				Class:    "LoadResponseCharacteristic",
+				Property: "LoadResponseCharacteristic.exponentModel",
+				Message:  "Mixture of exponential and coefficient model attributes when exponentModel is false.",
+				Severity: "sh:Violation",
+			})
+			continue
+		}
+
+		pSum := lrc.PConstantCurrent + lrc.PConstantImpedance + lrc.PConstantPower
+		qSum := lrc.QConstantCurrent + lrc.QConstantImpedance + lrc.QConstantPower
+		const epsilon = 1e-6
+		if math.Abs(pSum-1) > epsilon || math.Abs(qSum-1) > epsilon {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+				Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficientSum",
+				Class:    "LoadResponseCharacteristic",
+				Property: "LoadResponseCharacteristic.exponentModel",
+				Message:  fmt.Sprintf("The sum of coefficients does not equal 1 (P sum: %v, Q sum: %v).", pSum, qSum),
+				Severity: "sh:Violation",
+			})
 		}
 	}
 
@@ -767,8 +778,8 @@ func CheckNonlinearShuntCompensatorPointCount(dataset *cimstructs.CIMDataset) []
 				if nsc.MaximumSections != count {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.ShuntCompensator.maximumSections-numberOfInstances",
-						Name:     "ShuntCompensator.maximumSections-numberOfInstances",
+						RuleID:   "equ:ShuntCompensator.maximumSections-numberOfInstances",
+						Name:     "C:301:EQ:NonlinearShuntCompensatorPoint:numberOfInstances",
 						Class:    "NonlinearShuntCompensator",
 						Property: "ShuntCompensator.maximumSections",
 						Message:  fmt.Sprintf("The number of NonlinearShuntCompenstorPoint instances (%d) does not equal to maximumSections (%d).", count, nsc.MaximumSections),
@@ -805,8 +816,8 @@ func CheckShuntCompensatorNomU(dataset *cimstructs.CIMDataset) []Violation {
 						if sc.NomU < 0.9*nomV || sc.NomU > 1.1*nomV {
 							violations = append(violations, Violation{
 								ObjectID: id,
-								RuleID:   "eqc.ShuntCompensator.nomU-nominalVoltageDifference",
-								Name:     "ShuntCompensator.nomU-nominalVoltageDifference",
+								RuleID:   "equ:ShuntCompensator.nomU-nominalVoltageDifference",
+								Name:     "C:301:EQ:ShuntCompensator.nomU:nominalVoltageDifference",
 								Class:    "ShuntCompensator",
 								Property: "ShuntCompensator.nomU",
 								Message:  fmt.Sprintf("The value nomU (%v) differs with more than 10%% of the nominal voltage (%v).", sc.NomU, nomV),
@@ -837,8 +848,8 @@ func CheckPhaseTapChangerAsymmetricalWindingConnectionAngle(dataset *cimstructs.
 		if !isMultipleOf30 || !inRange {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.PhaseTapChangerAsymmetrical.windingConnectionAngle-valueRange",
-				Name:     "PhaseTapChangerAsymmetrical.windingConnectionAngle-valueRange",
+				RuleID:   "equ:PhaseTapChangerAsymmetrical.windingConnectionAngle-valueRange",
+				Name:     "C:301:EQ:PhaseTapChangerAsymmetrical.windingConnectionAngle:valueRange",
 				Class:    "PhaseTapChangerAsymmetrical",
 				Property: "PhaseTapChangerAsymmetrical.windingConnectionAngle",
 				Message:  "The value is not a multiple of 30 degrees in the range of -150 to 150 degrees (excluding 0).",
@@ -873,8 +884,8 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimstructs.CIMDataset) []
 			if end.RatedU <= 0 {
 				violations = append(violations, Violation{
 					ObjectID: ptID, // Reporting on transformer or end? SHACL says target is PowerTransformer
-					RuleID:   "eqc.PowerTransformerEnd.ratedU-valueRange",
-					Name:     "PowerTransformerEnd.ratedU-valueRange",
+					RuleID:   "equ:PowerTransformerEnd.ratedU-valueRange",
+					Name:     "C:301:EQ:PowerTransformerEnd.ratedU:valueRange",
 					Class:    "PowerTransformer",
 					Property: "PowerTransformerEnd.ratedU",
 					Message:  fmt.Sprintf("The PowerTransformerEnd %s has a non-positive ratedU (%v).", end.MRID, end.RatedU),
@@ -892,8 +903,8 @@ func CheckPowerTransformerEndRatedUValueRange(dataset *cimstructs.CIMDataset) []
 		if end1 != nil && end1.RatedU < maxRatedU {
 			violations = append(violations, Violation{
 				ObjectID: ptID,
-				RuleID:   "eqc.PowerTransformerEnd.ratedU-valueRange",
-				Name:     "PowerTransformerEnd.ratedU-valueRange",
+				RuleID:   "equ:PowerTransformerEnd.ratedU-valueRange",
+				Name:     "C:301:EQ:PowerTransformerEnd.ratedU:valueRange",
 				Class:    "PowerTransformer",
 				Property: "PowerTransformerEnd.ratedU",
 				Message:  "The high voltage side (endNumber=1) does not have the highest ratedU.",
@@ -924,8 +935,8 @@ func CheckVoltageLimitPATL(dataset *cimstructs.CIMDataset) []Violation {
 				if olt.Kind.URI == patl {
 					violations = append(violations, Violation{
 						ObjectID: id,
-						RuleID:   "eqc.LimitKind.patl-allowedType",
-						Name:     "LimitKind.patl-allowedType",
+						RuleID:   "equ:LimitKind.patl-allowedType",
+						Name:     "C:301:EQ:LimitKind.patl:allowedType",
 						Class:    "VoltageLimit",
 						Property: "OperationalLimit.OperationalLimitType",
 						Message:  "PATL type is provided for VoltageLimit.",
@@ -978,8 +989,8 @@ func CheckDCConverterUnitTapChangerControl(dataset *cimstructs.CIMDataset) []Vio
 							if _, ok := ecObj.(*cimstructs.DCConverterUnit); ok {
 								violations = append(violations, Violation{
 									ObjectID: id,
-									RuleID:   "eqc.DCConverterUnit-tapChangerControl",
-									Name:     "DCConverterUnit-tapChangerControl",
+									RuleID:   "equ:DCConverterUnit-tapChangerControl",
+									Name:     "C:301:EQ:DCConverterUnit:tapChangerControl",
 									Class:    "TapChanger",
 									Property: "TapChanger.TapChangerControl",
 									Message:  "TapChangerControl is associated to a transformer contained in DCConverterUnit.",
@@ -1047,8 +1058,8 @@ func CheckConnectivityNodeTerminalPhasesConsistency(dataset *cimstructs.CIMDatas
 				if failed {
 					violations = append(violations, Violation{
 						ObjectID: nodeID,
-						RuleID:   "eqc.Terminal.phases-consistencyConnectivityNode",
-						Name:     "Terminal.phases-consistencyConnectivityNode",
+						RuleID:   "equ:Terminal.phases-consistencyConnectivityNode",
+						Name:     "C:301:EQ:Terminal.phases:consistencyConnectivityNode",
 						Class:    "ConnectivityNode",
 						Property: "Terminal.phases",
 						Message:  fmt.Sprintf("The phase codes for the connected terminals are not consistent. Terminal %s code: %s, Terminal %s code: %s.", terms[i].MRID, val1, terms[j].MRID, val2),
@@ -1075,8 +1086,8 @@ func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMDataset) []Violation 
 		if v.Aggregate {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.Equipment.aggregate-notUsed",
-				Name:     "Equipment.aggregate-notUsed",
+				RuleID:   "equ:Equipment.aggregate-notUsed",
+				Name:     "C:301:EQ:Equipment.aggregate:notUsed",
 				Class:    "EquivalentBranch",
 				Property: "Equipment.aggregate",
 				Message:  "Not allowed property (attribute).",
@@ -1088,8 +1099,8 @@ func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMDataset) []Violation 
 		if v.Aggregate {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.Equipment.aggregate-notUsed",
-				Name:     "Equipment.aggregate-notUsed",
+				RuleID:   "equ:Equipment.aggregate-notUsed",
+				Name:     "C:301:EQ:Equipment.aggregate:notUsed",
 				Class:    "EquivalentShunt",
 				Property: "Equipment.aggregate",
 				Message:  "Not allowed property (attribute).",
@@ -1101,8 +1112,8 @@ func CheckEquipmentAggregateNotUsed(dataset *cimstructs.CIMDataset) []Violation 
 		if v.Aggregate {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.Equipment.aggregate-notUsed",
-				Name:     "Equipment.aggregate-notUsed",
+				RuleID:   "equ:Equipment.aggregate-notUsed",
+				Name:     "C:301:EQ:Equipment.aggregate:notUsed",
 				Class:    "EquivalentInjection",
 				Property: "Equipment.aggregate",
 				Message:  "Not allowed property (attribute).",
@@ -1125,8 +1136,8 @@ func CheckEquivalentBranchR21Usage(dataset *cimstructs.CIMDataset) []Violation {
 		if eb.R21 != 0 && eb.R21 != eb.R {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.EquivalentBranch.r21-usage",
-				Name:     "EquivalentBranch.r21-usage",
+				RuleID:   "equ:EquivalentBranch.r21-usage",
+				Name:     "C:301:EQ:EquivalentBranch.r21:usage",
 				Class:    "EquivalentBranch",
 				Property: "EquivalentBranch.r21",
 				Message:  "Asymmetrical EquivalentBranch is modelled as EquivalentBranch.r is different from EquivalentBranch.r21.",
@@ -1149,8 +1160,8 @@ func CheckEquivalentBranchX21Usage(dataset *cimstructs.CIMDataset) []Violation {
 		if eb.X21 != 0 && eb.X21 != eb.X {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.EquivalentBranch.x21-usage",
-				Name:     "EquivalentBranch.x21-usage",
+				RuleID:   "equ:EquivalentBranch.x21-usage",
+				Name:     "C:301:EQ:EquivalentBranch.x21:usage",
 				Class:    "EquivalentBranch",
 				Property: "EquivalentBranch.x21",
 				Message:  "Asymmetrical EquivalentBranch is modelled as EquivalentBranch.x is different from EquivalentBranch.x21.",
@@ -1173,8 +1184,8 @@ func CheckEquivalentInjectionRegulationCapability(dataset *cimstructs.CIMDataset
 		if ei.ReactiveCapabilityCurve != nil && !ei.RegulationCapability {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.EquivalentInjection.regulationCapability-associatedCurve",
-				Name:     "EquivalentInjection.regulationCapability-associatedCurve",
+				RuleID:   "equ:EquivalentInjection.regulationCapability-associatedCurve",
+				Name:     "C:301:EQ:EquivalentInjection.regulationCapability:associatedCurve",
 				Class:    "EquivalentInjection",
 				Property: "EquivalentInjection.regulationCapability",
 				Message:  "The value does not allow a ReactiveCapabilityCurve to be associated.",
@@ -1247,8 +1258,8 @@ func CheckGeneratingUnitNominalP(dataset *cimstructs.CIMDataset) []Violation {
 		if np <= 0 || np > ratedS {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.GeneratingUnit.nominalP-valueRangePair",
-				Name:     "GeneratingUnit.nominalP-valueRangePair",
+				RuleID:   "equ:GeneratingUnit.nominalP-valueRangePair",
+				Name:     "C:301:EQ:GeneratingUnit.nominalP:valueRangePair",
 				Class:    typeName,
 				Property: "GeneratingUnit.nominalP",
 				Message:  fmt.Sprintf("The value (%v) is either negative, zero or greater than RotatingMachine.ratedS (%v).", np, ratedS),
@@ -1288,8 +1299,8 @@ func CheckControlAreaGeneratingUnitInstance(dataset *cimstructs.CIMDataset) []Vi
 	for guID := range duplicates {
 		violations = append(violations, Violation{
 			ObjectID: guID,
-			RuleID:   "eqc.ControlAreaGeneratingUnit.GeneratingUnit-instance",
-			Name:     "ControlAreaGeneratingUnit.GeneratingUnit-instance",
+			RuleID:   "equ:ControlAreaGeneratingUnit.GeneratingUnit-instance",
+			Name:     "C:301:EQ:ControlAreaGeneratingUnit.GeneratingUnit:instance",
 			Class:    "GeneratingUnit",
 			Property: "ControlAreaGeneratingUnit.GeneratingUnit",
 			Message:  "The GeneratingUnit is assigned to more than once in a ControlArea.",
@@ -1334,8 +1345,8 @@ func CheckDCConverterUnitCsConverterPowerTransformer(dataset *cimstructs.CIMData
 		reported[ecID] = true
 		violations = append(violations, Violation{
 			ObjectID: ecID,
-			RuleID:   "eqc.DCConverterUnit-cscPowerTransformer",
-			Name:     "DCConverterUnit-cscPowerTransformer",
+			RuleID:   "equ:DCConverterUnit-cscPowerTransformer",
+			Name:     "C:301:EQ:DCConverterUnit:cscPowerTransformer",
 			Class:    "DCConverterUnit",
 			Property: "Equipment.EquipmentContainer",
 			Message:  "A DCConverterUnit that contains CsConverter does not contain a PowerTransformer.",
@@ -1433,8 +1444,8 @@ func CheckLimitKindPATLNumberOfLimitType(dataset *cimstructs.CIMDataset) []Viola
 		if duplicate || (!infDurByOLT[oltID] && len(perSet) > 0) {
 			violations = append(violations, Violation{
 				ObjectID: oltID,
-				RuleID:   "eqc.LimitKind.patl-numberOfLimitType",
-				Name:     "LimitKind.patl-numberOfLimitType",
+				RuleID:   "equ:LimitKind.patl-numberOfLimitType",
+				Name:     "C:301:EQ:LimitKind.patl:numberOfLimitType",
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.kind",
 				Message:  fmt.Sprintf("Either there is more than one PATL defined for a given OperationalLimitSet or OperationalLimitType.isInfiniteDuration is not set to true for PATL type. The OperationalLimitType.isInfiniteDuration is: %v.", infDurByOLT[oltID]),
@@ -1507,8 +1518,8 @@ func CheckLimitKindTCDuration(dataset *cimstructs.CIMDataset) []Violation {
 		if duplicate || dur != 0 {
 			violations = append(violations, Violation{
 				ObjectID: oltID,
-				RuleID:   "eqc.LimitKind.tc-duration",
-				Name:     "LimitKind.tc-duration",
+				RuleID:   "equ:LimitKind.tc-duration",
+				Name:     "C:301:EQ:LimitKind.tc:duration",
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.kind",
 				Message:  fmt.Sprintf("Either OperationalLimitType.acceptableDuration is present and different than 0 or there is more than one limit with TC type. The OperationalLimitType.acceptableDuration is: %v.", dur),
@@ -1530,8 +1541,8 @@ func CheckOperationalLimitTypeInfiniteDuration(dataset *cimstructs.CIMDataset) [
 		if !olt.IsInfiniteDuration && olt.AcceptableDuration == 0 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqc.OperationalLimitType.isInfiniteDuration-usage",
-				Name:     "OperationalLimitType.isInfiniteDuration-usage",
+				RuleID:   "equ:OperationalLimitType.isInfiniteDuration-usage",
+				Name:     "C:301:EQ:OperationalLimitType.isInfiniteDuration:usage",
 				Class:    "OperationalLimitType",
 				Property: "OperationalLimitType.acceptableDuration",
 				Message:  "The attribute is not present when .isInfiniteDuration is set to false.",
@@ -1574,7 +1585,7 @@ func CheckSynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violatio
 			violations = append(violations, Violation{
 				ObjectID: smID,
 				RuleID:   "eq452:SynchronousMachine-aggregate",
-				Name:     "SynchronousMachine-aggregate",
+				Name:     "C:452:EQ:SynchronousMachine:aggregate",
 				Class:    "SynchronousMachine",
 				Property: "Equipment.aggregate",
 				Message:  fmt.Sprintf("SynchronousMachine aggregate flag (%v) is not consistent with associated GeneratingUnit (%v).", sm.Aggregate, gu.Aggregate),
@@ -1617,7 +1628,7 @@ func CheckAsynchronousMachineAggregate(dataset *cimstructs.CIMDataset) []Violati
 			violations = append(violations, Violation{
 				ObjectID: amID,
 				RuleID:   "eq452:AsynchronousMachine-aggregate",
-				Name:     "AsynchronousMachine-aggregate",
+				Name:     "C:452:EQ:AsynchronousMachine:aggregate",
 				Class:    "AsynchronousMachine",
 				Property: "Equipment.aggregate",
 				Message:  fmt.Sprintf("AsynchronousMachine aggregate flag (%v) is not consistent with associated GeneratingUnit (%v).", am.Aggregate, gu.Aggregate),
@@ -1652,7 +1663,7 @@ func CheckSynchronousMachineControlMode(dataset *cimstructs.CIMDataset) []Violat
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:SynchronousMachine-controlMode",
-				Name:     "SynchronousMachine-controlMode",
+				Name:     "C:452:EQ:SynchronousMachine:controlMode",
 				Class:    "SynchronousMachine",
 				Property: "RegulatingCondEq.RegulatingControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a SynchronousMachine.", uri),
@@ -1682,7 +1693,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMDataset) []Viol
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "eq452:StaticVarCompensator-controlMode",
-						Name:     "StaticVarCompensator-controlMode",
+						Name:     "C:452:EQ:StaticVarCompensator:controlMode",
 						Class:    "StaticVarCompensator",
 						Property: "RegulatingCondEq.RegulatingControl",
 						Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a StaticVarCompensator.", uri),
@@ -1697,7 +1708,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMDataset) []Viol
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:StaticVarCompensator-controlMode",
-				Name:     "StaticVarCompensator-controlMode",
+				Name:     "C:452:EQ:StaticVarCompensator:controlMode",
 				Class:    "StaticVarCompensator",
 				Property: "StaticVarCompensator.sVCControlMode",
 				Message:  "StaticVarCompensator.sVCControlMode attribute is not allowed.",
@@ -1708,7 +1719,7 @@ func CheckStaticVarCompensatorControlMode(dataset *cimstructs.CIMDataset) []Viol
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:StaticVarCompensator-controlMode",
-				Name:     "StaticVarCompensator-controlMode",
+				Name:     "C:452:EQ:StaticVarCompensator:controlMode",
 				Class:    "StaticVarCompensator",
 				Property: "StaticVarCompensator.voltageSetPoint",
 				Message:  "StaticVarCompensator.voltageSetPoint attribute is not allowed.",
@@ -1737,7 +1748,7 @@ func CheckPhaseTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:PhaseTapChanger-controlModeP",
-				Name:     "PhaseTapChanger-controlModeP",
+				Name:     "C:452:EQ:PhaseTapChanger:controlModeP",
 				Class:    class,
 				Property: "TapChanger.TapChangerControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a PhaseTapChanger.", uri),
@@ -1792,7 +1803,7 @@ func CheckRatioTapChangerControlMode(dataset *cimstructs.CIMDataset) []Violation
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:RatioTapChanger-controlMode",
-				Name:     "RatioTapChanger-controlMode",
+				Name:     "C:452:EQ:RatioTapChanger:controlMode",
 				Class:    "RatioTapChanger",
 				Property: "TapChanger.TapChangerControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a RatioTapChanger.", uri),
@@ -1821,7 +1832,7 @@ func CheckShuntCompensatorControlMode(dataset *cimstructs.CIMDataset) []Violatio
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:ShuntCompensator-controlMode",
-				Name:     "ShuntCompensator-controlMode",
+				Name:     "C:452:EQ:ShuntCompensator:controlMode",
 				Class:    class,
 				Property: "RegulatingCondEq.RegulatingControl",
 				Message:  fmt.Sprintf("Unallowed regulating control mode '%v' for a ShuntCompensator.", uri),
@@ -1883,7 +1894,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimstructs.CIMDataset) []Vio
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "eq452:SynchronousMachine-reactiveLimits",
-						Name:     "SynchronousMachine-reactiveLimits",
+						Name:     "C:452:EQ:SynchronousMachine:reactiveLimits",
 						Class:    "SynchronousMachine",
 						Property: "SynchronousMachine.minQ",
 						Message:  fmt.Sprintf("SynchronousMachine.minQ (%v) is not equal to min of CurveData.y1value-s (%v).", sm.MinQ, minY1),
@@ -1894,7 +1905,7 @@ func CheckSynchronousMachineReactiveLimits(dataset *cimstructs.CIMDataset) []Vio
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "eq452:SynchronousMachine-reactiveLimits",
-						Name:     "SynchronousMachine-reactiveLimits",
+						Name:     "C:452:EQ:SynchronousMachine:reactiveLimits",
 						Class:    "SynchronousMachine",
 						Property: "SynchronousMachine.maxQ",
 						Message:  fmt.Sprintf("SynchronousMachine.maxQ (%v) is not equal to max of CurveData.y2value-s (%v).", sm.MaxQ, maxY2),
@@ -1920,7 +1931,7 @@ func CheckSynchronousMachineTypeCondenser(dataset *cimstructs.CIMDataset) []Viol
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:SynchronousMachine.type-condenser",
-				Name:     "SynchronousMachine.type-condenser",
+				Name:     "C:452:EQ:SynchronousMachine.type:condenser",
 				Class:    "SynchronousMachine",
 				Property: "SynchronousMachine.type",
 				Message:  "SynchronousMachine of type condenser with associated GeneratingUnit.",
@@ -1952,7 +1963,7 @@ func CheckVsCapabilityCurveCount(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:VsCapabilityCurve-VsCapabilityCurveCount",
-				Name:     "VsCapabilityCurve-VsCapabilityCurveCount",
+				Name:     "C:452:EQ:CurveData.Curve:VsCapabilityCurveCount",
 				Class:    "VsCapabilityCurve",
 				Property: "rdf:type",
 				Message:  fmt.Sprintf("Less than two instances of CurveData are associated (%v found).", count),
@@ -1979,7 +1990,7 @@ func CheckVsCapabilityCurveYValues(dataset *cimstructs.CIMDataset) []Violation {
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "eq452:VsCapabilityCurve-yvalues",
-						Name:     "VsCapabilityCurve-yvalues",
+						Name:     "C:452:EQ:CurveData.Curve:VsCapabilityCurve",
 						Class:    "CurveData",
 						Property: "CurveData.y2value",
 						Message:  fmt.Sprintf("CurveData.y2value (%v) is not greater than CurveData.y1value (%v) for VsCapabilityCurve.", cd.Y2value, cd.Y1value),
@@ -2020,7 +2031,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:GeneratingUnit-typeDependency",
-					Name:     "GeneratingUnit-typeDependency",
+					Name:     "C:452:EQ:GeneratingUnit:typeDependency",
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For condenser type, min/max operating P must be 0 (found min: %v, max: %v).", minP, maxP),
@@ -2032,7 +2043,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:GeneratingUnit-typeDependency",
-					Name:     "GeneratingUnit-typeDependency",
+					Name:     "C:452:EQ:GeneratingUnit:typeDependency",
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP >= 0 and maxP > 0 (found min: %v, max: %v).", uri, minP, maxP),
@@ -2044,7 +2055,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:GeneratingUnit-typeDependency",
-					Name:     "GeneratingUnit-typeDependency",
+					Name:     "C:452:EQ:GeneratingUnit:typeDependency",
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP < 0 and maxP <= 0 (found min: %v, max: %v).", uri, minP, maxP),
@@ -2056,7 +2067,7 @@ func CheckGeneratingUnitTypeDependency(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:GeneratingUnit-typeDependency",
-					Name:     "GeneratingUnit-typeDependency",
+					Name:     "C:452:EQ:GeneratingUnit:typeDependency",
 					Class:    "SynchronousMachine",
 					Property: "SynchronousMachine.type",
 					Message:  fmt.Sprintf("For %v type, minP < 0 and maxP > 0 (found min: %v, max: %v).", uri, minP, maxP),
@@ -2108,8 +2119,8 @@ func CheckCurveDataReactiveCapabilityLimits(dataset *cimstructs.CIMDataset) []Vi
 		if x2+(cd.Y1value*cd.Y1value) > s2+epsilon {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eq452:CurveData.Curve-equationY1",
-				Name:     "CurveData.Curve-equationY1",
+				RuleID:   "eq452:CurveData-equationY1",
+				Name:     "C:452:EQ:CurveData.Curve:equationY1",
 				Class:    "CurveData",
 				Property: "CurveData.y1value",
 				Message:  fmt.Sprintf("x^2 + y1^2 (%v) > ratedS^2 (%v).", x2+(cd.Y1value*cd.Y1value), s2),
@@ -2119,8 +2130,8 @@ func CheckCurveDataReactiveCapabilityLimits(dataset *cimstructs.CIMDataset) []Vi
 		if x2+(cd.Y2value*cd.Y2value) > s2+epsilon {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eq452:CurveData.Curve-equationY2",
-				Name:     "CurveData.Curve-equationY2",
+				RuleID:   "eq452:CurveData-equationY2",
+				Name:     "C:452:EQ:CurveData.Curve:equationY2",
 				Class:    "CurveData",
 				Property: "CurveData.y2value",
 				Message:  fmt.Sprintf("x^2 + y2^2 (%v) > ratedS^2 (%v).", x2+(cd.Y2value*cd.Y2value), s2),
@@ -2156,8 +2167,8 @@ func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMDataset) []Violati
 			if cd.Y2value < cd.Y1value {
 				violations = append(violations, Violation{
 					ObjectID: pID,
-					RuleID:   "eq452:CurveData.Curve-reactive",
-					Name:     "CurveData.Curve-reactive",
+					RuleID:   "eq452:CurveData-reactive",
+					Name:     "C:452:EQ:CurveData.Curve:reactive",
 					Class:    "CurveData",
 					Property: "CurveData.y2value",
 					Message:  fmt.Sprintf("CurveData.y2value (%v) is less than y1value (%v).", cd.Y2value, cd.Y1value),
@@ -2171,8 +2182,8 @@ func CheckCurveDataReactiveConsistency(dataset *cimstructs.CIMDataset) []Violati
 		if allSame && len(pointIDs) > 0 {
 			violations = append(violations, Violation{
 				ObjectID: curveID,
-				RuleID:   "eq452:CurveData.Curve-reactive",
-				Name:     "CurveData.Curve-reactive",
+				RuleID:   "eq452:CurveData-reactive",
+				Name:     "C:452:EQ:CurveData.Curve:reactive",
 				Class:    "ReactiveCapabilityCurve",
 				Property: "rdf:type",
 				Message:  "All CurveData.y2value values are equal to CurveData.y1value values.",
@@ -2231,7 +2242,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMDatase
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:CurveData.xvalue-value",
-					Name:     "CurveData.xvalue-value",
+					Name:     "C:452:EQ:CurveData.xvalue:value",
 					Class:    "SynchronousMachine",
 					Property: "GeneratingUnit.minOperatingP",
 					Message:  fmt.Sprintf("GeneratingUnit.minOperatingP (%v) is not consistent with min CurveData.xvalue (%v).", gu.MinOperatingP, minX),
@@ -2242,7 +2253,7 @@ func CheckSynchronousMachineCurveXValueConsistency(dataset *cimstructs.CIMDatase
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:CurveData.xvalue-value",
-					Name:     "CurveData.xvalue-value",
+					Name:     "C:452:EQ:CurveData.xvalue:value",
 					Class:    "SynchronousMachine",
 					Property: "GeneratingUnit.maxOperatingP",
 					Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is not consistent with max CurveData.xvalue (%v).", gu.MaxOperatingP, maxX),
@@ -2318,7 +2329,7 @@ func CheckSwitchConnection(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: eqID,
 				RuleID:   "eq452:Switch-connection",
-				Name:     "Switch-connection",
+				Name:     "C:452:EQ:Switch:connection",
 				Class:    "Switch",
 				Property: "rdf:type",
 				Message:  "Switch (or its subclasses) connects ConnectivityNode-s that are not contained in either the same VoltageLevel or in different VoltageLevel-s which have the same BaseVoltage.",
@@ -2362,7 +2373,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimstructs.CIMDataset) []Violatio
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:OperationalLimitSet-limits",
-				Name:     "OperationalLimitSet-limits",
+				Name:     "C:452:EQ:OperationalLimitSet:limits",
 				Class:    "OperationalLimitSet",
 				Property: "OperationalLimitSet.Equipment",
 				Message:  "OperationalLimitSet.Equipment is not provided for a Terminal associated with AuxiliaryEquipment.",
@@ -2376,7 +2387,7 @@ func CheckOperationalLimitSetTerminal(dataset *cimstructs.CIMDataset) []Violatio
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:OperationalLimitSet-limits",
-					Name:     "OperationalLimitSet-limits",
+					Name:     "C:452:EQ:OperationalLimitSet:limits",
 					Class:    "OperationalLimitSet",
 					Property: "OperationalLimitSet.Terminal",
 					Message:  fmt.Sprintf("Terminal %s is not a terminal of ConductingEquipment %s.", tID, eqID),
@@ -2425,7 +2436,7 @@ func CheckTapChangerControlRemoteQControl(dataset *cimstructs.CIMDataset) []Viol
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "eq452:TapChangerControl-remoteQcontrol",
-						Name:     "TapChangerControl-remoteQcontrol",
+						Name:     "C:452:EQ:TapChangerControl:remoteQcontrol",
 						Class:    "TapChangerControl",
 						Property: "RegulatingControl.Terminal",
 						Message:  "TapChangerControl in reactivePower mode controls a Terminal not associated with its PowerTransformerEnd.",
@@ -2462,7 +2473,7 @@ func CheckReactiveCapabilityCurveXValueUnique(dataset *cimstructs.CIMDataset) []
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:ReactiveCapabilityCurve-xvalue",
-					Name:     "ReactiveCapabilityCurve-xvalue",
+					Name:     "C:452:EQ:ReactiveCapabiltyCurve.CurveData:xvalue",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("CurveData.xvalue (%v) for ReactiveCapabilityCurve is not unique.", xv),
@@ -2503,7 +2514,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMDataset) []
 					violations = append(violations, Violation{
 						ObjectID: teID,
 						RuleID:   "eq452:PowerTransformerEnd.x-value",
-						Name:     "PowerTransformerEnd.x-value",
+						Name:     "C:452:EQ:PowerTransformerEnd.x:value",
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.x",
 						Message:  fmt.Sprintf("PowerTransformerEnd.x (%v) for winding 1 of a two-winding transformer must be positive.", te.X),
@@ -2518,7 +2529,7 @@ func CheckPowerTransformerEndResistanceXValue(dataset *cimstructs.CIMDataset) []
 					violations = append(violations, Violation{
 						ObjectID: teID,
 						RuleID:   "eq452:PowerTransformerEnd.x-value",
-						Name:     "PowerTransformerEnd.x-value",
+						Name:     "C:452:EQ:PowerTransformerEnd.x:value",
 						Class:    "PowerTransformerEnd",
 						Property: "PowerTransformerEnd.x",
 						Message:  "PowerTransformerEnd.x cannot be zero for a three-winding transformer.",
@@ -2559,7 +2570,7 @@ func CheckGeneratingUnitMaxOperatingPRatedS(dataset *cimstructs.CIMDataset) []Vi
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eq452:GeneratingUnit.maxOperatingP-ratedS",
-				Name:     "GeneratingUnit.maxOperatingP-ratedS",
+				Name:     "C:452:EQ:GeneratingUnit:maxOperatingP:ratedS",
 				Class:    "GeneratingUnit",
 				Property: "GeneratingUnit.maxOperatingP",
 				Message:  fmt.Sprintf("GeneratingUnit.maxOperatingP (%v) is greater than sum of RotatingMachine.ratedS (%v).", gu.MaxOperatingP, sumRS),
@@ -2603,7 +2614,7 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimstructs.CIMD
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:HydroGeneratingUnit.energyConversionCapability-typeConsistency",
-					Name:     "HydroGeneratingUnit.energyConversionCapability-typeConsistency",
+					Name:     "C:452:EQ:HydroGeneratingUnit.energyConversionCapability:typeConsistency",
 					Class:    "HydroGeneratingUnit",
 					Property: "HydroGeneratingUnit.energyConversionCapability",
 					Message:  fmt.Sprintf("HydroGeneratingUnit as generator but associated SynchronousMachine type is '%v'.", uriSM),
@@ -2615,7 +2626,7 @@ func CheckHydroGeneratingUnitEnergyConversionCapability(dataset *cimstructs.CIMD
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:HydroGeneratingUnit.energyConversionCapability-typeConsistency",
-					Name:     "HydroGeneratingUnit.energyConversionCapability-typeConsistency",
+					Name:     "C:452:EQ:HydroGeneratingUnit.energyConversionCapability:typeConsistency",
 					Class:    "HydroGeneratingUnit",
 					Property: "HydroGeneratingUnit.energyConversionCapability",
 					Message:  fmt.Sprintf("HydroGeneratingUnit as pumpAndGenerator but associated SynchronousMachine type is '%v'.", uriSM),
@@ -2655,7 +2666,7 @@ func CheckTerminalConnectionSameNode(dataset *cimstructs.CIMDataset) []Violation
 			violations = append(violations, Violation{
 				ObjectID: eqID,
 				RuleID:   "eq452:Terminal-connection",
-				Name:     "Terminal-connection",
+				Name:     "C:452:EQ:Terminal:connection",
 				Class:    "ConductingEquipment",
 				Property: "rdf:type",
 				Message:  "Terminals of a two-terminal equipment connect to the same ConnectivityNode.",
@@ -2706,7 +2717,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMDataset) 
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:ReactiveCapabilityCurve-reactiveCountP",
-					Name:     "ReactiveCapabilityCurve-reactiveCountP",
+					Name:     "C:452:EQ:CurveData.Curve:reactiveCountP",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  "SynchronousMachine of type condenser should not have a ReactiveCapabilityCurve.",
@@ -2718,7 +2729,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMDataset) 
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:ReactiveCapabilityCurve-reactiveCountP",
-					Name:     "ReactiveCapabilityCurve-reactiveCountP",
+					Name:     "C:452:EQ:CurveData.Curve:reactiveCountP",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Generator type ReactiveCapabilityCurve needs at least 2 points (found %v).", count),
@@ -2730,7 +2741,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMDataset) 
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:ReactiveCapabilityCurve-reactiveCountP",
-					Name:     "ReactiveCapabilityCurve-reactiveCountP",
+					Name:     "C:452:EQ:CurveData.Curve:reactiveCountP",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Motor type ReactiveCapabilityCurve needs at least 2 points (found %v).", count),
@@ -2742,7 +2753,7 @@ func CheckReactiveCapabilityCurveReactiveCountP(dataset *cimstructs.CIMDataset) 
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq452:ReactiveCapabilityCurve-reactiveCountP",
-					Name:     "ReactiveCapabilityCurve-reactiveCountP",
+					Name:     "C:452:EQ:CurveData.Curve:reactiveCountP",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Combined type ReactiveCapabilityCurve needs at least 3 points (found %v).", count),
@@ -2778,7 +2789,7 @@ func CheckReactiveCapabilityCurveUnits(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq600:ReactiveCapabilityCurve-units",
-					Name:     "ReactiveCapabilityCurve-units",
+					Name:     "C:600:EQ:ReactiveCapabilityCurve:units",
 					Class:    "ReactiveCapabilityCurve",
 					Property: "rdf:type",
 					Message:  fmt.Sprintf("Incorrect units for ReactiveCapabilityCurve (x: %v, y1: %v, y2: %v). Expected x: W, y1: VAr, y2: VAr.", rcc.XUnit.URI, rcc.Y1Unit.URI, rcc.Y2Unit.URI),
@@ -2807,7 +2818,7 @@ func CheckSubstationCount(dataset *cimstructs.CIMDataset) []Violation {
 			Message:     fmt.Sprintf("The model has either one Substation or a Substation per VoltageLevel. Number of Substation-s: %v. Number of VoltageLevel-s: %v.", substations, voltageLevels),
 			Severity:    "sh:Warning",
 			RuleID:      "eq600:Substation-count",
-			Name:        "Substation-count",
+			Name:        "C:600:EQ:Substation:count",
 			Description: "The number of Substation-s shall reflect the design of the power system. Cases of a single Substation in a power system model or having a Substation per VoltageLevel are reported as warnings.",
 		})
 	}
@@ -2833,7 +2844,7 @@ func CheckTapChangerNeutralUValueRange(dataset *cimstructs.CIMDataset) []Violati
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eq600:TapChanger.neutralU-valueRangePair",
-					Name:     "TapChanger.neutralU-valueRangePair",
+					Name:     "C:600:EQ:TapChanger.neutralU:ValueRangePair",
 					Class:    class,
 					Property: "TapChanger.neutralU",
 					Message:  fmt.Sprintf("TapChanger.neutralU (%v) is not equal to PowerTransformerEnd.ratedU (%v).", neutralU, te.RatedU),

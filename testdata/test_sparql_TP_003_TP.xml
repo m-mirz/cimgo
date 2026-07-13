@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.1">
+    <cim:IdentifiedObject.name>TN 1</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalNode rdf:ID="TN.2">
+    <cim:IdentifiedObject.name>TN 2</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+
+  <!-- SW.OK: terminals on different TopologicalNodes — no violation -->
+  <cim:Terminal rdf:about="#Term.OK.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.OK.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.2" />
+  </cim:Terminal>
+
+  <!-- SW.BAD: both terminals on TN.1 — violation -->
+  <cim:Terminal rdf:about="#Term.BAD.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.BAD.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+
+  <!-- SW.NOT_RETAINED.OK: same TN but rule only applies to retained switches -->
+  <cim:Terminal rdf:about="#Term.NR.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.NR.2">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.1" />
+  </cim:Terminal>
+</rdf:RDF>

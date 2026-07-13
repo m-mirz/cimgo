@@ -5,6 +5,7 @@ import (
 	"cimgo/shaclimport"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -38,6 +39,59 @@ func resolveConcreteClasses(targets []shaclimport.TargetInfo) []string {
 		}
 	}
 	return result[:j+1]
+}
+
+// unsupportedTargetKinds returns the distinct target kinds on targets that
+// resolveConcreteClasses doesn't know how to turn into a concrete class (e.g.
+// "targetSubjectsOf", "targetObjectsOf", "unknown" for a SPARQL-based target).
+// Empty when targets is empty or every target did resolve (the normal case).
+func unsupportedTargetKinds(targets []shaclimport.TargetInfo) []string {
+	var kinds []string
+	for _, t := range targets {
+		if t.Kind == "targetClass" || t.Kind == "targetImplicitClass" || t.Kind == "targetNode" {
+			continue
+		}
+		if !slices.Contains(kinds, t.Kind) {
+			kinds = append(kinds, t.Kind)
+		}
+	}
+	sort.Strings(kinds)
+	return kinds
+}
+
+// pushUnsupportedTargetSkips records why every constraint under shape (and, recursively,
+// its nested sh:property shapes) isn't code-generated when shape's target is a kind
+// resolveConcreteClasses can't turn into a concrete class (targetSubjectsOf/targetObjectsOf/
+// a SPARQL-based target) -- otherwise these would silently contribute nothing to either the
+// generated or skipped counts (processShape's `if len(currentClasses) > 0` gate simply never
+// runs for them), an invisible gap in the "Generated SHACL Rules by Profile" report.
+func pushUnsupportedTargetSkips(shape shaclimport.ShapeInfo, kinds []string, skipEntries *[]skipEntry, skipIndex map[string]int) {
+	label := "(" + strings.Join(kinds, ",") + ")"
+	const reason = "unsupported SHACL target kind: no concrete class to generate checks against"
+	for _, c := range shape.Constraints {
+		prop := ""
+		if len(c.Path) > 0 {
+			prop = "." + strings.Join(c.Path, "/")
+		}
+		key := prop + "\x00" + c.Component + "\x00" + c.Name
+		if i, ok := skipIndex[key]; ok {
+			if !slices.Contains((*skipEntries)[i].Classes, label) {
+				(*skipEntries)[i].Classes = append((*skipEntries)[i].Classes, label)
+			}
+		} else {
+			skipIndex[key] = len(*skipEntries)
+			*skipEntries = append(*skipEntries, skipEntry{
+				Classes:   []string{label},
+				Prop:      prop,
+				Component: c.Component,
+				Name:      c.Name,
+				Reason:    reason,
+			})
+		}
+	}
+	for _, nested := range shape.Properties {
+		pushUnsupportedTargetSkips(nested, kinds, skipEntries, skipIndex)
+	}
 }
 
 func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []skipEntry) {
@@ -76,7 +130,7 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []skipEnt
 					if err != nil {
 						prop := ""
 						if len(c.Path) > 0 {
-							prop = "." + c.Path[0]
+							prop = "." + strings.Join(c.Path, "/")
 						}
 						key := prop + "\x00" + c.Component + "\x00" + c.Name
 						if i, ok := skipIndex[key]; ok {
@@ -107,6 +161,15 @@ func buildFileSpec(pkg string, fr *shaclimport.FileResults) (fileSpec, []skipEnt
 	}
 
 	for _, shape := range fr.Shapes {
+		if kinds := unsupportedTargetKinds(shape.Targets); len(kinds) > 0 {
+			// shape has at least one target of a kind resolveConcreteClasses can't
+			// turn into a concrete class (targetSubjectsOf/targetObjectsOf/etc) --
+			// as opposed to a targetClass/targetNode target that simply doesn't
+			// resolve to a known struct (e.g. md:FullModel), which stays silent
+			// exactly as it did before this fix.
+			pushUnsupportedTargetSkips(shape, kinds, &skipEntries, skipIndex)
+			continue
+		}
 		processShape(shape, nil)
 	}
 
@@ -143,6 +206,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 				Tag:         c.Component,
 				Component:   c.Component,
 				Property:    c.Component,
+				PathKey:     "",
 				Message:     strings.Trim(c.Message, "\""),
 				Severity:    c.Severity,
 				Prelude:     result.Prelude,
@@ -300,6 +364,7 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 		Tag:         tag,
 		Component:   c.Component,
 		Property:    tag,
+		PathKey:     strings.Join(c.Path, "/"),
 		Message:     strings.Trim(c.Message, "\""),
 		Severity:    severity,
 	}
@@ -580,6 +645,9 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			return checkSpec{}, nil, err
 		}
 		cs.Condition = cond
+		if k := field.Type.Kind(); k == reflect.Float32 || k == reflect.Float64 || k == reflect.Bool {
+			cs.NoV = true
+		}
 	case "sh:MinCountConstraintComponent":
 		guard, cond, err := minCountCondition(field, c.Payload["MinCount"])
 		if err != nil {
@@ -592,6 +660,9 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond
+		if int(shaclimport.AnyToFloat(c.Payload["MaxCount"])) >= 1 {
+			cs.NoV = true
+		}
 	case "sh:HasValueConstraintComponent":
 		guard, cond, err := hasValueCondition(field, c.Payload["Value"])
 		if err != nil {
@@ -677,6 +748,16 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	case "sh:DatatypeConstraintComponent":
 		guard, cond, dtImports, err := datatypeCondition(field, c.Payload["Datatype"])
 		if err != nil {
+			// Fallback: []string slice field (e.g. Model.Profile).
+			if field.Type.Kind() == reflect.Slice && field.Type.Elem().Kind() == reflect.String {
+				dt, _ := c.Payload["Datatype"].(string)
+				if sliceGuard, sliceImports, sliceErr := sliceStringDatatypeCondition(field, dt, cs); sliceErr == nil {
+					cs.Guard = sliceGuard
+					cs.SelfContained = true
+					imports = append(imports, sliceImports...)
+					return cs, imports, nil
+				}
+			}
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond

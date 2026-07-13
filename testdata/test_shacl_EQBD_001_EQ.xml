@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- ConnectivityNodeContainer referenced by both ConnectivityNodes -->
+  <cim:Line rdf:ID="Line.REF"/>
+  <!-- One ConnectivityNode per BoundaryPoint (inverse max-count = 1) -->
+  <cim:ConnectivityNode rdf:ID="ConnectivityNode.OK">
+    <cim:IdentifiedObject.mRID>ConnectivityNode.OK</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>CN-OK</cim:IdentifiedObject.name>
+    <cim:ConnectivityNode.ConnectivityNodeContainer rdf:resource="#Line.REF"/>
+  </cim:ConnectivityNode>
+  <cim:ConnectivityNode rdf:ID="ConnectivityNode.BAD">
+    <cim:IdentifiedObject.mRID>ConnectivityNode.BAD</cim:IdentifiedObject.mRID>
+    <cim:IdentifiedObject.name>CN-BAD</cim:IdentifiedObject.name>
+    <cim:ConnectivityNode.ConnectivityNodeContainer rdf:resource="#Line.REF"/>
+  </cim:ConnectivityNode>
+</rdf:RDF>

@@ -80,8 +80,8 @@ func CheckACLineSegmentBaseVoltage(dataset *cimstructs.CIMDataset) []Violation {
 		if v1 != v2 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "eqcns.ACLineSegment-baseVoltage",
-				Name:     "ACLineSegment-baseVoltage",
+				RuleID:   "eqn301:ACLineSegment-baseVoltage",
+				Name:     "C:301:EQ:ACLineSegment:baseVoltage",
 				Class:    "ACLineSegment",
 				Property: "ACLineSegment.BaseVoltage",
 				Message:  fmt.Sprintf("The ACLineSegment has different BaseVoltage.nominalVoltage at the two ends. Voltage at end 1 is: %v. Voltage at end 2 is: %v.", v1, v2),
@@ -156,7 +156,7 @@ func CheckRegulatingControlTargetValueTapChanger(dataset *cimstructs.CIMDataset)
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eqn452:RegulatingControl.targetValue-tapChanger",
-					Name:     "RegulatingControl.targetValue-tapChanger",
+					Name:     "C:452:EQ:RegulatingControl.targetValue:tapChanger",
 					Class:    "RegulatingControl",
 					Property: "RegulatingControl.targetValue",
 					Message:  fmt.Sprintf("Target value PU (%v) is outside TapChanger capability limits [%v, %v].", targetPU, lowerLimit, upperLimit),
@@ -240,7 +240,7 @@ func CheckACLineSegmentBaseVoltageDiff(dataset *cimstructs.CIMDataset) []Violati
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "eqn600:ACLineSegment-BaseVoltageDiff",
-				Name:     "ACLineSegment-BaseVoltageDiff",
+				Name:     "C:600:EQ:ACLineSegment:BaseVoltageDiff",
 				Class:    "ACLineSegment",
 				Property: "rdf:type",
 				Message:  fmt.Sprintf("More than 10%% difference of BaseVoltage.nominalVoltage at the two ends (V1: %v, V2: %v).", v1, v2),
@@ -305,7 +305,7 @@ func CheckBoundaryPointBppl(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: cnID,
 				RuleID:   "eqn600:BoundaryPoint-bppl1Bppl2",
-				Name:     "BoundaryPoint-bppl1Bppl2",
+				Name:     "C:600:EQ:BoundaryPoint:bppl1Bppl2",
 				Class:    "ConnectivityNode",
 				Property: "rdf:type",
 				Message:  "Boundary Point ConnectivityNode does not have an EquivalentInjection connected.",
@@ -316,7 +316,7 @@ func CheckBoundaryPointBppl(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: cnID,
 				RuleID:   "eqn600:BoundaryPoint-bppl3",
-				Name:     "BoundaryPoint-bppl3",
+				Name:     "C:600:EQ:BoundaryPoint:bppl3",
 				Class:    "ConnectivityNode",
 				Property: "rdf:type",
 				Message:  "Boundary Point ConnectivityNode does not have a two-terminal ConductingEquipment connected.",
@@ -364,7 +364,7 @@ func CheckEquivalentInjectionRegulationCapabilityNotHVDC(dataset *cimstructs.CIM
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "eqn600:EquivalentInjection.regulationCapability-notHVDC",
-					Name:     "EquivalentInjection.regulationCapability-notHVDC",
+					Name:     "C:600:EQ:EquivalentInjection.regulationCapability:notHvdc",
 					Class:    "EquivalentInjection",
 					Property: "EquivalentInjection.regulationCapability",
 					Message:  "EquivalentInjection at non-HVDC BoundaryPoint has regulationCapability=true or a ReactiveCapabilityCurve.",

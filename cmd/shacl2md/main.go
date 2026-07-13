@@ -183,10 +183,9 @@ func renderConstraintsList(sb *strings.Builder, constraints []shaclimport.Constr
 }
 
 func renderConstraintDetails(sb *strings.Builder, c shaclimport.ConstraintInfo, level int, visited map[string]bool) {
-	// Look for nested constraint lists in payload (And/Or/Xone/Not/Node/QualifiedValueShape)
 	var nestedLists [][]shaclimport.ConstraintInfo
+	var details []string
 
-	// Sort payload keys for deterministic output
 	keys := make([]string, 0, len(c.Payload))
 	for k := range c.Payload {
 		keys = append(keys, k)
@@ -198,31 +197,53 @@ func renderConstraintDetails(sb *strings.Builder, c shaclimport.ConstraintInfo, 
 		if list, ok := v.([]shaclimport.ConstraintInfo); ok {
 			nestedLists = append(nestedLists, list)
 		} else if list, ok := v.([]any); ok {
-			// Try to convert []any to []ConstraintInfo if possible
-			var ciList []shaclimport.ConstraintInfo
-			allCI := true
-			for _, item := range list {
-				if ci, ok := item.(shaclimport.ConstraintInfo); ok {
-					ciList = append(ciList, ci)
-				} else if m, ok := item.(map[string]any); ok {
-					// Handle JSON-like map structure if needed
-					data, _ := json.Marshal(m)
-					var ci shaclimport.ConstraintInfo
-					if err := json.Unmarshal(data, &ci); err == nil && ci.Component != "" {
-						ciList = append(ciList, ci)
+			if len(list) > 0 {
+				if _, isSubList := list[0].([]shaclimport.ConstraintInfo); isSubList {
+					// List-of-alternatives (e.g. sh:or Shapes): compact if all are single sh:class
+					if classes := classNamesFromAlternatives(list); classes != nil {
+						details = append(details, fmt.Sprintf("- %s: %s ", k, strings.Join(classes, ", ")))
 					} else {
-						allCI = false; break
+						for _, item := range list {
+							if subList, ok := item.([]shaclimport.ConstraintInfo); ok {
+								nestedLists = append(nestedLists, subList)
+							}
+						}
 					}
 				} else {
-					allCI = false; break
+					// Try to convert []any to flat []ConstraintInfo
+					var ciList []shaclimport.ConstraintInfo
+					allCI := true
+					for _, item := range list {
+						if ci, ok := item.(shaclimport.ConstraintInfo); ok {
+							ciList = append(ciList, ci)
+						} else if m, ok := item.(map[string]any); ok {
+							data, _ := json.Marshal(m)
+							var ci shaclimport.ConstraintInfo
+							if err := json.Unmarshal(data, &ci); err == nil && ci.Component != "" {
+								ciList = append(ciList, ci)
+							} else {
+								allCI = false; break
+							}
+						} else {
+							allCI = false; break
+						}
+					}
+					if allCI && len(ciList) > 0 {
+						nestedLists = append(nestedLists, ciList)
+					} else if !allCI && k != "Prefixes" && k != "Select" {
+						details = append(details, fmt.Sprintf("- %s: `%v` ", k, v))
+					}
 				}
-			}
-			if allCI && len(ciList) > 0 {
-				nestedLists = append(nestedLists, ciList)
 			}
 		} else if ci, ok := v.(shaclimport.ConstraintInfo); ok {
 			nestedLists = append(nestedLists, []shaclimport.ConstraintInfo{ci})
+		} else if k != "Prefixes" && k != "Select" {
+			details = append(details, fmt.Sprintf("- %s: `%v` ", k, v))
 		}
+	}
+
+	for _, d := range details {
+		sb.WriteString("  " + d + "\n")
 	}
 
 	if len(nestedLists) > 0 {
@@ -232,9 +253,6 @@ func renderConstraintDetails(sb *strings.Builder, c shaclimport.ConstraintInfo, 
 			if len(nestedLists) > 1 {
 				sub.WriteString(fmt.Sprintf("**Item %d:**\n\n", i+1))
 			}
-			// Use a dummy shape to reuse renderShapeContent logic if needed, 
-			// or just render the constraints directly.
-			// Here we just render the constraints directly.
 			sub.WriteString("**Constraints:**\n\n")
 			for _, ci := range list {
 				sub.WriteString(fmt.Sprintf("- **%s**\n", ci.Component))
@@ -258,20 +276,25 @@ func renderConstraintDetails(sb *strings.Builder, c shaclimport.ConstraintInfo, 
 				sb.WriteString("\n")
 			}
 		}
-		return
 	}
+}
 
-	// Normal attributes
-	var details []string
-	for k, v := range c.Payload {
-		if k != "Prefixes" && k != "Select" {
-			details = append(details, fmt.Sprintf("- %s: `%v` ", k, v))
+// classNamesFromAlternatives returns a compact list of backtick-quoted class names if every
+// alternative in a list-of-alternatives is a single sh:ClassConstraintComponent, or nil otherwise.
+func classNamesFromAlternatives(list []any) []string {
+	classes := make([]string, 0, len(list))
+	for _, item := range list {
+		subList, ok := item.([]shaclimport.ConstraintInfo)
+		if !ok || len(subList) != 1 || subList[0].Component != "sh:ClassConstraintComponent" {
+			return nil
 		}
+		cls, ok := subList[0].Payload["Class"].(string)
+		if !ok || cls == "" {
+			return nil
+		}
+		classes = append(classes, "`"+cls+"`")
 	}
-	sort.Strings(details)
-	for _, d := range details {
-		sb.WriteString("  " + d + "\n")
-	}
+	return classes
 }
 
 func main() {

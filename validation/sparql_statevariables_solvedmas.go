@@ -60,8 +60,8 @@ func CheckSvTapStepPositionRange(dataset *cimstructs.CIMDataset) []Violation {
 		if sv.Position < float64(low) || sv.Position > float64(high) {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "SvTapStep.position-valueRange",
-				Name:     "SvTapStep.position-valueRange",
+				RuleID:   "svs301:SvTapStep.position-valueRange",
+				Name:     "C:301:SV:SvTapStep.position:valueRange",
 				Class:    "SvTapStep",
 				Property: "SvTapStep.position",
 				Message:  fmt.Sprintf("The value (%v) is out of range [%d,%d].", sv.Position, low, high),
@@ -109,7 +109,7 @@ func CheckSvShuntCompensatorSectionsInteger(dataset *cimstructs.CIMDataset) []Vi
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "svs456:SvShuntCompensatorSections.sections-value",
-					Name:     "SvShuntCompensatorSections.sections-value",
+					Name:     "C:456:SV:SvShuntCompensatorSections.sections:value",
 					Class:    "SvShuntCompensatorSections",
 					Property: "SvShuntCompensatorSections.sections",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svsc.Sections),
@@ -158,7 +158,7 @@ func CheckSvTapStepPositionInteger(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "svs456:SvTapStep.position-value",
-					Name:     "SvTapStep.position-value",
+					Name:     "C:456:SV:SvTapStep.position:value",
 					Class:    "SvTapStep",
 					Property: "SvTapStep.position",
 					Message:  fmt.Sprintf("The value (%v) is not integer for an active discrete regulating control.", svts.Position),
@@ -199,7 +199,7 @@ func CheckSvSwitchInstance(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvSwitch-instance",
-				Name:     "SvSwitch-instance",
+				Name:     "C:456:SV:SvSwitch:instance",
 				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvSwitch not instantiated.",
 				Severity: "sh:Violation",
@@ -231,6 +231,32 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 	}
 
+	// Index terminals by their conducting equipment's mRID, and collect the
+	// set of terminal mRIDs that have an SvPowerFlow instance — both built
+	// once up front so the per-equipment lookups below are O(1) instead of
+	// a full scan of dataset.Terminals/SvPowerFlows for every equipment
+	// object (this loop previously ran in O(equipment × terminals +
+	// equipment × SvPowerFlows), which dominates RunValidation's time on
+	// RealGrid-scale datasets).
+	type terminalRef struct {
+		id   string
+		term *cimstructs.Terminal
+	}
+	terminalsByCE := make(map[string][]terminalRef)
+	for termID, term := range dataset.Terminals {
+		if term.ConductingEquipment != nil {
+			ceID := strings.TrimPrefix(term.ConductingEquipment.MRID, "#")
+			terminalsByCE[ceID] = append(terminalsByCE[ceID], terminalRef{termID, term})
+		}
+	}
+
+	svPowerFlowTerminalIDs := make(map[string]bool)
+	for _, svpf := range dataset.SvPowerFlows {
+		if svpf.Terminal != nil {
+			svPowerFlowTerminalIDs[strings.TrimPrefix(svpf.Terminal.MRID, "#")] = true
+		}
+	}
+
 	for id, obj := range dataset.ByID {
 		switch obj.(type) {
 		case *cimstructs.NonConformLoad, *cimstructs.EquivalentInjection, *cimstructs.EnergySource,
@@ -246,13 +272,13 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 			continue
 		}
 
+		terms := terminalsByCE[id]
+
 		energized := false
-		for _, term := range dataset.Terminals {
-			if term.ConductingEquipment != nil && strings.TrimPrefix(term.ConductingEquipment.MRID, "#") == id {
-				if term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(term.TopologicalNode.MRID, "#")] {
-					energized = true
-					break
-				}
+		for _, tr := range terms {
+			if tr.term.TopologicalNode != nil && tnInIsland[strings.TrimPrefix(tr.term.TopologicalNode.MRID, "#")] {
+				energized = true
+				break
 			}
 		}
 		if !energized {
@@ -260,20 +286,17 @@ func CheckSvPowerFlowInstance(dataset *cimstructs.CIMDataset) []Violation {
 		}
 
 		found := false
-		for _, svpf := range dataset.SvPowerFlows {
-			if svpf.Terminal != nil {
-				tID := strings.TrimPrefix(svpf.Terminal.MRID, "#")
-				if t, ok := dataset.Terminals[tID]; ok && t.ConductingEquipment != nil && strings.TrimPrefix(t.ConductingEquipment.MRID, "#") == id {
-					found = true
-					break
-				}
+		for _, tr := range terms {
+			if svPowerFlowTerminalIDs[tr.id] {
+				found = true
+				break
 			}
 		}
 		if !found {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow-instance",
-				Name:     "SvPowerFlow-instance",
+				Name:     "R:456:SV:SvPowerFlow:instance",
 				Class:    goTypeName(obj), Property: "rdf:type",
 				Message:  "SvPowerFlow is not instantiated for energized equipment.",
 				Severity: "sh:Violation",
@@ -318,7 +341,7 @@ func CheckSvPowerFlowPLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow.p-synchronousMachine",
-				Name:     "SvPowerFlow.p-synchronousMachine",
+				Name:     "C:456:SV:SvPowerFlow.p:synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.p",
 				Message:  fmt.Sprintf("Active power (%v) is outside of the range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.P, gu.MinOperatingP, gu.MaxOperatingP, sm.Id),
@@ -388,7 +411,7 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvPowerFlow.q-synchronousMachine",
-				Name:     "SvPowerFlow.q-synchronousMachine",
+				Name:     "C:456:SV:SvPowerFlow.q:synchronousMachine",
 				Class:    "SvPowerFlow",
 				Property: "SvPowerFlow.q",
 				Message:  fmt.Sprintf("Reactive power (%v) is outside of the capability range [Min:%v, Max:%v] for SynchronousMachine %s.", svpf.Q, minQ, maxQ, sm.Id),
@@ -405,6 +428,44 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 // Description: Validates SvVoltage.v against defined voltage limits and absolute 0.4 pu limit.
 func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
+
+	// terminalID -> highest VoltageLimit.value among OperationalLimitType.direction=high,
+	// lowest among direction=low, reached via VoltageLimit -> OperationalLimitSet -> Terminal.
+	terminalVHigh := make(map[string]float64)
+	terminalVLow := make(map[string]float64)
+	for _, vl := range dataset.VoltageLimits {
+		if vl.OperationalLimitSet == nil || vl.OperationalLimitType == nil {
+			continue
+		}
+		ols, ok := dataset.OperationalLimitSets[strings.TrimPrefix(vl.OperationalLimitSet.MRID, "#")]
+		if !ok || ols.Terminal == nil {
+			continue
+		}
+		olt, ok := dataset.OperationalLimitTypes[strings.TrimPrefix(vl.OperationalLimitType.MRID, "#")]
+		if !ok || olt.Direction == nil {
+			continue
+		}
+		termID := strings.TrimPrefix(ols.Terminal.MRID, "#")
+		switch olt.Direction.URI {
+		case cimstructs.OperationalLimitDirectionKindhigh:
+			if cur, ok := terminalVHigh[termID]; !ok || vl.Value > cur {
+				terminalVHigh[termID] = vl.Value
+			}
+		case cimstructs.OperationalLimitDirectionKindlow:
+			if cur, ok := terminalVLow[termID]; !ok || vl.Value < cur {
+				terminalVLow[termID] = vl.Value
+			}
+		}
+	}
+
+	// topologicalNodeID -> terminals connected to it.
+	tnTerminals := make(map[string][]string)
+	for termID, term := range dataset.Terminals {
+		if term.TopologicalNode != nil {
+			tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
+			tnTerminals[tnID] = append(tnTerminals[tnID], termID)
+		}
+	}
 
 	for id, svv := range dataset.SvVoltages {
 		if svv.TopologicalNode == nil {
@@ -430,7 +491,7 @@ func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "svs456:SvVoltage.v-absoluteLimit",
-				Name:     "SvVoltage.v-absoluteLimit",
+				Name:     "C:456:SV:SvVoltage.v:absoluteLimit",
 				Class:    "SvVoltage",
 				Property: "SvVoltage.v",
 				Message:  fmt.Sprintf("The value (%v) is <=0.4 pu of nominal voltage (%v).", v, nomV),
@@ -438,10 +499,27 @@ func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 			})
 		}
 
-		// 2. Defined limits (high/low Voltage)
-		// Find terminals connected to this TN, and then their limit sets
-		// This is complex to implement exactly as SPARQL in Go without deep indexing.
-		// For now, we omit the detailed limit check unless we find limit sets.
+		// 2. Defined limits (high/low Voltage) on any terminal connected to this TN.
+		outOfRange := false
+		for _, termID := range tnTerminals[tnID] {
+			vhigh, hasHigh := terminalVHigh[termID]
+			vlow, hasLow := terminalVLow[termID]
+			if hasHigh && hasLow && (v > vhigh || v < vlow) {
+				outOfRange = true
+				break
+			}
+		}
+		if outOfRange {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "svs456:SvVoltage.v-limits",
+				Name:     "C:456:SV:SvVoltage.v:limits",
+				Class:    "SvVoltage",
+				Property: "SvVoltage.v",
+				Message:  fmt.Sprintf("The value (%v) is outside the defined OperationalLimit (VoltageLimit) bounds.", v),
+				Severity: "sh:Violation",
+			})
+		}
 	}
 
 	return violations

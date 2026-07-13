@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 2. BAD: SvShuntCompensatorSections.sections=2 != SSH sections=1 -->
+  <cim:SvStatus rdf:ID="SVS.LSC.1">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#LSC.SYNC.BAD" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <cim:SvShuntCompensatorSections rdf:ID="SVSC.SYNC.BAD">
+    <cim:SvShuntCompensatorSections.ShuntCompensator rdf:resource="#LSC.SYNC.BAD" />
+    <cim:SvShuntCompensatorSections.sections>2.0</cim:SvShuntCompensatorSections.sections>
+  </cim:SvShuntCompensatorSections>
+
+  <!-- 3. BAD: SvTapStep.position=6 != SSH step=5 -->
+  <cim:SvTapStep rdf:ID="SVTS.SYNC.BAD">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.SYNC.BAD" />
+    <cim:SvTapStep.position>6.0</cim:SvTapStep.position>
+  </cim:SvTapStep>
+
+  <!-- 4a. BAD: SM.ENERGIZED.NO_STATUS is in a TopologicalIsland but has no SvStatus -->
+  <!-- No SvStatus for SM.ENERGIZED.NO_STATUS -->
+
+  <!-- 4b. BAD: LSC.ENERGIZED.NO_SVSC is inService but has no SvShuntCompensatorSections -->
+  <cim:SvStatus rdf:ID="SVS.LSC.2">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#LSC.ENERGIZED.NO_SVSC" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <!-- No SvShuntCompensatorSections for LSC.ENERGIZED.NO_SVSC -->
+</rdf:RDF>

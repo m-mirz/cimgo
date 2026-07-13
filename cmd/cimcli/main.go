@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -76,20 +77,25 @@ func runValidate(args []string) {
 		os.Exit(1)
 	}
 
-	dataset := cimstructs.NewCIMDataset()
-	profileDatasets := make(map[string]*cimstructs.CIMDataset)
-	eqbdBVIDs := make(map[string]struct{})
-	for _, file := range files {
+	readers := make([]io.Reader, len(files))
+	for i, file := range files {
 		b, err := os.ReadFile(file)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		isolated, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
-			os.Exit(1)
-		}
+		readers[i] = bytes.NewReader(b)
+	}
+	isolatedDatasets, err := cgmesxml.DecodeProfilesSeparate(readers)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding files: %v\n", err)
+		os.Exit(1)
+	}
+
+	dataset := cimstructs.NewCIMDataset()
+	profileDatasets := make(map[string]*cimstructs.CIMDataset)
+	eqbdBVIDs := make(map[string]struct{})
+	for i, isolated := range isolatedDatasets {
 		dc := validation.DetectConfig(isolated)
 		if len(dc.Profiles) == 1 {
 			name := dc.Profiles[0]
@@ -101,7 +107,7 @@ func runValidate(args []string) {
 			}
 		}
 		if err := cgmesxml.MergeInto(dataset, isolated); err != nil {
-			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
+			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", files[i], err)
 			os.Exit(1)
 		}
 	}
@@ -187,25 +193,30 @@ func runImport(args []string) {
 		os.Exit(1)
 	}
 
-	dataset := cimstructs.NewCIMDataset()
-	perFile := make([]map[string]interface{}, 0, len(files))
-	for _, file := range files {
+	readers := make([]io.Reader, len(files))
+	for i, file := range files {
 		b, err := os.ReadFile(file)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", file, err)
 			os.Exit(1)
 		}
-		isolated, err := cgmesxml.DecodeProfile(bytes.NewReader(b), nil)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", file, err)
-			os.Exit(1)
-		}
+		readers[i] = bytes.NewReader(b)
+	}
+	isolatedDatasets, err := cgmesxml.DecodeProfilesSeparate(readers)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error decoding files: %v\n", err)
+		os.Exit(1)
+	}
+
+	dataset := cimstructs.NewCIMDataset()
+	perFile := make([]map[string]interface{}, 0, len(files))
+	for i, isolated := range isolatedDatasets {
 		perFile = append(perFile, map[string]interface{}{
-			"file":  filepath.Base(file),
+			"file":  filepath.Base(files[i]),
 			"count": len(isolated.ByID),
 		})
 		if err := cgmesxml.MergeInto(dataset, isolated); err != nil {
-			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", file, err)
+			fmt.Fprintf(os.Stderr, "Error merging %s: %v\n", files[i], err)
 			os.Exit(1)
 		}
 	}

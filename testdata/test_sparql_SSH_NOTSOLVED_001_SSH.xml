@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. BAD: ControlArea.netInterchange is non-zero but no EquivalentInjections on BoundaryPoints -->
+  <cim:ControlArea rdf:about="#CA.INTERCHANGE.BAD">
+    <cim:ControlArea.netInterchange>100.0</cim:ControlArea.netInterchange>
+  </cim:ControlArea>
+
+  <!-- 2. BAD: CsConverter inverter must not have targetAlpha -->
+  <cim:CsConverter rdf:about="#CSC.INV.BAD.ALPHA">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.inverter" />
+    <cim:CsConverter.targetAlpha>15.0</cim:CsConverter.targetAlpha>
+  </cim:CsConverter>
+  <!-- BAD: CsConverter rectifier must not have targetGamma -->
+  <cim:CsConverter rdf:about="#CSC.RECT.BAD.GAMMA">
+    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.rectifier" />
+    <cim:CsConverter.targetGamma>18.0</cim:CsConverter.targetGamma>
+  </cim:CsConverter>
+
+  <!-- 3. BAD: sections exceeds maximumSections -->
+  <cim:LinearShuntCompensator rdf:about="#LSC.BAD.SECTIONS">
+    <cim:ShuntCompensator.sections>6.0</cim:ShuntCompensator.sections>
+  </cim:LinearShuntCompensator>
+  <!-- BAD: sections is non-integer for a discrete-controlled compensator -->
+  <cim:LinearShuntCompensator rdf:about="#LSC.NONINT.SECTIONS">
+    <cim:ShuntCompensator.sections>1.5</cim:ShuntCompensator.sections>
+  </cim:LinearShuntCompensator>
+  <!-- BAD: sections=2 but only sectionNumber=1 point exists -->
+  <cim:NonlinearShuntCompensator rdf:about="#NSC.BAD.SECTIONS">
+    <cim:ShuntCompensator.sections>2.0</cim:ShuntCompensator.sections>
+  </cim:NonlinearShuntCompensator>
+
+  <!-- 4. BAD: powerFactor RC is missing minAllowedTargetValue and maxAllowedTargetValue -->
+  <!-- RC.PF.BAD has no SSH extension; the missing attributes are the violation -->
+
+  <!-- 5. BAD: step is non-integer for a discrete tap-changer -->
+  <cim:RatioTapChanger rdf:about="#RTC.BAD.STEP">
+    <cim:TapChanger.step>1.5</cim:TapChanger.step>
+  </cim:RatioTapChanger>
+
+  <!-- 5b. BAD: step is non-integer for a discrete AND enabled tap-changer -->
+  <cim:RatioTapChanger rdf:about="#RTC.BAD.STEP.ENABLED">
+    <cim:TapChanger.step>2.5</cim:TapChanger.step>
+  </cim:RatioTapChanger>
+</rdf:RDF>

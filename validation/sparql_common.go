@@ -44,6 +44,7 @@ func CheckMRIDUniqueness(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "all600:All-GENC1",
+				Name:     "C:600:ALL:NA:GENC1",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.mRID",
 				Message:  "Not a unique identifier.",
@@ -126,6 +127,7 @@ func CheckIDUUID(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "all600:All-GENC4",
+				Name:     "C:600:ALL:NA:GENC4",
 				Class:    goTypeName(obj),
 				Property: "rdf:ID",
 				Message:  "Invalid syntax of ID (rdf:ID or rdf:about). UUID expected.",
@@ -158,6 +160,7 @@ func CheckIDDeprecated(dataset *cimstructs.CIMDataset) []Violation {
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "all600:All-GENC5",
+				Name:     "C:600:ALL:NA:GENC5",
 				Class:    goTypeName(obj),
 				Property: "rdf:ID",
 				Message:  "The ID string is more than 60 characters or the string does not begin with underscore.",
@@ -190,6 +193,7 @@ func CheckModelDateTimeUTC(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "all600:Model.created-HGEN4",
+					Name:     "C:600:ALL:Model.created:HGEN4",
 					Class:    goTypeName(obj),
 					Property: "Model.created",
 					Message:  "File header Model.created is not a valid UTC date time (missing 'Z').",
@@ -205,6 +209,7 @@ func CheckModelDateTimeUTC(dataset *cimstructs.CIMDataset) []Violation {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "all600:Model.scenarioTime-HGEN4",
+					Name:     "C:600:ALL:Model.scenarioTime:HGEN4",
 					Class:    goTypeName(obj),
 					Property: "Model.scenarioTime",
 					Message:  "File header Model.scenarioTime is not a valid UTC date time (missing 'Z').",
@@ -243,6 +248,7 @@ func CheckFloatSpecialValues(dataset *cimstructs.CIMDataset) []Violation {
 							violations = append(violations, Violation{
 								ObjectID: id,
 								RuleID:   "all600:Float-specialValues",
+								Name:     "C:301:ALL:Float:specialValues",
 								Class:    goTypeName(obj),
 								Property: field.Type().Field(j).Name,
 								Message:  "INF or NaN used in an attribute defined as float.",
@@ -259,6 +265,7 @@ func CheckFloatSpecialValues(dataset *cimstructs.CIMDataset) []Violation {
 					violations = append(violations, Violation{
 						ObjectID: id,
 						RuleID:   "all600:Float-specialValues",
+						Name:     "C:301:ALL:Float:specialValues",
 						Class:    goTypeName(obj),
 						Property: val.Type().Field(i).Name,
 						Message:  "INF or NaN used in an attribute defined as float.",
@@ -291,6 +298,7 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimstructs.CIMDataset) []Violati
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "all600:Model.modelingAuthoritySet-marp10-12",
+				Name:     "C:600:ALL:Model.modelingAuthoritySet:marp10-12",
 				Class:    goTypeName(obj),
 				Property: "Model.modelingAuthoritySet",
 				Message:  "The modelingAuthoritySet property is defined as empty.",
@@ -301,7 +309,7 @@ func CheckModelingAuthoritySetNotEmpty(dataset *cimstructs.CIMDataset) []Violati
 	return violations
 }
 
-// CheckIdentifiedObjectStringLengths implements iosl.IdentifiedObject.shortName-stringLength, iosl.IdentifiedObject.energyIdentCodeEic-stringLength, iosl.IdentifiedObject.name-stringLength and iosl.IdentifiedObject.description-stringLength
+// CheckIdentifiedObjectStringLengths implements io:IdentifiedObject.shortName-stringLength, io:IdentifiedObject.energyIdentCodeEic-stringLength, io:IdentifiedObject.name-stringLength and io:IdentifiedObject.description-stringLength
 // Profile: 61970-600-2_IdentifiedObjectCommon_AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
 // Description: Validates maximum string lengths for various IdentifiedObject attributes.
@@ -316,7 +324,8 @@ func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMDataset) []Violat
 		if len(io.ShortName) > 12 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "iosl:IdentifiedObject.shortName-stringLength",
+				RuleID:   "io:IdentifiedObject.shortName-stringLength",
+				Name:     "C:301:EQ:IdentifiedObject.shortName:stringLength|C:301:EQBD:IdentifiedObject.shortName:stringLength|C:301:TP:IdentifiedObject.shortName:stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.shortName",
 				Message:  "String length is greater than 12 characters.",
@@ -326,7 +335,8 @@ func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMDataset) []Violat
 		if io.EnergyIdentCodeEic != "" && len(io.EnergyIdentCodeEic) != 16 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "iosl:IdentifiedObject.energyIdentCodeEic-stringLength",
+				RuleID:   "io:IdentifiedObject.energyIdentCodeEic-stringLength",
+				Name:     "C:301:EQ:IdentifiedObject.energyIdentCodeEic:stringLength|C:301:EQBD:IdentifiedObject.energyIdentCodeEic:stringLength|C:301:TP:IdentifiedObject.energyIdentCodeEic:stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.energyIdentCodeEic",
 				Message:  "String length is not 16 characters.",
@@ -336,7 +346,8 @@ func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMDataset) []Violat
 		if len(io.Name) > 128 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "iosl:IdentifiedObject.name-stringLength",
+				RuleID:   "io:IdentifiedObject.name-stringLength",
+				Name:     "C:452:ALL:IdentifiedObject.name:stringLength|C:453:DL:IdentifiedObject.name:stringLength|C:456:TP:IdentifiedObject.name:stringLength|C:456:SV:IdentifiedObject.name:stringLength|C:457:DY:IdentifiedObject.name:stringLength|C:600:EQBD:IdentifiedObject.name:stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.name",
 				Message:  "String length is greater than 128 characters.",
@@ -346,7 +357,8 @@ func CheckIdentifiedObjectStringLengths(dataset *cimstructs.CIMDataset) []Violat
 		if len(io.Description) > 256 {
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "iosl:IdentifiedObject.description-stringLength",
+				RuleID:   "io:IdentifiedObject.description-stringLength",
+				Name:     "C:452:ALL:IdentifiedObject.description:stringLength|C:600:EQBD:IdentifiedObject.description:stringLength|C:457:DY:IdentifiedObject.description:stringLength|C:456:TP:IdentifiedObject.description:stringLength",
 				Class:    goTypeName(obj),
 				Property: "IdentifiedObject.description",
 				Message:  "String length is greater than 256 characters.",
@@ -366,6 +378,7 @@ func CheckFileHeaderExists(dataset *cimstructs.CIMDataset) []Violation {
 		return []Violation{{
 			ObjectID: "global",
 			RuleID:   "all600:All-HGEN2",
+			Name:     "C:600:ALL:NA:HGEN2",
 			Class:    "FullModel",
 			Property: "rdf:type",
 			Message:  "File header is missing.",

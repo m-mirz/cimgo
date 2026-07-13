@@ -42,10 +42,16 @@ func requiredCondition(field reflect.StructField) (string, error) {
 		return fmt.Sprintf("v.%s == \"\"", field.Name), nil
 	case reflect.Int, reflect.Int32, reflect.Int64:
 		return fmt.Sprintf("v.%s == 0", field.Name), nil
-	case reflect.Float32, reflect.Float64:
-		return "", fmt.Errorf("float Required is unreliable: zero is indistinguishable from absent")
-	case reflect.Bool:
-		return "", fmt.Errorf("bool Required is structurally satisfied: false is indistinguishable from absent")
+	case reflect.Float32, reflect.Float64, reflect.Bool:
+		// omitempty decode can't tell "0.0"/"false" from "absent" on the Go
+		// field itself, but the decoder's FieldOccurrences side-channel
+		// (cimxml.Decoder.recordOccurrence) counts every XML occurrence of
+		// the tag independent of its value, so absence is dataset.FieldOccurrences[id][tag] == 0.
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return fmt.Sprintf("dataset.FieldOccurrences[id][%q] == 0", tag), nil
 	default:
 		return "", fmt.Errorf("unsupported required kind %s", field.Type.Kind())
 	}
@@ -79,13 +85,21 @@ func maxCountCondition(field reflect.StructField, payload any) (string, string, 
 		if max == 0 {
 			return "", fmt.Sprintf("v.%s != nil", field.Name), nil
 		}
-		return "", "", fmt.Errorf("MaxCount=%d on pointer field is structurally satisfied", max)
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return "", fmt.Sprintf("dataset.FieldOccurrences[id][%q] > %d", tag, max), nil
 	case reflect.String, reflect.Int, reflect.Int32, reflect.Int64,
 		reflect.Float32, reflect.Float64, reflect.Bool:
 		if max == 0 {
 			return "", fmt.Sprintf("v.%s != %s", field.Name, zeroLiteralFor(field.Type.Kind())), nil
 		}
-		return "", "", fmt.Errorf("MaxCount=%d on scalar field is structurally satisfied", max)
+		tag := xmlLocal(field.Tag.Get("xml"))
+		if tag == "" {
+			return "", "", fmt.Errorf("field %s has no xml tag for occurrence lookup", field.Name)
+		}
+		return "", fmt.Sprintf("dataset.FieldOccurrences[id][%q] > %d", tag, max), nil
 	default:
 		return "", "", fmt.Errorf("MaxCount on %s field not supported", field.Type.Kind())
 	}
@@ -486,4 +500,62 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 		return guard, "parseErr != nil", []string{"net/url"}, nil
 	}
 	return "", "", nil, fmt.Errorf("Datatype %q not supported on string field", dt)
+}
+
+// sliceStringDatatypeCondition handles sh:Datatype for []string slice fields
+// (e.g. Model.Profile, a []string of xsd:anyURI values). It emits a
+// self-contained inner for-loop that validates each element's format and
+// appends violations directly. The caller must set SelfContained on the
+// checkSpec.
+func sliceStringDatatypeCondition(field reflect.StructField, dt string, cs checkSpec) (string, []string, error) {
+	if field.Type.Kind() != reflect.Slice || field.Type.Elem().Kind() != reflect.String {
+		return "", nil, fmt.Errorf("expected []string field, got %s", field.Type)
+	}
+	var parseLines []string
+	var failCond string
+	var imports []string
+	switch dt {
+	case "xsd:dateTime":
+		parseLines = []string{"_, parseErr := time.Parse(time.RFC3339, val)"}
+		failCond = "parseErr != nil"
+		imports = []string{"time"}
+	case "xsd:date":
+		parseLines = []string{`_, parseErr := time.Parse("2006-01-02", val)`}
+		failCond = "parseErr != nil"
+		imports = []string{"time"}
+	case "xsd:gMonthDay":
+		parseLines = []string{
+			`_, parseErr1 := time.Parse("--01-02", val)`,
+			`_, parseErr2 := time.Parse("01-02", val)`,
+		}
+		failCond = "parseErr1 != nil && parseErr2 != nil"
+		imports = []string{"time"}
+	case "xsd:anyURI":
+		parseLines = []string{"_, parseErr := url.ParseRequestURI(val)"}
+		failCond = "parseErr != nil"
+		imports = []string{"net/url"}
+	default:
+		return "", nil, fmt.Errorf("Datatype %q not supported on slice field", dt)
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "\t\tfor _, val := range v.%s {\n", field.Name)
+	b.WriteString("\t\t\tif val == \"\" {\n\t\t\t\tcontinue\n\t\t\t}\n")
+	for _, line := range parseLines {
+		fmt.Fprintf(&b, "\t\t\t%s\n", line)
+	}
+	fmt.Fprintf(&b, "\t\t\tif %s {\n", failCond)
+	b.WriteString("\t\t\t\tviolations = append(violations, shaclmodel.Violation{\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tObjectID:    id,\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tRuleID:      %q,\n", cs.RuleID)
+	fmt.Fprintf(&b, "\t\t\t\t\tClass:       %q,\n", cs.Class)
+	fmt.Fprintf(&b, "\t\t\t\t\tProperty:    %q,\n", cs.Property)
+	fmt.Fprintf(&b, "\t\t\t\t\tMessage:     %q,\n", cs.Message)
+	fmt.Fprintf(&b, "\t\t\t\t\tSeverity:    %q,\n", cs.Severity)
+	fmt.Fprintf(&b, "\t\t\t\t\tName:        %q,\n", cs.RuleName)
+	fmt.Fprintf(&b, "\t\t\t\t\tDescription: %q,\n", cs.Description)
+	b.WriteString("\t\t\t\t})\n")
+	b.WriteString("\t\t\t}\n")
+	b.WriteString("\t\t}")
+	return b.String(), imports, nil
 }

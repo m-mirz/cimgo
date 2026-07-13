@@ -1,54 +1,46 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:eu="http://iec.ch/TC57/CIM100-European#">
-  <!-- 1. ControlArea-netInterchangeCalculation -->
+  <!-- ControlArea: type is EQ; netInterchange (SSH) in SSH file -->
   <cim:ControlArea rdf:ID="CA.INTERCHANGE.BAD">
     <cim:ControlArea.type rdf:resource="http://iec.ch/TC57/CIM100#ControlAreaTypeKind.Interchange" />
-    <cim:ControlArea.netInterchange>100.0</cim:ControlArea.netInterchange>
   </cim:ControlArea>
-  <!-- No EquivalentInjections connected to BoundaryPoints, sum is 0. Expected violation. -->
 
-  <!-- 2. CsConverter target applicability -->
-  <cim:CsConverter rdf:ID="CSC.INV.BAD.ALPHA">
-    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.inverter" />
-    <cim:CsConverter.targetAlpha>15.0</cim:CsConverter.targetAlpha>
-  </cim:CsConverter>
-  <cim:CsConverter rdf:ID="CSC.RECT.BAD.GAMMA">
-    <cim:CsConverter.operatingMode rdf:resource="http://iec.ch/TC57/CIM100#CsOperatingModeKind.rectifier" />
-    <cim:CsConverter.targetGamma>18.0</cim:CsConverter.targetGamma>
-  </cim:CsConverter>
+  <!-- CsConverters: operatingMode and targets (SSH) in SSH file -->
+  <cim:CsConverter rdf:ID="CSC.INV.BAD.ALPHA" />
+  <cim:CsConverter rdf:ID="CSC.RECT.BAD.GAMMA" />
 
-  <!-- 3. ShuntCompensator sections range -->
+  <!-- ShuntCompensators: design limits are EQ; sections (SSH) in SSH file -->
   <cim:LinearShuntCompensator rdf:ID="LSC.BAD.SECTIONS">
     <cim:ShuntCompensator.maximumSections>5</cim:ShuntCompensator.maximumSections>
-    <cim:ShuntCompensator.sections>6.0</cim:ShuntCompensator.sections>
   </cim:LinearShuntCompensator>
-
   <cim:LinearShuntCompensator rdf:ID="LSC.NONINT.SECTIONS">
     <cim:RegulatingCondEq.RegulatingControl rdf:resource="#RC.DISCRETE" />
-    <cim:ShuntCompensator.sections>1.5</cim:ShuntCompensator.sections>
   </cim:LinearShuntCompensator>
-
-  <cim:NonlinearShuntCompensator rdf:ID="NSC.BAD.SECTIONS">
-    <cim:ShuntCompensator.sections>2.0</cim:ShuntCompensator.sections>
-  </cim:NonlinearShuntCompensator>
+  <cim:NonlinearShuntCompensator rdf:ID="NSC.BAD.SECTIONS" />
   <cim:NonlinearShuntCompensatorPoint rdf:ID="NSCP.1">
     <cim:NonlinearShuntCompensatorPoint.NonlinearShuntCompensator rdf:resource="#NSC.BAD.SECTIONS" />
     <cim:NonlinearShuntCompensatorPoint.sectionNumber>1</cim:NonlinearShuntCompensatorPoint.sectionNumber>
   </cim:NonlinearShuntCompensatorPoint>
-  <!-- Only point with sectionNumber 1 exists, sections=2.0 should fail. -->
 
-  <!-- 4. RegulatingControl powerFactor required attrs -->
+  <!-- RegulatingControl: mode and discrete are EQ design attributes -->
   <cim:RegulatingControl rdf:ID="RC.PF.BAD">
     <cim:RegulatingControl.mode rdf:resource="http://iec.ch/TC57/CIM100#RegulatingControlModeKind.powerFactor" />
-    <!-- Missing min/maxAllowedTargetValue -->
   </cim:RegulatingControl>
 
-  <!-- 5. TapChanger step integer -->
+  <!-- TapChanger: TapChangerControl link is EQ; step (SSH) in SSH file -->
   <cim:TapChangerControl rdf:ID="TCC.DISCRETE">
     <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
   </cim:TapChangerControl>
   <cim:RatioTapChanger rdf:ID="RTC.BAD.STEP">
     <cim:TapChanger.TapChangerControl rdf:resource="#TCC.DISCRETE" />
-    <cim:TapChanger.step>1.5</cim:TapChanger.step>
+  </cim:RatioTapChanger>
+
+  <!-- TapChangerControl discrete AND enabled: non-integer step is C:456, not just C:301 -->
+  <cim:TapChangerControl rdf:ID="TCC.DISCRETE.ENABLED">
+    <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+  </cim:TapChangerControl>
+  <cim:RatioTapChanger rdf:ID="RTC.BAD.STEP.ENABLED">
+    <cim:TapChanger.TapChangerControl rdf:resource="#TCC.DISCRETE.ENABLED" />
   </cim:RatioTapChanger>
 </rdf:RDF>

@@ -708,6 +708,7 @@ Loop:
 		}
 		if len(finfo.parents) == len(parents) && finfo.name == start.Name.Local {
 			// It's a perfect match, unmarshal the field.
+			d.recordOccurrence(finfo.name)
 			return true, d.unmarshal(finfo.value(sv, initNilPointers), start, depth+1)
 		}
 		if len(finfo.parents) > len(parents) && finfo.parents[len(parents)] == start.Name.Local {

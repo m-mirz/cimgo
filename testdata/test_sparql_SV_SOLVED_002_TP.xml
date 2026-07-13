@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <cim:TopologicalNode rdf:ID="TN.REF">
+    <cim:IdentifiedObject.name>TN REF</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+  <cim:TopologicalNode rdf:ID="TN.OTHER">
+    <cim:IdentifiedObject.name>TN OTHER</cim:IdentifiedObject.name>
+  </cim:TopologicalNode>
+
+  <cim:TopologicalIsland rdf:ID="TI.1">
+    <cim:TopologicalIsland.AngleRefTopologicalNode rdf:resource="#TN.REF" />
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.REF" />
+  </cim:TopologicalIsland>
+  <cim:TopologicalIsland rdf:ID="TI.2">
+    <cim:TopologicalIsland.TopologicalNodes rdf:resource="#TN.OTHER" />
+  </cim:TopologicalIsland>
+
+  <cim:Terminal rdf:about="#Term.OK">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.REF" />
+  </cim:Terminal>
+  <cim:Terminal rdf:about="#Term.BAD.NODE">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.OTHER" />
+  </cim:Terminal>
+</rdf:RDF>

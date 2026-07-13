@@ -3,21 +3,18 @@
   <cim:Diagram rdf:ID="Diagram.D1">
     <cim:IdentifiedObject.name>D1</cim:IdentifiedObject.name>
   </cim:Diagram>
-  <cim:Substation rdf:ID="Substation.S1">
-    <cim:IdentifiedObject.name>S1</cim:IdentifiedObject.name>
-  </cim:Substation>
 
-  <!-- OK: points to Substation -->
+  <!-- OK: DiagramObject.IdentifiedObject points to Substation (EQ object) -->
   <cim:DiagramObject rdf:ID="DiagramObject.OK">
     <cim:DiagramObject.IdentifiedObject rdf:resource="#Substation.S1" />
   </cim:DiagramObject>
 
-  <!-- BAD: points to Diagram -->
+  <!-- BAD: DiagramObject.IdentifiedObject points to a Diagram (DL object) -->
   <cim:DiagramObject rdf:ID="DiagramObject.BAD">
     <cim:DiagramObject.IdentifiedObject rdf:resource="#Diagram.D1" />
   </cim:DiagramObject>
 
-  <!-- BAD: TextDiagramObject points to Diagram -->
+  <!-- BAD: TextDiagramObject.IdentifiedObject points to a Diagram -->
   <cim:TextDiagramObject rdf:ID="TextDiagramObject.BAD">
     <cim:DiagramObject.IdentifiedObject rdf:resource="#Diagram.D1" />
   </cim:TextDiagramObject>

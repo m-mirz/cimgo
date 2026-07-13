@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <cim:AsynchronousMachine rdf:ID="AsynchronousMachine.REF">
-    <cim:IdentifiedObject.mRID>AsynchronousMachine.REF</cim:IdentifiedObject.mRID>
-    <cim:IdentifiedObject.name>AM1</cim:IdentifiedObject.name>
-  </cim:AsynchronousMachine>
   <!-- tppo must be < tpo (sh:lessThan) -->
   <!-- satisfies: statorLeakageReactance < xpp <= xp <= xs -->
   <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.OK">
     <cim:IdentifiedObject.mRID>AsynchronousMachineTimeConstantReactance.OK</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>AMTCR-OK</cim:IdentifiedObject.name>
+    <cim:DynamicsFunctionBlock.enabled>true</cim:DynamicsFunctionBlock.enabled>
     <cim:AsynchronousMachineDynamics.AsynchronousMachine rdf:resource="#AsynchronousMachine.REF"/>
     <cim:RotatingMachineDynamics.damping>0.1</cim:RotatingMachineDynamics.damping>
     <cim:RotatingMachineDynamics.inertia>3.0</cim:RotatingMachineDynamics.inertia>
@@ -24,6 +21,7 @@
   <cim:AsynchronousMachineTimeConstantReactance rdf:ID="AsynchronousMachineTimeConstantReactance.BAD">
     <cim:IdentifiedObject.mRID>AsynchronousMachineTimeConstantReactance.BAD</cim:IdentifiedObject.mRID>
     <cim:IdentifiedObject.name>AMTCR-BAD</cim:IdentifiedObject.name>
+    <cim:DynamicsFunctionBlock.enabled>true</cim:DynamicsFunctionBlock.enabled>
     <cim:AsynchronousMachineDynamics.AsynchronousMachine rdf:resource="#AsynchronousMachine.REF"/>
     <cim:RotatingMachineDynamics.damping>0.1</cim:RotatingMachineDynamics.damping>
     <cim:RotatingMachineDynamics.inertia>3.0</cim:RotatingMachineDynamics.inertia>

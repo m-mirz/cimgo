@@ -72,6 +72,31 @@ type Decoder struct {
 	// the attribute xmlns="DefaultSpace".
 	DefaultSpace string
 
+	// CurrentMRID is the mRID of the top-level CIM object currently being
+	// decoded via DecodeElement. Callers that decode one top-level element
+	// at a time (cgmesxml.DecodeProfile) must set this immediately before
+	// each DecodeElement call so unmarshalPath can attribute
+	// FieldOccurrences counts to the right object. Left empty (the zero
+	// value), occurrence recording is a no-op — this keeps direct/low-level
+	// uses of Decoder (tests, tools that don't go through cgmesxml) working
+	// unchanged.
+	CurrentMRID string
+
+	// FieldOccurrences counts, per (mRID, xml tag), how many times that XML
+	// element was seen as a direct child of CurrentMRID's top-level element
+	// during this decode. A plain Go zero value (0.0, false, "") can't tell
+	// "tag absent" from "tag present with zero value" from "tag repeated" —
+	// this side-channel makes all three distinguishable downstream (see
+	// cmd/shaclgen/conditions.go). Deliberately map-of-maps, not a flattened
+	// single map: benchmarked both a mrid+"\x00"+tag string-concat key and a
+	// struct{MRID,Tag string} key as alternatives, and both were slower than
+	// this nested form on RealGrid-scale data (a single map growing to
+	// millions of entries costs more per-op than many small per-object maps,
+	// despite the higher allocation count) — see plan doc's "Resolved"
+	// performance section. Populated by unmarshalPath in
+	// cimxml/cimxmlread.go; merged across files by cgmesxml (mergeOccurrences).
+	FieldOccurrences map[string]map[string]int
+
 	r              io.ByteReader
 	t              xml.TokenReader
 	buf            bytes.Buffer
@@ -95,10 +120,11 @@ type Decoder struct {
 // do its own buffering.
 func NewDecoder(r io.Reader) *Decoder {
 	d := &Decoder{
-		ns:       make(map[string]string),
-		nextByte: -1,
-		line:     1,
-		Strict:   true,
+		ns:               make(map[string]string),
+		nextByte:         -1,
+		line:             1,
+		Strict:           true,
+		FieldOccurrences: make(map[string]map[string]int),
 	}
 	d.switchToReader(r)
 	return d
@@ -111,13 +137,28 @@ func NewTokenDecoder(t xml.TokenReader) *Decoder {
 		return d
 	}
 	d := &Decoder{
-		ns:       make(map[string]string),
-		t:        t,
-		nextByte: -1,
-		line:     1,
-		Strict:   true,
+		ns:               make(map[string]string),
+		t:                t,
+		nextByte:         -1,
+		line:             1,
+		Strict:           true,
+		FieldOccurrences: make(map[string]map[string]int),
 	}
 	return d
+}
+
+// recordOccurrence increments the occurrence count for tag under the
+// decoder's CurrentMRID. No-op if CurrentMRID is unset.
+func (d *Decoder) recordOccurrence(tag string) {
+	if d.CurrentMRID == "" {
+		return
+	}
+	m := d.FieldOccurrences[d.CurrentMRID]
+	if m == nil {
+		m = make(map[string]int)
+		d.FieldOccurrences[d.CurrentMRID] = m
+	}
+	m[tag]++
 }
 
 // Token returns the next XML token in the input stream.

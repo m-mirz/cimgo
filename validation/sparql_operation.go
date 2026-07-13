@@ -64,7 +64,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMDataset) []Vio
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "opn452:Measurement.Terminal-requiredCases",
-					Name:     "Measurement.Terminal-requiredCases",
+					Name:     "C:452:OP:Measurement.Terminal:requiredCases",
 					Class:    class, Property: "Terminal",
 					Message:  fmt.Sprintf("Measurement.Terminal should not be exchanged for measurementType '%s'.", mType),
 					Severity: "sh:Violation",
@@ -77,7 +77,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMDataset) []Vio
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "opn452:Measurement.Terminal-requiredCases",
-				Name:     "Measurement.Terminal-requiredCases",
+				Name:     "C:452:OP:Measurement.Terminal:requiredCases",
 				Class:    class, Property: "Terminal",
 				Message:  fmt.Sprintf("Measurement.Terminal is required for measurementType '%s'.", mType),
 				Severity: "sh:Violation",
@@ -103,7 +103,7 @@ func CheckMeasurementTerminalRequiredCases(dataset *cimstructs.CIMDataset) []Vio
 			violations = append(violations, Violation{
 				ObjectID: id,
 				RuleID:   "opn452:Measurement.Terminal-requiredCases",
-				Name:     "Measurement.Terminal-requiredCases",
+				Name:     "C:452:OP:Measurement.Terminal:requiredCases",
 				Class:    class, Property: "Terminal",
 				Message:  fmt.Sprintf("Terminal %s is not a terminal of PowerSystemResource %s.", termID, psrID),
 				Severity: "sh:Violation",

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- 1. BAD: SM.ENERGIZED has SvStatus(inService=true) but no SvPowerFlow -->
+  <cim:SvStatus rdf:ID="SVS.SM.ENERGIZED">
+    <cim:SvStatus.ConductingEquipment rdf:resource="#SM.ENERGIZED" />
+    <cim:SvStatus.inService>true</cim:SvStatus.inService>
+  </cim:SvStatus>
+  <!-- Missing SvPowerFlow for SM.ENERGIZED -->
+
+  <!-- 2. BAD: SW.1 is present but has no SvSwitch -->
+  <!-- Missing SvSwitch for SW.1 -->
+
+  <!-- 3a. BAD: non-integer sections for discrete-controlled LSC -->
+  <cim:SvShuntCompensatorSections rdf:ID="SVSC.BAD">
+    <cim:SvShuntCompensatorSections.ShuntCompensator rdf:resource="#LSC.1" />
+    <cim:SvShuntCompensatorSections.sections>1.5</cim:SvShuntCompensatorSections.sections>
+  </cim:SvShuntCompensatorSections>
+
+  <!-- 3b. BAD: non-integer position for tap-changer under discrete RC -->
+  <cim:SvTapStep rdf:ID="SVTS.BAD">
+    <cim:SvTapStep.TapChanger rdf:resource="#RTC.1" />
+    <cim:SvTapStep.position>5.2</cim:SvTapStep.position>
+  </cim:SvTapStep>
+
+  <!-- 4. BAD: SvVoltage.v is 40/110 = 0.36 pu, below the 0.4 pu minimum -->
+  <cim:SvVoltage rdf:ID="SVV.BAD">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.BAD.VOLT" />
+    <cim:SvVoltage.v>40.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
+
+  <!-- 5. BAD: SvVoltage.v is 130, above the 120 high VoltageLimit on Term.LIMIT.1 -->
+  <cim:SvVoltage rdf:ID="SVV.LIMIT.BAD">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.LIMIT" />
+    <cim:SvVoltage.v>130.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
+
+  <!-- 5b. OK: within [100, 120] bounds -->
+  <cim:SvVoltage rdf:ID="SVV.LIMIT.OK">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.LIMIT" />
+    <cim:SvVoltage.v>110.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
+</rdf:RDF>

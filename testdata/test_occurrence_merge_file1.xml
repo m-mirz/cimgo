@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- Same mRID + same tag as test_occurrence_merge_file2.xml, one occurrence
+       per file. Cross-file merge must overwrite (count stays 1), not sum to 2. -->
+  <cim:ACLineSegment rdf:ID="ACL.CROSSFILE">
+    <cim:ACLineSegment.b0ch>0.1</cim:ACLineSegment.b0ch>
+  </cim:ACLineSegment>
+</rdf:RDF>

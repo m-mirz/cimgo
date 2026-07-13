@@ -70,8 +70,8 @@ func CheckMutualCouplingTerminalsAssignment(dataset *cimstructs.CIMDataset) []Vi
 			t2 := goTypeName(eq2Obj)
 			violations = append(violations, Violation{
 				ObjectID: id,
-				RuleID:   "sccns.MutualCoupling-terminalsAssignment",
-				Name:     "MutualCoupling-terminalsAssignment",
+				RuleID:   "scn301:MutualCoupling-terminalsAssignment",
+				Name:     "C:301:SC:MutualCoupling:terminalsAssignment",
 				Class:    "MutualCoupling",
 				Property: "MutualCoupling.First_Terminal",
 				Message:  fmt.Sprintf("The terminals are either not related to ACLineSegment or the first and the second terminal associations are not pointing to different ACLineSegments. Type line 1: %s. Type line 2: %s.", t1, t2),

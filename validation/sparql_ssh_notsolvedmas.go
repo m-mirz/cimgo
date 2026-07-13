@@ -140,17 +140,29 @@ func CheckRegulatingControlPowerFactorRequiredAttrs(dataset *cimstructs.CIMDatas
 	return violations
 }
 
-// CheckTapChangerStepInteger implements sshcns.TapChanger.step-valueType
-// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
-// Origin: Derived from a SPARQL constraint.
-// Description: For a discrete TapChangerControl the step value shall be integer.
+// CheckTapChangerStepInteger implements sshcns.TapChanger.step-valueType and
+// sshn456.TapChanger.step-value.
+// Profile: 61970-301_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS,
+//
+//	61970-456_SteadyStateHypothesis-AP-Con-Complex-NotSolvedMAS
+//
+// Origin: Derived from two SPARQL constraints sharing the same non-integer-step
+// detection: C:301 fires for any discrete TapChangerControl, C:456 additionally
+// requires the control to be enabled (i.e. actively regulating).
+// Description: For a discrete TapChangerControl the step value shall be integer;
+// if that control is also enabled, the same non-integer step is reported again
+// under the stricter "active discrete regulating control" rule.
 func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
-	tccDiscrete := make(map[string]bool)
+	type tccState struct {
+		discrete bool
+		enabled  bool
+	}
+	tccByID := make(map[string]tccState)
 	for id, obj := range dataset.ByID {
 		if tcc, ok := obj.(*cimstructs.TapChangerControl); ok {
-			tccDiscrete[id] = tcc.Discrete
+			tccByID[id] = tccState{discrete: tcc.Discrete, enabled: tcc.Enabled}
 		}
 	}
 
@@ -161,7 +173,8 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 			return
 		}
 		tccID := strings.TrimPrefix(tcc.MRID, "#")
-		if !tccDiscrete[tccID] {
+		state, ok := tccByID[tccID]
+		if !ok || !state.discrete {
 			return
 		}
 		if step != float64(int(step)) {
@@ -174,6 +187,17 @@ func CheckTapChangerStepInteger(dataset *cimstructs.CIMDataset) []Violation {
 				Message:  fmt.Sprintf("Non-integer value (%v) for a discrete TapChangerControl.", step),
 				Severity: "sh:Violation",
 			})
+			if state.enabled {
+				violations = append(violations, Violation{
+					ObjectID: id,
+					RuleID:   "sshn456:TapChanger.step-value",
+					Name:     "C:456:SSH:TapChanger.step:value",
+					Class:    class,
+					Property: "TapChanger.step",
+					Message:  fmt.Sprintf("Non-integer value (%v) for an active (enabled) discrete TapChangerControl.", step),
+					Severity: "sh:Violation",
+				})
+			}
 		}
 	}
 

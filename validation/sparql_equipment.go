@@ -3,6 +3,7 @@ package validation
 import (
 	"cimgo/cimstructs"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 )
@@ -689,29 +690,28 @@ func CheckTapChangerLtcFlagControl(dataset *cimstructs.CIMDataset) []Violation {
 // CheckLoadResponseCharacteristicExponentModel implements eqc.LoadResponseCharacteristic.exponentModel-exponentCoefficient
 // Profile: 61970-301_Equipment-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
-// Description: Validates both the exponent and coefficient models, ensuring all required attributes
-// are present for the chosen model, no mixture of attributes exists, and sums of coefficients equal 1.
+// Description: Validates both the exponent and coefficient models: no mixture of attributes from the
+// other model exists, and (for the coefficient model) the P and Q coefficient sums equal 1.
+// Covers three sh:name branches from one compound shape: :exponent (exponentModel=true must not carry
+// coefficient-model attributes), :coefficient (exponentModel=false must not carry exponent-model
+// attributes), and :coefficientSum (when the coefficient model has no mixture, its P and Q sums must
+// equal 1). The upstream SPARQL also requires all attributes of the *chosen* model to be present, but
+// that direction isn't checked here: these are plain `float64` fields (`omitempty`), so a legitimate
+// 0 is indistinguishable from absent after decode — the same limitation documented for `sh:required`
+// on float fields elsewhere in this codebase. "Non-zero" unambiguously means present, so the mixture
+// checks below (which only need that direction) are sound; a "some required attribute is missing"
+// check would not be.
 func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
 	for id, lrc := range dataset.LoadResponseCharacteristics {
-		// Exponent model attributes (active/reactive voltage/frequency exponents)
-		// Note: In cimstructs, these are typically float64, so we check if they are provided (non-zero).
-		// However, 0 is a valid value for an exponent.
-		// For simplicity in this implementation, we assume if they are part of the exchange, they are present.
-		// In a real RDF/XML dataset, "missing" would mean the tag is absent.
-		// Since cimstructs is a flat structure from XML, we might need to check if they were actually in the XML.
-		// But here we'll follow the logic of the SPARQL which checks for existence.
+		anyExponentBound := lrc.PFrequencyExponent != 0 || lrc.PVoltageExponent != 0 ||
+			lrc.QFrequencyExponent != 0 || lrc.QVoltageExponent != 0
+		anyCoeffBound := lrc.PConstantCurrent != 0 || lrc.PConstantImpedance != 0 || lrc.PConstantPower != 0 ||
+			lrc.QConstantCurrent != 0 || lrc.QConstantImpedance != 0 || lrc.QConstantPower != 0
 
-		// For the sake of the rule, we'll check if the model is consistent.
 		if lrc.ExponentModel {
-			// Exponential model: pFrequencyExponent, pVoltageExponent, qFrequencyExponent, qVoltageExponent required.
-			// Coefficient model attributes should NOT be present (should be 0 or default).
-			// This is tricky with Go structs if we don't have "IsSet" flags.
-			// Assuming non-zero means present for now, though it's imperfect.
-			// A better way would be to check if the sum of coefficients is non-zero.
-			if lrc.PConstantCurrent != 0 || lrc.PConstantImpedance != 0 || lrc.PConstantPower != 0 ||
-				lrc.QConstantCurrent != 0 || lrc.QConstantImpedance != 0 || lrc.QConstantPower != 0 {
+			if anyCoeffBound {
 				violations = append(violations, Violation{
 					ObjectID: id,
 					RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
@@ -722,24 +722,35 @@ func CheckLoadResponseCharacteristicExponentModel(dataset *cimstructs.CIMDataset
 					Severity: "sh:Violation",
 				})
 			}
-		} else {
-			// Coefficient model: pConstantCurrent, pConstantImpedance, pConstantPower, qConstantCurrent, qConstantImpedance, qConstantPower required.
-			// Sums must equal 1.
-			pSum := lrc.PConstantCurrent + lrc.PConstantImpedance + lrc.PConstantPower
-			qSum := lrc.QConstantCurrent + lrc.QConstantImpedance + lrc.QConstantPower
+			continue
+		}
 
-			epsilon := 1e-6
-			if (pSum < 1-epsilon || pSum > 1+epsilon) || (qSum < 1-epsilon || qSum > 1+epsilon) {
-				violations = append(violations, Violation{
-					ObjectID: id,
-					RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
-					Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:exponent",
-					Class:    "LoadResponseCharacteristic",
-					Property: "LoadResponseCharacteristic.exponentModel",
-					Message:  fmt.Sprintf("The sum of coefficients does not equal 1 (P sum: %v, Q sum: %v).", pSum, qSum),
-					Severity: "sh:Violation",
-				})
-			}
+		if anyExponentBound {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+				Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficient",
+				Class:    "LoadResponseCharacteristic",
+				Property: "LoadResponseCharacteristic.exponentModel",
+				Message:  "Mixture of exponential and coefficient model attributes when exponentModel is false.",
+				Severity: "sh:Violation",
+			})
+			continue
+		}
+
+		pSum := lrc.PConstantCurrent + lrc.PConstantImpedance + lrc.PConstantPower
+		qSum := lrc.QConstantCurrent + lrc.QConstantImpedance + lrc.QConstantPower
+		const epsilon = 1e-6
+		if math.Abs(pSum-1) > epsilon || math.Abs(qSum-1) > epsilon {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "equ:LoadResponseCharacteristic.exponentModel-exponentCoefficient",
+				Name:     "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficientSum",
+				Class:    "LoadResponseCharacteristic",
+				Property: "LoadResponseCharacteristic.exponentModel",
+				Message:  fmt.Sprintf("The sum of coefficients does not equal 1 (P sum: %v, Q sum: %v).", pSum, qSum),
+				Severity: "sh:Violation",
+			})
 		}
 	}
 

@@ -487,3 +487,61 @@ func datatypeCondition(field reflect.StructField, payload any) (string, string, 
 	}
 	return "", "", nil, fmt.Errorf("Datatype %q not supported on string field", dt)
 }
+
+// sliceStringDatatypeCondition handles sh:Datatype for []string slice fields
+// (e.g. Model.Profile, a []string of xsd:anyURI values). It emits a
+// self-contained inner for-loop that validates each element's format and
+// appends violations directly. The caller must set SelfContained on the
+// checkSpec.
+func sliceStringDatatypeCondition(field reflect.StructField, dt string, cs checkSpec) (string, []string, error) {
+	if field.Type.Kind() != reflect.Slice || field.Type.Elem().Kind() != reflect.String {
+		return "", nil, fmt.Errorf("expected []string field, got %s", field.Type)
+	}
+	var parseLines []string
+	var failCond string
+	var imports []string
+	switch dt {
+	case "xsd:dateTime":
+		parseLines = []string{"_, parseErr := time.Parse(time.RFC3339, val)"}
+		failCond = "parseErr != nil"
+		imports = []string{"time"}
+	case "xsd:date":
+		parseLines = []string{`_, parseErr := time.Parse("2006-01-02", val)`}
+		failCond = "parseErr != nil"
+		imports = []string{"time"}
+	case "xsd:gMonthDay":
+		parseLines = []string{
+			`_, parseErr1 := time.Parse("--01-02", val)`,
+			`_, parseErr2 := time.Parse("01-02", val)`,
+		}
+		failCond = "parseErr1 != nil && parseErr2 != nil"
+		imports = []string{"time"}
+	case "xsd:anyURI":
+		parseLines = []string{"_, parseErr := url.ParseRequestURI(val)"}
+		failCond = "parseErr != nil"
+		imports = []string{"net/url"}
+	default:
+		return "", nil, fmt.Errorf("Datatype %q not supported on slice field", dt)
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "\t\tfor _, val := range v.%s {\n", field.Name)
+	b.WriteString("\t\t\tif val == \"\" {\n\t\t\t\tcontinue\n\t\t\t}\n")
+	for _, line := range parseLines {
+		fmt.Fprintf(&b, "\t\t\t%s\n", line)
+	}
+	fmt.Fprintf(&b, "\t\t\tif %s {\n", failCond)
+	b.WriteString("\t\t\t\tviolations = append(violations, shaclmodel.Violation{\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tObjectID:    id,\n")
+	fmt.Fprintf(&b, "\t\t\t\t\tRuleID:      %q,\n", cs.RuleID)
+	fmt.Fprintf(&b, "\t\t\t\t\tClass:       %q,\n", cs.Class)
+	fmt.Fprintf(&b, "\t\t\t\t\tProperty:    %q,\n", cs.Property)
+	fmt.Fprintf(&b, "\t\t\t\t\tMessage:     %q,\n", cs.Message)
+	fmt.Fprintf(&b, "\t\t\t\t\tSeverity:    %q,\n", cs.Severity)
+	fmt.Fprintf(&b, "\t\t\t\t\tName:        %q,\n", cs.RuleName)
+	fmt.Fprintf(&b, "\t\t\t\t\tDescription: %q,\n", cs.Description)
+	b.WriteString("\t\t\t\t})\n")
+	b.WriteString("\t\t\t}\n")
+	b.WriteString("\t\t}")
+	return b.String(), imports, nil
+}

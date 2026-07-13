@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:cim="http://iec.ch/TC57/CIM100#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!-- LoadResponseCharacteristic.exponentModel: exponent/coefficient/coefficientSum -->
+
+  <!-- OK: coefficient model, sums to 1 for both P and Q, with some legitimately-zero
+       coefficients (regression case: zero must not be mistaken for "missing"). -->
+  <cim:LoadResponseCharacteristic rdf:ID="LRC.COEFF.OK.ZEROS">
+    <cim:LoadResponseCharacteristic.exponentModel>false</cim:LoadResponseCharacteristic.exponentModel>
+    <cim:LoadResponseCharacteristic.pConstantCurrent>0</cim:LoadResponseCharacteristic.pConstantCurrent>
+    <cim:LoadResponseCharacteristic.pConstantImpedance>0</cim:LoadResponseCharacteristic.pConstantImpedance>
+    <cim:LoadResponseCharacteristic.pConstantPower>1</cim:LoadResponseCharacteristic.pConstantPower>
+    <cim:LoadResponseCharacteristic.qConstantCurrent>0</cim:LoadResponseCharacteristic.qConstantCurrent>
+    <cim:LoadResponseCharacteristic.qConstantImpedance>0</cim:LoadResponseCharacteristic.qConstantImpedance>
+    <cim:LoadResponseCharacteristic.qConstantPower>1</cim:LoadResponseCharacteristic.qConstantPower>
+  </cim:LoadResponseCharacteristic>
+
+  <!-- OK: exponent model, no coefficient attributes set. -->
+  <cim:LoadResponseCharacteristic rdf:ID="LRC.EXP.OK">
+    <cim:LoadResponseCharacteristic.exponentModel>true</cim:LoadResponseCharacteristic.exponentModel>
+    <cim:LoadResponseCharacteristic.pVoltageExponent>1.5</cim:LoadResponseCharacteristic.pVoltageExponent>
+    <cim:LoadResponseCharacteristic.qVoltageExponent>2.0</cim:LoadResponseCharacteristic.qVoltageExponent>
+  </cim:LoadResponseCharacteristic>
+
+  <!-- BAD: exponentModel=true but a coefficient-model attribute is also set (mixture). -->
+  <cim:LoadResponseCharacteristic rdf:ID="LRC.EXP.BAD.MIXTURE">
+    <cim:LoadResponseCharacteristic.exponentModel>true</cim:LoadResponseCharacteristic.exponentModel>
+    <cim:LoadResponseCharacteristic.pVoltageExponent>1.5</cim:LoadResponseCharacteristic.pVoltageExponent>
+    <cim:LoadResponseCharacteristic.pConstantPower>1</cim:LoadResponseCharacteristic.pConstantPower>
+  </cim:LoadResponseCharacteristic>
+
+  <!-- BAD: exponentModel=false but an exponent-model attribute is also set (mixture). -->
+  <cim:LoadResponseCharacteristic rdf:ID="LRC.COEFF.BAD.MIXTURE">
+    <cim:LoadResponseCharacteristic.exponentModel>false</cim:LoadResponseCharacteristic.exponentModel>
+    <cim:LoadResponseCharacteristic.pConstantPower>1</cim:LoadResponseCharacteristic.pConstantPower>
+    <cim:LoadResponseCharacteristic.qConstantPower>1</cim:LoadResponseCharacteristic.qConstantPower>
+    <cim:LoadResponseCharacteristic.pVoltageExponent>1.5</cim:LoadResponseCharacteristic.pVoltageExponent>
+  </cim:LoadResponseCharacteristic>
+
+  <!-- BAD: exponentModel=false, no mixture, but coefficients don't sum to 1. -->
+  <cim:LoadResponseCharacteristic rdf:ID="LRC.COEFF.BAD.SUM">
+    <cim:LoadResponseCharacteristic.exponentModel>false</cim:LoadResponseCharacteristic.exponentModel>
+    <cim:LoadResponseCharacteristic.pConstantCurrent>0.2</cim:LoadResponseCharacteristic.pConstantCurrent>
+    <cim:LoadResponseCharacteristic.pConstantImpedance>0.2</cim:LoadResponseCharacteristic.pConstantImpedance>
+    <cim:LoadResponseCharacteristic.pConstantPower>0.2</cim:LoadResponseCharacteristic.pConstantPower>
+    <cim:LoadResponseCharacteristic.qConstantCurrent>1</cim:LoadResponseCharacteristic.qConstantCurrent>
+  </cim:LoadResponseCharacteristic>
+</rdf:RDF>

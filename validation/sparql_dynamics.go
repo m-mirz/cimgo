@@ -327,7 +327,9 @@ func CheckPssInputSignals(dataset *cimstructs.CIMDataset) []Violation {
 // CheckGovHydro4GainPoints implements various point sequence rules for GovHydro4
 // Profile: 61970-302_Dynamics-AP-Con-Complex
 // Origin: Derived from a SPARQL constraint.
-// Description: Validates sequential gain points (gv0-gv5, pgv0-pgv5) based on model type.
+// Description: Validates sequential gain points (gv0-gv5, pgv0-pgv5) and the Kaplan blade
+// servo points (bgv0-bgv5, which must be 0 for simple and francisPelton models) based on
+// model type.
 func CheckGovHydro4GainPoints(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
@@ -352,6 +354,12 @@ func CheckGovHydro4GainPoints(dataset *cimstructs.CIMDataset) []Violation {
 		}
 		if m == simple {
 			checkZero(v.Bmax, "bmax", "dyu:GovHydro4.bmax-valueRange", "C:302:DY:GovHydro4.bmax:valueRange")
+			checkZero(v.Bgv0, "bgv0", "dyu:GovHydro4.bgv0-valueRange", "C:302:DY:GovHydro4.bgv0:valueRange")
+			checkZero(v.Bgv1, "bgv1", "dyu:GovHydro4.bgv1-valueRange", "C:302:DY:GovHydro4.bgv1:valueRange")
+			checkZero(v.Bgv2, "bgv2", "dyu:GovHydro4.bgv2-valueRange", "C:302:DY:GovHydro4.bgv2:valueRange")
+			checkZero(v.Bgv3, "bgv3", "dyu:GovHydro4.bgv3-valueRange", "C:302:DY:GovHydro4.bgv3:valueRange")
+			checkZero(v.Bgv4, "bgv4", "dyu:GovHydro4.bgv4-valueRange", "C:302:DY:GovHydro4.bgv4:valueRange")
+			checkZero(v.Bgv5, "bgv5", "dyu:GovHydro4.bgv5-valueRange", "C:302:DY:GovHydro4.bgv5:valueRange")
 			checkZero(v.Gv0, "gv0", "dyu:GovHydro4.gv0-valueRange", "C:302:DY:GovHydro4.gv0:valueRange")
 			checkZero(v.Gv1, "gv1", "dyu:GovHydro4.gv1-valueRange", "C:302:DY:GovHydro4.gv1:valueRange")
 			checkZero(v.Gv2, "gv2", "dyu:GovHydro4.gv2-valueRange", "C:302:DY:GovHydro4.gv2:valueRange")
@@ -371,6 +379,23 @@ func CheckGovHydro4GainPoints(dataset *cimstructs.CIMDataset) []Violation {
 					Class: "GovHydro4", Property: "GovHydro4.bmax",
 					Message: "The value is not 0 when GovHydro4.model is francisPelton.", Severity: "sh:Violation",
 				})
+			}
+			if m == francisPelton {
+				checkZeroFP := func(val float64, prop, ruleID, name string) {
+					if val != 0 {
+						violations = append(violations, Violation{
+							ObjectID: id, RuleID: ruleID, Name: name,
+							Class: "GovHydro4", Property: "GovHydro4." + prop,
+							Message: "The value is not 0 when GovHydro4.model is francisPelton.", Severity: "sh:Violation",
+						})
+					}
+				}
+				checkZeroFP(v.Bgv0, "bgv0", "dyu:GovHydro4.bgv0-valueRange", "C:302:DY:GovHydro4.bgv0:valueRange")
+				checkZeroFP(v.Bgv1, "bgv1", "dyu:GovHydro4.bgv1-valueRange", "C:302:DY:GovHydro4.bgv1:valueRange")
+				checkZeroFP(v.Bgv2, "bgv2", "dyu:GovHydro4.bgv2-valueRange", "C:302:DY:GovHydro4.bgv2:valueRange")
+				checkZeroFP(v.Bgv3, "bgv3", "dyu:GovHydro4.bgv3-valueRange", "C:302:DY:GovHydro4.bgv3:valueRange")
+				checkZeroFP(v.Bgv4, "bgv4", "dyu:GovHydro4.bgv4-valueRange", "C:302:DY:GovHydro4.bgv4:valueRange")
+				checkZeroFP(v.Bgv5, "bgv5", "dyu:GovHydro4.bgv5-valueRange", "C:302:DY:GovHydro4.bgv5:valueRange")
 			}
 			// Sequence checks
 			if v.Gv1 <= v.Gv0 {

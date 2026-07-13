@@ -406,6 +406,44 @@ func CheckSvPowerFlowQLimits(dataset *cimstructs.CIMDataset) []Violation {
 func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 	var violations []Violation
 
+	// terminalID -> highest VoltageLimit.value among OperationalLimitType.direction=high,
+	// lowest among direction=low, reached via VoltageLimit -> OperationalLimitSet -> Terminal.
+	terminalVHigh := make(map[string]float64)
+	terminalVLow := make(map[string]float64)
+	for _, vl := range dataset.VoltageLimits {
+		if vl.OperationalLimitSet == nil || vl.OperationalLimitType == nil {
+			continue
+		}
+		ols, ok := dataset.OperationalLimitSets[strings.TrimPrefix(vl.OperationalLimitSet.MRID, "#")]
+		if !ok || ols.Terminal == nil {
+			continue
+		}
+		olt, ok := dataset.OperationalLimitTypes[strings.TrimPrefix(vl.OperationalLimitType.MRID, "#")]
+		if !ok || olt.Direction == nil {
+			continue
+		}
+		termID := strings.TrimPrefix(ols.Terminal.MRID, "#")
+		switch olt.Direction.URI {
+		case cimstructs.OperationalLimitDirectionKindhigh:
+			if cur, ok := terminalVHigh[termID]; !ok || vl.Value > cur {
+				terminalVHigh[termID] = vl.Value
+			}
+		case cimstructs.OperationalLimitDirectionKindlow:
+			if cur, ok := terminalVLow[termID]; !ok || vl.Value < cur {
+				terminalVLow[termID] = vl.Value
+			}
+		}
+	}
+
+	// topologicalNodeID -> terminals connected to it.
+	tnTerminals := make(map[string][]string)
+	for termID, term := range dataset.Terminals {
+		if term.TopologicalNode != nil {
+			tnID := strings.TrimPrefix(term.TopologicalNode.MRID, "#")
+			tnTerminals[tnID] = append(tnTerminals[tnID], termID)
+		}
+	}
+
 	for id, svv := range dataset.SvVoltages {
 		if svv.TopologicalNode == nil {
 			continue
@@ -438,10 +476,27 @@ func CheckSvVoltageLimits(dataset *cimstructs.CIMDataset) []Violation {
 			})
 		}
 
-		// 2. Defined limits (high/low Voltage)
-		// Find terminals connected to this TN, and then their limit sets
-		// This is complex to implement exactly as SPARQL in Go without deep indexing.
-		// For now, we omit the detailed limit check unless we find limit sets.
+		// 2. Defined limits (high/low Voltage) on any terminal connected to this TN.
+		outOfRange := false
+		for _, termID := range tnTerminals[tnID] {
+			vhigh, hasHigh := terminalVHigh[termID]
+			vlow, hasLow := terminalVLow[termID]
+			if hasHigh && hasLow && (v > vhigh || v < vlow) {
+				outOfRange = true
+				break
+			}
+		}
+		if outOfRange {
+			violations = append(violations, Violation{
+				ObjectID: id,
+				RuleID:   "svs456:SvVoltage.v-limits",
+				Name:     "C:456:SV:SvVoltage.v:limits",
+				Class:    "SvVoltage",
+				Property: "SvVoltage.v",
+				Message:  fmt.Sprintf("The value (%v) is outside the defined OperationalLimit (VoltageLimit) bounds.", v),
+				Severity: "sh:Violation",
+			})
+		}
 	}
 
 	return violations

@@ -34,4 +34,13 @@
   <cim:RatioTapChanger rdf:ID="RTC.BAD.STEP">
     <cim:TapChanger.TapChangerControl rdf:resource="#TCC.DISCRETE" />
   </cim:RatioTapChanger>
+
+  <!-- TapChangerControl discrete AND enabled: non-integer step is C:456, not just C:301 -->
+  <cim:TapChangerControl rdf:ID="TCC.DISCRETE.ENABLED">
+    <cim:RegulatingControl.discrete>true</cim:RegulatingControl.discrete>
+    <cim:RegulatingControl.enabled>true</cim:RegulatingControl.enabled>
+  </cim:TapChangerControl>
+  <cim:RatioTapChanger rdf:ID="RTC.BAD.STEP.ENABLED">
+    <cim:TapChanger.TapChangerControl rdf:resource="#TCC.DISCRETE.ENABLED" />
+  </cim:RatioTapChanger>
 </rdf:RDF>

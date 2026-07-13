@@ -36,4 +36,9 @@
   <cim:RatioTapChanger rdf:about="#RTC.BAD.STEP">
     <cim:TapChanger.step>1.5</cim:TapChanger.step>
   </cim:RatioTapChanger>
+
+  <!-- 5b. BAD: step is non-integer for a discrete AND enabled tap-changer -->
+  <cim:RatioTapChanger rdf:about="#RTC.BAD.STEP.ENABLED">
+    <cim:TapChanger.step>2.5</cim:TapChanger.step>
+  </cim:RatioTapChanger>
 </rdf:RDF>

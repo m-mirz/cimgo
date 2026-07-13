@@ -213,15 +213,19 @@ func TestValidateStateVariablesSolvedMASProfileSPARQL(t *testing.T) {
 		dataset := mergeDatasets(t, eqDataset, sshDataset, tpDataset, svDataset)
 		byID := indexByID(ValidateSVSolvedMASProfileSPARQL(dataset))
 		for _, id := range []string{
-			"SM.ENERGIZED", // Missing SvPowerFlow
-			"SW.1",         // Missing SvSwitch
-			"SVSC.BAD",     // Non-integer sections
-			"SVTS.BAD",     // Non-integer position
-			"SVV.BAD",      // < 0.4 pu
+			"SM.ENERGIZED",  // Missing SvPowerFlow
+			"SW.1",          // Missing SvSwitch
+			"SVSC.BAD",      // Non-integer sections
+			"SVTS.BAD",      // Non-integer position
+			"SVV.BAD",       // < 0.4 pu
+			"SVV.LIMIT.BAD", // Above the high VoltageLimit on its terminal
 		} {
 			if got := len(byID[id]); got == 0 {
 				t.Errorf("%s: expected violation, got none", id)
 			}
+		}
+		if got := len(byID["SVV.LIMIT.OK"]); got != 0 {
+			t.Errorf("SVV.LIMIT.OK: expected 0 violations, got %d: %v", got, byID["SVV.LIMIT.OK"])
 		}
 		logViolations(t, byID)
 	})
@@ -284,11 +288,35 @@ func TestValidateSSHNotSolvedMASProfileSPARQL(t *testing.T) {
 		"NSC.BAD.SECTIONS",
 		"RC.PF.BAD",
 		"RTC.BAD.STEP",
+		"RTC.BAD.STEP.ENABLED",
 	}
 	for _, id := range badIDs {
 		if got := len(byID[id]); got == 0 {
 			t.Errorf("%s: expected violation, got none", id)
 		}
+	}
+
+	// RTC.BAD.STEP is only discrete: fires C:301 alone. RTC.BAD.STEP.ENABLED is
+	// discrete AND enabled: fires C:301 (discrete) and C:456 (active discrete).
+	hasName := func(id, name string) bool {
+		for _, v := range byID[id] {
+			if v.Name == name {
+				return true
+			}
+		}
+		return false
+	}
+	if !hasName("RTC.BAD.STEP", "C:301:SSH:TapChanger.step:valueType") {
+		t.Errorf("RTC.BAD.STEP: expected C:301:SSH:TapChanger.step:valueType, got %v", byID["RTC.BAD.STEP"])
+	}
+	if hasName("RTC.BAD.STEP", "C:456:SSH:TapChanger.step:value") {
+		t.Errorf("RTC.BAD.STEP: did not expect C:456:SSH:TapChanger.step:value (control is not enabled), got %v", byID["RTC.BAD.STEP"])
+	}
+	if !hasName("RTC.BAD.STEP.ENABLED", "C:301:SSH:TapChanger.step:valueType") {
+		t.Errorf("RTC.BAD.STEP.ENABLED: expected C:301:SSH:TapChanger.step:valueType, got %v", byID["RTC.BAD.STEP.ENABLED"])
+	}
+	if !hasName("RTC.BAD.STEP.ENABLED", "C:456:SSH:TapChanger.step:value") {
+		t.Errorf("RTC.BAD.STEP.ENABLED: expected C:456:SSH:TapChanger.step:value, got %v", byID["RTC.BAD.STEP.ENABLED"])
 	}
 	logViolations(t, byID)
 }
@@ -406,6 +434,8 @@ func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 			"PSS.2ST.BAD",
 			"GOV.H4.SIMPLE.BAD",
 			"GOV.H4.KAPLAN.BAD",
+			"GOV.H4.BGV.SIMPLE.BAD",
+			"GOV.H4.BGV.FP.BAD",
 			"LOAD.STATIC.Z.BAD",
 			"SM.SAT.BAD",
 			"SMS.BAD",
@@ -413,6 +443,29 @@ func TestValidateDynamicsProfileSPARQL(t *testing.T) {
 		} {
 			if got := len(byID[id]); got == 0 {
 				t.Errorf("%s: expected violation, got none", id)
+			}
+		}
+		hasName := func(id, name string) bool {
+			for _, v := range byID[id] {
+				if v.Name == name {
+					return true
+				}
+			}
+			return false
+		}
+		if !hasName("GOV.H4.BGV.SIMPLE.BAD", "C:302:DY:GovHydro4.bgv0:valueRange") {
+			t.Errorf("GOV.H4.BGV.SIMPLE.BAD: expected C:302:DY:GovHydro4.bgv0:valueRange, got %v", byID["GOV.H4.BGV.SIMPLE.BAD"])
+		}
+		if !hasName("GOV.H4.BGV.FP.BAD", "C:302:DY:GovHydro4.bgv3:valueRange") {
+			t.Errorf("GOV.H4.BGV.FP.BAD: expected C:302:DY:GovHydro4.bgv3:valueRange, got %v", byID["GOV.H4.BGV.FP.BAD"])
+		}
+		// Every freestanding GovHydro4 in this file also fires the unrelated
+		// C:302:DY:TurbineGovernorDynamics:associationsCondition rule (missing
+		// SynchronousMachineDynamics/AsynchronousMachineDynamics link, not set up
+		// here); only assert that no bgv-related violation fires for the OK case.
+		for _, v := range byID["GOV.H4.BGV.KAPLAN.OK"] {
+			if strings.Contains(v.Name, "bgv") {
+				t.Errorf("GOV.H4.BGV.KAPLAN.OK: unexpected bgv violation (bgv is unconstrained for kaplan): %v", v)
 			}
 		}
 		logViolations(t, byID)
@@ -490,6 +543,36 @@ func TestValidateEquipmentProfileSPARQL(t *testing.T) {
 		}
 		if got := len(byID["RTC1"]); got != 1 {
 			t.Errorf("RTC1: expected 1 violation for neutralU sync, got %d: %v", got, byID["RTC1"])
+		}
+		logViolations(t, byID)
+	})
+
+	t.Run("LoadResponseCharacteristic", func(t *testing.T) {
+		// LoadResponseCharacteristic.exponentModel: exponent/coefficient/coefficientSum.
+		dataset := loadDataset(t, "../testdata/test_sparql_EQ_003.xml")
+		byID := indexByID(ValidateEQProfileSPARQL(dataset))
+		for _, id := range []string{"LRC.COEFF.OK.ZEROS", "LRC.EXP.OK"} {
+			if got := len(byID[id]); got != 0 {
+				t.Errorf("%s: expected 0 violations, got %d: %v", id, got, byID[id])
+			}
+		}
+		hasName := func(id, name string) bool {
+			for _, v := range byID[id] {
+				if v.Name == name {
+					return true
+				}
+			}
+			return false
+		}
+		cases := []struct{ id, name string }{
+			{"LRC.EXP.BAD.MIXTURE", "C:301:EQ:LoadResponseCharacteristic.exponentModel:exponent"},
+			{"LRC.COEFF.BAD.MIXTURE", "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficient"},
+			{"LRC.COEFF.BAD.SUM", "C:301:EQ:LoadResponseCharacteristic.exponentModel:coefficientSum"},
+		}
+		for _, c := range cases {
+			if !hasName(c.id, c.name) {
+				t.Errorf("%s: expected %s, got %v", c.id, c.name, byID[c.id])
+			}
 		}
 		logViolations(t, byID)
 	})

@@ -742,6 +742,16 @@ func buildCheckSpec(stemCamel, structName, shapeID string, structType reflect.Ty
 	case "sh:DatatypeConstraintComponent":
 		guard, cond, dtImports, err := datatypeCondition(field, c.Payload["Datatype"])
 		if err != nil {
+			// Fallback: []string slice field (e.g. Model.Profile).
+			if field.Type.Kind() == reflect.Slice && field.Type.Elem().Kind() == reflect.String {
+				dt, _ := c.Payload["Datatype"].(string)
+				if sliceGuard, sliceImports, sliceErr := sliceStringDatatypeCondition(field, dt, cs); sliceErr == nil {
+					cs.Guard = sliceGuard
+					cs.SelfContained = true
+					imports = append(imports, sliceImports...)
+					return cs, imports, nil
+				}
+			}
 			return checkSpec{}, nil, err
 		}
 		cs.Guard, cs.Condition = guard, cond

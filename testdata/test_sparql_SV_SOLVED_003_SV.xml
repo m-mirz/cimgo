@@ -27,4 +27,16 @@
     <cim:SvVoltage.TopologicalNode rdf:resource="#TN.BAD.VOLT" />
     <cim:SvVoltage.v>40.0</cim:SvVoltage.v>
   </cim:SvVoltage>
+
+  <!-- 5. BAD: SvVoltage.v is 130, above the 120 high VoltageLimit on Term.LIMIT.1 -->
+  <cim:SvVoltage rdf:ID="SVV.LIMIT.BAD">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.LIMIT" />
+    <cim:SvVoltage.v>130.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
+
+  <!-- 5b. OK: within [100, 120] bounds -->
+  <cim:SvVoltage rdf:ID="SVV.LIMIT.OK">
+    <cim:SvVoltage.TopologicalNode rdf:resource="#TN.LIMIT" />
+    <cim:SvVoltage.v>110.0</cim:SvVoltage.v>
+  </cim:SvVoltage>
 </rdf:RDF>

@@ -14,4 +14,12 @@
   <cim:TopologicalNode rdf:ID="TN.BAD.VOLT">
     <cim:TopologicalNode.BaseVoltage rdf:resource="#BV.110" />
   </cim:TopologicalNode>
+
+  <!-- TN.LIMIT: connects Term.LIMIT.1, which carries the high/low VoltageLimit -->
+  <cim:TopologicalNode rdf:ID="TN.LIMIT">
+    <cim:TopologicalNode.BaseVoltage rdf:resource="#BV.110" />
+  </cim:TopologicalNode>
+  <cim:Terminal rdf:about="#Term.LIMIT.1">
+    <cim:Terminal.TopologicalNode rdf:resource="#TN.LIMIT" />
+  </cim:Terminal>
 </rdf:RDF>

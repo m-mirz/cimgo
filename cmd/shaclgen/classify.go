@@ -14,6 +14,18 @@ type skipCategory struct {
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
+// classesContain reports whether any label in classes contains sub. Used to
+// inspect the "(kind1,kind2,...)" target-kind label pushUnsupportedTargetSkips
+// stores in skipEntry.Classes for shapes whose target isn't a concrete class.
+func classesContain(classes []string, sub string) bool {
+	for _, c := range classes {
+		if contains(c, sub) {
+			return true
+		}
+	}
+	return false
+}
+
 var skipCategories = []skipCategory{
 	// Simplified — dropped in SimplifyFileResults before code generation
 	{
@@ -36,7 +48,9 @@ var skipCategories = []skipCategory{
 	{
 		Label:   "`sh:optional` (minCount=0 + maxCount=1) structurally satisfied",
 		Section: "simplified",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "Optional") && contains(e.Reason, "structurally satisfied") },
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "Optional") && contains(e.Reason, "structurally satisfied")
+		},
 	},
 	// Skipped — ordered to match README table rows
 	{
@@ -47,7 +61,9 @@ var skipCategories = []skipCategory{
 	{
 		Label:   "`sh:maxCount 1` on scalar fields",
 		Section: "skipped",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "MaxCount=1 on scalar field is structurally satisfied") },
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "MaxCount=1 on scalar field is structurally satisfied")
+		},
 	},
 	{
 		Label:   "`sh:required` on `bool` fields",
@@ -57,12 +73,16 @@ var skipCategories = []skipCategory{
 	{
 		Label:   "`sh:maxCount 1` on pointer fields",
 		Section: "skipped",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "MaxCount=1 on pointer field is structurally satisfied") },
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "MaxCount=1 on pointer field is structurally satisfied")
+		},
 	},
 	{
 		Label:   "`sh:maxCount 1` on multi-hop paths",
 		Section: "skipped",
-		match:   func(e skipEntry) bool { return contains(e.Reason, "multi-segment MaxCount=1 is structurally satisfied") },
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "multi-segment MaxCount=1 is structurally satisfied")
+		},
 	},
 	{
 		Label:   "`sh:nodeKind` on `rdf:type` paths",
@@ -70,7 +90,7 @@ var skipCategories = []skipCategory{
 		match:   func(e skipEntry) bool { return contains(e.Reason, "NodeKind on path ending in rdf:type") },
 	},
 	{
-		Label:   "Inverse `sh:class`",
+		Label:   "`sh:class` vacuously true (inverse-index already type-asserts)",
 		Section: "skipped",
 		match: func(e skipEntry) bool {
 			return contains(e.Reason, "inverse Class") && contains(e.Reason, "structurally satisfied")
@@ -141,6 +161,25 @@ var skipCategories = []skipCategory{
 
 	// Other
 	{
+		// Checked ahead of the SPARQL-derived rule below so that target-kind takes
+		// precedence over the underlying constraint's own component: a handful of
+		// these (e.g. C:600:ALL:NA:FBOD4, the IdentifiedObject.* stringLength rules)
+		// happen to have Component == sh:SPARQLConstraintComponent too, since the
+		// CGMES rule they express is itself SPARQL-derived -- but the reason they
+		// can't be code-generated here is the unresolvable targetSubjectsOf/
+		// targetObjectsOf target, not the component type, so they're classified by
+		// target kind first. This matches cimoxide's precedence (codegen.rs's
+		// push_unsupported_target_skips matches on target kind before anything else):
+		// see the identically-named entries in both tools' `--skip-report` output for
+		// the same 5 sh:names.
+		Label:   "Unsupported `sh:target` kind (`targetSubjectsOf`/`targetObjectsOf`)",
+		Section: "other",
+		match: func(e skipEntry) bool {
+			return contains(e.Reason, "unsupported SHACL target kind") &&
+				(classesContain(e.Classes, "targetSubjectsOf") || classesContain(e.Classes, "targetObjectsOf"))
+		},
+	},
+	{
 		// See SPARQL Check Coverage in the README: this total isn't directly
 		// comparable to that table's TTL Total, even though both are "how much
 		// SPARQL is there" counts -- this one is every distinct (property,
@@ -148,13 +187,27 @@ var skipCategories = []skipCategory{
 		// skipIndex per buildFileSpec call) and *not* split on "|" for compound
 		// sh:name values, whereas ttl_report.go's sh:name-based count is deduped
 		// per profile group across all its files and does split on "|".
-		Label:   "SPARQL (see SPARQL Check Coverage below)",
+		//
+		// Also catches sh:sparql-based sh:target shapes (unsupportedTargetKinds'
+		// "sparqlTarget" label) -- those need a hand-written implementation for the
+		// exact same reason plain sh:sparql constraints do (no SPARQL evaluator),
+		// so they belong in this bucket rather than the target-kind rule above.
+		// This mirrors cimoxide's grouping (cimgen/src/shacl/skip.rs), which folds
+		// sh:target SPARQLTarget into its "SPARQL-derived constraints" row.
+		Label:   "SPARQL-derived constraints (see SPARQL Check Coverage below)",
 		Section: "other",
-		match:   func(e skipEntry) bool { return e.Component == "sh:SPARQLConstraintComponent" },
+		match: func(e skipEntry) bool {
+			if e.Component == "sh:SPARQLConstraintComponent" {
+				return true
+			}
+			return contains(e.Reason, "unsupported SHACL target kind") && classesContain(e.Classes, "sparqlTarget")
+		},
 	},
 }
 
-var skipCategoryOther = skipCategory{Label: "Other unsupported", Section: "other"}
+// skipCategoryOther is a safety-net fallback; every skip entry is expected to
+// match one of the categories above (see -skip-report's global total check).
+var skipCategoryOther = skipCategory{Label: "Unclassified", Section: "other"}
 
 func classify(e skipEntry) *skipCategory {
 	for i := range skipCategories {

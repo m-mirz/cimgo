@@ -14,6 +14,7 @@ import (
 func main() {
 	schemaPattern := flag.String("schema", cimgen.DefaultRDFSPattern, "glob pattern for CIM schema files")
 	outputDir := flag.String("out", "docs", "output directory for markdown files")
+	profileAttributes := flag.Bool("profile-attributes", false, "include attribute lists in profile overview mermaid diagrams")
 	flag.Parse()
 
 	classesDir := filepath.Join(*outputDir, "Classes")
@@ -62,7 +63,7 @@ func main() {
 
 	// Generate Profile Pages
 	for name, clsList := range profiles {
-		generateProfilePage(name, clsList, profilesDir, cimSpec.Types, cimSpec.Enums)
+		generateProfilePage(name, clsList, profilesDir, cimSpec.Types, cimSpec.Enums, *profileAttributes)
 	}
 
 	// Generate Indexes
@@ -200,7 +201,7 @@ func generateEnumPage(name string, data *cimgen.CIMEnum, outDir string) {
 	fmt.Fprint(f, "\n")
 }
 
-func generateProfilePage(name string, clsNames []string, outDir string, allClasses map[string]*cimgen.CIMType, allEnums map[string]*cimgen.CIMEnum) {
+func generateProfilePage(name string, clsNames []string, outDir string, allClasses map[string]*cimgen.CIMType, allEnums map[string]*cimgen.CIMEnum, showAttributes bool) {
 	filename := filepath.Join(outDir, sanitizeFilename(name)+".md")
 	f, _ := os.Create(filename)
 	defer f.Close()
@@ -227,7 +228,7 @@ func generateProfilePage(name string, clsNames []string, outDir string, allClass
 			if relevant[super] {
 				fmt.Fprintf(f, "    %s <|-- %s\n", super, n)
 				superType, superTypeExists := allClasses[super]
-				if superTypeExists && len(superType.Attributes) != 0 {
+				if showAttributes && superTypeExists && len(superType.Attributes) != 0 {
 					generateAttributesForMermaid(f, super, superType.Attributes)
 				}
 			}
@@ -244,7 +245,9 @@ func generateProfilePage(name string, clsNames []string, outDir string, allClass
 			}
 
 			// rendering attributes of package objects
-			generateAttributesForMermaid(f, n, clsData.Attributes)
+			if showAttributes {
+				generateAttributesForMermaid(f, n, clsData.Attributes)
+			}
 		}
 		fmt.Fprintf(f, "```\n")
 		fmt.Fprintf(f, "<button class=\"mermaid-enlarge-button\">Enlarge Diagram</button>\n\n")

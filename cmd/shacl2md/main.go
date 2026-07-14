@@ -129,6 +129,10 @@ func renderShapeBasicInfo(sb *strings.Builder, s shaclimport.ShapeInfo) {
 		sb.WriteString(fmt.Sprintf("**Path:** `%s`  \n", strings.Join(s.Path, " / ")))
 	}
 
+	if s.Name != "" {
+		sb.WriteString(fmt.Sprintf("**Name:** %s  \n", s.Name))
+	}
+
 	if s.Description != "" {
 		sb.WriteString(fmt.Sprintf("%s\n\n", s.Description))
 	}

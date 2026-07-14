@@ -135,6 +135,7 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 			if superTypeExists && len(superType.Attributes) != 0 {
 				generateAttributesForMermaid(f, data.SuperType, superType.Attributes)
 			}
+			fmt.Fprintf(f, "    click %s href \"%s\"\n", data.SuperType, sanitizeFilename(data.SuperType))
 		}
 		for _, sub := range subtypes[name] {
 			fmt.Fprintf(f, "    %s <|-- %s\n", name, sub)
@@ -142,6 +143,7 @@ func generateClassPage(name string, data *cimgen.CIMType, outDir string, subtype
 			if subTypeExists && len(subType.Attributes) != 0 {
 				generateAttributesForMermaid(f, sub, subType.Attributes)
 			}
+			fmt.Fprintf(f, "    click %s href \"%s\"\n", sub, sanitizeFilename(sub))
 		}
 		generateAttributesForMermaid(f, name, data.Attributes)
 
@@ -210,7 +212,7 @@ func generateProfilePage(name string, clsNames []string, outDir string, allClass
 
 	if len(clsNames) > 1 {
 		fmt.Fprintf(f, "## Overview Diagram\n\n")
-		fmt.Fprintf(f, "```mermaid\nclassDiagram\n")
+		fmt.Fprintf(f, "```mermaid\n---\n  config:\n    class:\n      hideEmptyMembersBox: true\n---\nclassDiagram\n")
 
 		relevant := make(map[string]bool)
 		for _, n := range clsNames {
